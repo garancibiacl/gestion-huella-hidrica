@@ -7,17 +7,27 @@ import {
   Leaf, 
   Settings, 
   LogOut,
-  Droplets
+  Droplets,
+  Users
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useRole } from '@/hooks/useRole';
 import { cn } from '@/lib/utils';
 
-const navItems = [
+interface NavItem {
+  icon: typeof LayoutDashboard;
+  label: string;
+  path: string;
+  adminOnly?: boolean;
+}
+
+const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: Upload, label: 'Importar Datos', path: '/importar' },
   { icon: Calendar, label: 'Períodos', path: '/periodos' },
   { icon: Leaf, label: 'Medidas Sustentables', path: '/medidas' },
   { icon: Settings, label: 'Configuración', path: '/configuracion' },
+  { icon: Users, label: 'Usuarios', path: '/admin/usuarios', adminOnly: true },
 ];
 
 interface AppSidebarProps {
@@ -27,10 +37,13 @@ interface AppSidebarProps {
 export function AppSidebar({ onClose }: AppSidebarProps) {
   const location = useLocation();
   const { signOut } = useAuth();
+  const { isAdmin } = useRole();
 
   const handleSignOut = async () => {
     await signOut();
   };
+
+  const filteredNavItems = navItems.filter(item => !item.adminOnly || isAdmin);
 
   return (
     <div className="flex flex-col h-full bg-sidebar border-r border-sidebar-border">
@@ -49,7 +62,7 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
+        {filteredNavItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
             <Link
