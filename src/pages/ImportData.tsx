@@ -167,6 +167,61 @@ function detectFormat(headers: string[]): FileFormat {
   return 'simple';
 }
 
+// Parse Chilean currency format (e.g., $109,242 or $1.234.567)
+function parseChileanCurrency(value: unknown): number | undefined {
+  if (typeof value === 'number') return value;
+  if (!value) return undefined;
+  
+  const str = String(value).trim();
+  // Remove $ and spaces, then handle Chilean format (dots as thousands separator)
+  const cleaned = str.replace(/[$\s]/g, '').replace(/\./g, '').replace(/,/g, '');
+  const num = parseInt(cleaned, 10);
+  return isNaN(num) ? undefined : num;
+}
+
+// Parse quantity that may have thousands separator
+function parseQuantity(value: unknown): number {
+  if (typeof value === 'number') return value;
+  if (!value) return 0;
+  
+  const str = String(value).trim();
+  // Remove commas used as thousands separators
+  const cleaned = str.replace(/,/g, '').replace(/\s/g, '');
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? 0 : num;
+}
+
+// Extract year from a date value
+function extractYearFromDate(rawDate: unknown): number | undefined {
+  if (typeof rawDate === 'number') {
+    // Excel serial number
+    const excelEpoch = new Date(1899, 11, 30);
+    const date = new Date(excelEpoch.getTime() + rawDate * 24 * 60 * 60 * 1000);
+    return date.getFullYear();
+  }
+  
+  const dateStr = String(rawDate || '').trim();
+  if (!dateStr) return undefined;
+  
+  // Try to extract year from various formats like 1/2/25, 01/02/2025
+  const parts = dateStr.split(/[/\-\.]/);
+  if (parts.length >= 3) {
+    let year = parseInt(parts[2], 10);
+    if (year < 100) {
+      year = year < 50 ? 2000 + year : 1900 + year;
+    }
+    if (year >= 2000 && year <= 2100) return year;
+  }
+  
+  // Try parsing as date
+  const date = new Date(dateStr);
+  if (!isNaN(date.getTime())) {
+    return date.getFullYear();
+  }
+  
+  return undefined;
+}
+
 // Parse Human Water format (Control de Agua Para Power BI.xlsx - Hoja: Agua en Botella)
 function parseHumanWaterFormat(rows: Record<string, unknown>[]): { parsed: HumanWaterParsedData[], errors: string[] } {
   const parsed: HumanWaterParsedData[] = [];
@@ -183,16 +238,20 @@ function parseHumanWaterFormat(rows: Record<string, unknown>[]): { parsed: Human
     const cantidad = row['Cantidad'] || row['cantidad'] || row['CANTIDAD'] || 0;
     const unidad = row['Unidad'] || row['unidad'] || row['UNIDAD'] || 'unidad';
     const precioUnitario = row['Precio Unitario'] || row['Precio unitario'] || row['precio unitario'] || row['PRECIO UNITARIO'];
-    const total = row['Total'] || row['total'] || row['TOTAL'] || row['Costo Total'] || row['costo total'];
+    const total = row['Total'] || row['total'] || row['TOTAL'] || row['Costo Total'] || row['costo total'] || row['COSTO TOTAL'];
 
     // Skip empty rows
     if (!centroTrabajo && !cantidad) return;
 
-    // Determine period from Mes or Fecha
+    // Get year from fecha to help parse month-only values
+    const yearFromDate = extractYearFromDate(fecha);
+    
+    // Determine period from Mes (with year from Fecha) or from Fecha directly
     let period: string | null = null;
     if (mes) {
-      period = parsePeriod(mes);
-    } else if (fecha) {
+      period = parsePeriod(mes, yearFromDate);
+    }
+    if (!period && fecha) {
       period = parsePeriod(fecha);
     }
 
@@ -212,17 +271,15 @@ function parseHumanWaterFormat(rows: Record<string, unknown>[]): { parsed: Human
       formato = 'bidon_20l';
     }
 
-    const cantidadNum = typeof cantidad === 'number' ? cantidad : parseFloat(String(cantidad).replace(/[^\d.-]/g, '')) || 0;
+    const cantidadNum = parseQuantity(cantidad);
     
     if (cantidadNum <= 0) {
       errors.push(`Fila ${index + 2}: Cantidad inválida`);
       return;
     }
 
-    const precioNum = typeof precioUnitario === 'number' ? precioUnitario : 
-                      parseFloat(String(precioUnitario || '').replace(/[$.,\s]/g, '')) || undefined;
-    const totalNum = typeof total === 'number' ? total :
-                     parseFloat(String(total || '').replace(/[$.,\s]/g, '')) || undefined;
+    const precioNum = parseChileanCurrency(precioUnitario);
+    const totalNum = parseChileanCurrency(total);
 
     parsed.push({
       period,
