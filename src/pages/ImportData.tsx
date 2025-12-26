@@ -23,6 +23,89 @@ interface ParsedData {
   observaciones?: string;
 }
 
+// Map of Spanish month names to numbers
+const monthMap: Record<string, string> = {
+  'enero': '01', 'ene': '01', 'jan': '01',
+  'febrero': '02', 'feb': '02',
+  'marzo': '03', 'mar': '03',
+  'abril': '04', 'abr': '04', 'apr': '04',
+  'mayo': '05', 'may': '05',
+  'junio': '06', 'jun': '06',
+  'julio': '07', 'jul': '07',
+  'agosto': '08', 'ago': '08', 'aug': '08',
+  'septiembre': '09', 'sep': '09', 'sept': '09',
+  'octubre': '10', 'oct': '10',
+  'noviembre': '11', 'nov': '11',
+  'diciembre': '12', 'dic': '12', 'dec': '12',
+};
+
+// Parse various period formats to YYYY-MM
+function parsePeriod(rawValue: unknown): string | null {
+  // Handle Excel date serial numbers
+  if (typeof rawValue === 'number') {
+    const excelEpoch = new Date(1899, 11, 30);
+    const date = new Date(excelEpoch.getTime() + rawValue * 24 * 60 * 60 * 1000);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    if (year >= 2000 && year <= 2100) {
+      return `${year}-${month}`;
+    }
+    return null;
+  }
+
+  const period = String(rawValue || '').trim();
+  if (!period) return null;
+
+  // Format: YYYY-MM (already correct)
+  if (/^\d{4}-\d{2}$/.test(period)) {
+    return period;
+  }
+
+  // Format: MM/YYYY or M/YYYY
+  const slashMatch = period.match(/^(\d{1,2})\/(\d{4})$/);
+  if (slashMatch) {
+    const month = slashMatch[1].padStart(2, '0');
+    const year = slashMatch[2];
+    return `${year}-${month}`;
+  }
+
+  // Format: YYYY/MM
+  const slashMatch2 = period.match(/^(\d{4})\/(\d{1,2})$/);
+  if (slashMatch2) {
+    const year = slashMatch2[1];
+    const month = slashMatch2[2].padStart(2, '0');
+    return `${year}-${month}`;
+  }
+
+  // Format: MM-YYYY
+  const dashMatch = period.match(/^(\d{1,2})-(\d{4})$/);
+  if (dashMatch) {
+    const month = dashMatch[1].padStart(2, '0');
+    const year = dashMatch[2];
+    return `${year}-${month}`;
+  }
+
+  // Format: "Ene-2025", "Enero 2025", "ene 2025", "ene-25"
+  const normalized = period.toLowerCase().replace(/[^a-záéíóú0-9]/g, ' ').trim();
+  const parts = normalized.split(/\s+/);
+  
+  for (const part of parts) {
+    if (monthMap[part]) {
+      // Find year in the string
+      const yearMatch = period.match(/\d{4}/) || period.match(/\d{2}$/);
+      if (yearMatch) {
+        let year = yearMatch[0];
+        if (year.length === 2) {
+          year = year.startsWith('9') ? `19${year}` : `20${year}`;
+        }
+        return `${year}-${monthMap[part]}`;
+      }
+    }
+  }
+
+  return null;
+}
+
 export default function ImportData() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -74,15 +157,15 @@ export default function ImportData() {
       const newErrors: string[] = [];
 
       json.forEach((row, index) => {
-        const period = String(row['periodo'] || row['Periodo'] || row['period'] || row['Period'] || '');
+        const rawPeriod = row['periodo'] || row['Periodo'] || row['period'] || row['Period'] || '';
         const consumo = Number(row['consumo_m3'] || row['Consumo'] || row['consumo'] || row['m3'] || 0);
         const costo = Number(row['costo'] || row['Costo'] || row['cost'] || 0) || undefined;
         const observaciones = String(row['observaciones'] || row['Observaciones'] || row['notes'] || '') || undefined;
 
-        // Validate period format (YYYY-MM)
-        const periodRegex = /^\d{4}-\d{2}$/;
-        if (!periodRegex.test(period)) {
-          newErrors.push(`Fila ${index + 2}: Formato de período inválido. Usa YYYY-MM (ej: 2025-01)`);
+        // Parse and normalize period to YYYY-MM format
+        const period = parsePeriod(rawPeriod);
+        if (!period) {
+          newErrors.push(`Fila ${index + 2}: Formato de período no reconocido. Formatos válidos: "2025-01", "01/2025", "Ene-2025", "Enero 2025"`);
           return;
         }
 
