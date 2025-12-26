@@ -40,20 +40,20 @@ const monthMap: Record<string, string> = {
 };
 
 // Parse various period formats to YYYY-MM
-function parsePeriod(rawValue: unknown): string | null {
+function parsePeriod(rawValue: unknown, year?: number): string | null {
   // Handle Excel date serial numbers
   if (typeof rawValue === 'number') {
     const excelEpoch = new Date(1899, 11, 30);
     const date = new Date(excelEpoch.getTime() + rawValue * 24 * 60 * 60 * 1000);
-    const year = date.getFullYear();
+    const parsedYear = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
-    if (year >= 2000 && year <= 2100) {
-      return `${year}-${month}`;
+    if (parsedYear >= 2000 && parsedYear <= 2100) {
+      return `${parsedYear}-${month}`;
     }
     return null;
   }
 
-  const period = String(rawValue || '').trim();
+  const period = String(rawValue || '').trim().toUpperCase();
   if (!period) return null;
 
   // Format: YYYY-MM (already correct)
@@ -65,27 +65,27 @@ function parsePeriod(rawValue: unknown): string | null {
   const slashMatch = period.match(/^(\d{1,2})\/(\d{4})$/);
   if (slashMatch) {
     const month = slashMatch[1].padStart(2, '0');
-    const year = slashMatch[2];
-    return `${year}-${month}`;
+    const yr = slashMatch[2];
+    return `${yr}-${month}`;
   }
 
   // Format: YYYY/MM
   const slashMatch2 = period.match(/^(\d{4})\/(\d{1,2})$/);
   if (slashMatch2) {
-    const year = slashMatch2[1];
+    const yr = slashMatch2[1];
     const month = slashMatch2[2].padStart(2, '0');
-    return `${year}-${month}`;
+    return `${yr}-${month}`;
   }
 
   // Format: MM-YYYY
   const dashMatch = period.match(/^(\d{1,2})-(\d{4})$/);
   if (dashMatch) {
     const month = dashMatch[1].padStart(2, '0');
-    const year = dashMatch[2];
-    return `${year}-${month}`;
+    const yr = dashMatch[2];
+    return `${yr}-${month}`;
   }
 
-  // Format: "Ene-2025", "Enero 2025", "ene 2025", "ene-25"
+  // Format: "Ene-2025", "Enero 2025", "ene 2025", "ene-25", or just "ENERO"
   const normalized = period.toLowerCase().replace(/[^a-záéíóú0-9]/g, ' ').trim();
   const parts = normalized.split(/\s+/);
   
@@ -94,16 +94,135 @@ function parsePeriod(rawValue: unknown): string | null {
       // Find year in the string
       const yearMatch = period.match(/\d{4}/) || period.match(/\d{2}$/);
       if (yearMatch) {
-        let year = yearMatch[0];
-        if (year.length === 2) {
-          year = year.startsWith('9') ? `19${year}` : `20${year}`;
+        let yr = yearMatch[0];
+        if (yr.length === 2) {
+          yr = yr.startsWith('9') ? `19${yr}` : `20${yr}`;
         }
+        return `${yr}-${monthMap[part]}`;
+      } else if (year) {
+        // Use provided year if no year in string
         return `${year}-${monthMap[part]}`;
       }
     }
   }
 
   return null;
+}
+
+// Detect format type based on columns
+type FileFormat = 'simple' | 'esval' | 'powerbi';
+
+function detectFormat(headers: string[]): FileFormat {
+  const lowerHeaders = headers.map(h => h.toLowerCase());
+  
+  // ESVAL format has specific columns
+  if (lowerHeaders.some(h => h.includes('m3 netos') || h.includes('lectura anterior'))) {
+    return 'esval';
+  }
+  
+  // Power BI format has Faena, Centro de Trabajo, Litros
+  if (lowerHeaders.some(h => h.includes('faena') || h.includes('centro de trabajo') || h.includes('litros'))) {
+    return 'powerbi';
+  }
+  
+  return 'simple';
+}
+
+// Parse ESVAL format (CONSUMO_DE_AGUA_PERIODO.xlsx)
+function parseEsvalFormat(rows: Record<string, unknown>[]): { parsed: ParsedData[], errors: string[] } {
+  const parsed: ParsedData[] = [];
+  const errors: string[] = [];
+  const currentYear = new Date().getFullYear();
+
+  rows.forEach((row, index) => {
+    // Skip header/metadata rows
+    const mes = row['MES'] || row['Mes'] || row['mes'];
+    const consumo = row['M3 NETOS CONSUMIDOS POR PERÍODO'] || row['M3 NETOS CONSUMIDOS POR PERIODO'] || 
+                   row['m3 netos consumidos por período'] || row['Consumo'];
+    const costo = row['TOTAL A PAGAR'] || row['Total a Pagar'] || row['Costo'];
+    const obs = row['OBSERVACIONES'] || row['Observaciones'] || '';
+
+    if (!mes || typeof mes !== 'string') return;
+
+    const period = parsePeriod(mes, currentYear);
+    if (!period) {
+      errors.push(`Fila ${index + 2}: No se pudo parsear el mes "${mes}"`);
+      return;
+    }
+
+    const consumoNum = typeof consumo === 'number' ? consumo : 
+                       parseFloat(String(consumo || '0').replace(/[^\d.-]/g, ''));
+    
+    if (isNaN(consumoNum) || consumoNum <= 0) {
+      errors.push(`Fila ${index + 2}: Consumo inválido`);
+      return;
+    }
+
+    const costoStr = String(costo || '').replace(/[$.,\s]/g, '');
+    const costoNum = parseInt(costoStr) || undefined;
+
+    parsed.push({
+      period,
+      consumo_m3: consumoNum,
+      costo: costoNum,
+      observaciones: String(obs || '') || undefined
+    });
+  });
+
+  return { parsed, errors };
+}
+
+// Parse Power BI format (Control_de_Agua_Para_Power_Bi.xlsx) - aggregates by month
+function parsePowerBiFormat(rows: Record<string, unknown>[]): { parsed: ParsedData[], errors: string[] } {
+  const aggregated: Record<string, { litros: number; costo: number; faenas: Set<string> }> = {};
+  const errors: string[] = [];
+
+  rows.forEach((row, index) => {
+    const mes = row['Mes'] || row['mes'] || row['MES'];
+    const fecha = row['Fecha'] || row['fecha'];
+    const litros = row['Litros'] || row['litros'];
+    const costo = row['Costo Total'] || row['costo total'] || row['Costo'];
+    const faena = row['Faena'] || row['faena'] || '';
+
+    // Get period from Mes column or Fecha
+    let period: string | null = null;
+    if (mes) {
+      period = parsePeriod(mes, new Date().getFullYear());
+    } else if (fecha) {
+      period = parsePeriod(fecha);
+    }
+
+    if (!period) {
+      if (mes || fecha) {
+        errors.push(`Fila ${index + 2}: No se pudo parsear la fecha`);
+      }
+      return;
+    }
+
+    const litrosNum = typeof litros === 'number' ? litros :
+                      parseFloat(String(litros || '0').replace(/[^\d.-]/g, ''));
+    
+    const costoStr = String(costo || '').replace(/[$.,\s]/g, '');
+    const costoNum = parseInt(costoStr) || 0;
+
+    if (!aggregated[period]) {
+      aggregated[period] = { litros: 0, costo: 0, faenas: new Set() };
+    }
+    aggregated[period].litros += litrosNum;
+    aggregated[period].costo += costoNum;
+    if (faena) aggregated[period].faenas.add(String(faena));
+  });
+
+  const parsed: ParsedData[] = Object.entries(aggregated)
+    .map(([period, data]) => ({
+      period,
+      consumo_m3: Math.round(data.litros / 1000 * 100) / 100, // Convert litros to m³
+      costo: data.costo || undefined,
+      observaciones: data.faenas.size > 0 ? `Faenas: ${Array.from(data.faenas).slice(0, 3).join(', ')}${data.faenas.size > 3 ? '...' : ''}` : undefined
+    }))
+    .sort((a, b) => a.period.localeCompare(b.period));
+
+  return { parsed, errors };
 }
 
 export default function ImportData() {
@@ -114,6 +233,7 @@ export default function ImportData() {
   const [errors, setErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploaded, setUploaded] = useState(false);
+  const [detectedFormat, setDetectedFormat] = useState<FileFormat | null>(null);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -129,6 +249,7 @@ export default function ImportData() {
     setErrors([]);
     setParsedData([]);
     setUploaded(false);
+    setDetectedFormat(null);
 
     const validTypes = [
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -153,37 +274,59 @@ export default function ImportData() {
       const sheet = workbook.Sheets[sheetName];
       const json = XLSX.utils.sheet_to_json(sheet) as Record<string, unknown>[];
 
-      const parsed: ParsedData[] = [];
-      const newErrors: string[] = [];
+      if (json.length === 0) {
+        setErrors(['El archivo está vacío o no tiene datos válidos.']);
+        return;
+      }
 
-      json.forEach((row, index) => {
-        const rawPeriod = row['periodo'] || row['Periodo'] || row['period'] || row['Period'] || '';
-        const consumo = Number(row['consumo_m3'] || row['Consumo'] || row['consumo'] || row['m3'] || 0);
-        const costo = Number(row['costo'] || row['Costo'] || row['cost'] || 0) || undefined;
-        const observaciones = String(row['observaciones'] || row['Observaciones'] || row['notes'] || '') || undefined;
+      // Detect format based on headers
+      const headers = Object.keys(json[0]);
+      const format = detectFormat(headers);
+      setDetectedFormat(format);
 
-        // Parse and normalize period to YYYY-MM format
-        const period = parsePeriod(rawPeriod);
-        if (!period) {
-          newErrors.push(`Fila ${index + 2}: Formato de período no reconocido. Formatos válidos: "2025-01", "01/2025", "Ene-2025", "Enero 2025"`);
-          return;
-        }
+      let result: { parsed: ParsedData[], errors: string[] };
 
-        if (isNaN(consumo) || consumo <= 0) {
-          newErrors.push(`Fila ${index + 2}: Consumo debe ser un número positivo`);
-          return;
-        }
+      if (format === 'esval') {
+        result = parseEsvalFormat(json);
+      } else if (format === 'powerbi') {
+        result = parsePowerBiFormat(json);
+      } else {
+        // Simple format
+        const parsed: ParsedData[] = [];
+        const newErrors: string[] = [];
 
-        parsed.push({
-          period,
-          consumo_m3: consumo,
-          costo,
-          observaciones
+        json.forEach((row, index) => {
+          const rawPeriod = row['periodo'] || row['Periodo'] || row['period'] || row['Period'] || row['MES'] || row['Mes'] || '';
+          const consumo = Number(row['consumo_m3'] || row['Consumo'] || row['consumo'] || row['m3'] || 0);
+          const costo = Number(row['costo'] || row['Costo'] || row['cost'] || 0) || undefined;
+          const observaciones = String(row['observaciones'] || row['Observaciones'] || row['notes'] || '') || undefined;
+
+          const period = parsePeriod(rawPeriod);
+          if (!period) {
+            newErrors.push(`Fila ${index + 2}: Formato de período no reconocido`);
+            return;
+          }
+
+          if (isNaN(consumo) || consumo <= 0) {
+            newErrors.push(`Fila ${index + 2}: Consumo debe ser un número positivo`);
+            return;
+          }
+
+          parsed.push({ period, consumo_m3: consumo, costo, observaciones });
         });
-      });
 
-      setErrors(newErrors);
-      setParsedData(parsed);
+        result = { parsed, errors: newErrors };
+      }
+
+      setErrors(result.errors);
+      setParsedData(result.parsed);
+      
+      if (result.parsed.length > 0) {
+        toast({
+          title: 'Archivo procesado',
+          description: `Formato detectado: ${format === 'esval' ? 'ESVAL Consumo Período' : format === 'powerbi' ? 'Control de Agua (Power BI)' : 'Simple'}`,
+        });
+      }
     } catch (error) {
       console.error('Error parsing file:', error);
       setErrors(['Error al procesar el archivo. Verifica el formato.']);
@@ -296,49 +439,77 @@ export default function ImportData() {
         </div>
       </motion.div>
 
-      {/* Instructions */}
+      {/* Templates */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
         className="stat-card mb-6"
       >
-        <h3 className="font-semibold mb-4">Instrucciones</h3>
-        <div className="space-y-3">
-          <div className="flex items-start gap-3">
-            <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-medium flex-shrink-0">
-              1
-            </span>
-            <div>
-              <p className="font-medium text-sm">Descarga la plantilla de ejemplo</p>
-              <p className="text-xs text-muted-foreground">Usa el formato correcto para evitar errores</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-medium flex-shrink-0">
-              2
-            </span>
-            <div>
-              <p className="font-medium text-sm">Completa los datos de consumo</p>
-              <p className="text-xs text-muted-foreground">Incluye período, consumo en m³ y observaciones</p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-medium flex-shrink-0">
-              3
-            </span>
-            <div>
-              <p className="font-medium text-sm">Sube el archivo y revisa la vista previa</p>
-              <p className="text-xs text-muted-foreground">El sistema validará automáticamente los datos</p>
-            </div>
-          </div>
-        </div>
+        <h3 className="font-semibold mb-4">Plantillas disponibles</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Descarga una plantilla compatible con tu formato de datos. El sistema detecta automáticamente el formato.
+        </p>
         
-        <Button variant="outline" className="mt-4" onClick={downloadTemplate}>
-          <Download className="w-4 h-4 mr-2" />
-          Descargar plantilla
-        </Button>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <a
+            href="/templates/plantilla_consumo_periodo.xlsx"
+            download
+            className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+          >
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <FileSpreadsheet className="w-5 h-5 text-primary" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-medium text-sm truncate">Consumo ESVAL</p>
+              <p className="text-xs text-muted-foreground">Formato boleta mensual</p>
+            </div>
+          </a>
+          
+          <a
+            href="/templates/plantilla_control_agua_detallado.xlsx"
+            download
+            className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+          >
+            <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center flex-shrink-0">
+              <FileSpreadsheet className="w-5 h-5 text-success" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-medium text-sm truncate">Control Detallado</p>
+              <p className="text-xs text-muted-foreground">Formato Power BI</p>
+            </div>
+          </a>
+          
+          <button
+            onClick={downloadTemplate}
+            className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors text-left"
+          >
+            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+              <Download className="w-5 h-5 text-muted-foreground" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-medium text-sm truncate">Plantilla Simple</p>
+              <p className="text-xs text-muted-foreground">Formato básico</p>
+            </div>
+          </button>
+        </div>
       </motion.div>
+
+      {/* Format detected badge */}
+      {detectedFormat && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="mb-6"
+        >
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/10 text-success text-sm">
+            <CheckCircle2 className="w-4 h-4" />
+            <span>
+              Formato detectado: {detectedFormat === 'esval' ? 'ESVAL Consumo Período' : detectedFormat === 'powerbi' ? 'Control de Agua (Power BI)' : 'Simple'}
+            </span>
+          </div>
+        </motion.div>
+      )}
 
       {/* Errors */}
       {errors.length > 0 && (
