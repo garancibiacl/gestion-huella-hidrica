@@ -13,8 +13,8 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { 
-  LineChart, 
-  Line, 
+  AreaChart, 
+  Area,
   XAxis, 
   YAxis, 
   CartesianGrid, 
@@ -219,52 +219,109 @@ export default function Dashboard() {
         </p>
         
         {readings.length > 0 ? (
-          <div className="h-72">
+          <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="consumoGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#22c55e" stopOpacity={0.4} />
+                    <stop offset="50%" stopColor="#3b82f6" stopOpacity={0.25} />
+                    <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.05} />
+                  </linearGradient>
+                  <linearGradient id="strokeGradient" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#22c55e" />
+                    <stop offset="50%" stopColor="#3b82f6" />
+                    <stop offset="100%" stopColor="#8b5cf6" />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid 
+                  strokeDasharray="3 3" 
+                  stroke="hsl(var(--border))" 
+                  opacity={0.5}
+                  vertical={false}
+                />
                 <XAxis 
                   dataKey="name" 
                   stroke="hsl(var(--muted-foreground))" 
                   fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  dy={10}
                 />
                 <YAxis 
                   stroke="hsl(var(--muted-foreground))" 
                   fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  dx={-10}
+                  tickFormatter={(value) => `${value}`}
                 />
                 <Tooltip 
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
+                    border: 'none',
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.3)',
+                    padding: '12px 16px',
                   }}
+                  labelStyle={{
+                    fontWeight: 600,
+                    marginBottom: '8px',
+                    color: 'hsl(var(--foreground))'
+                  }}
+                  itemStyle={{
+                    padding: '4px 0',
+                  }}
+                  cursor={{ stroke: 'hsl(var(--primary))', strokeWidth: 1, strokeDasharray: '5 5' }}
                 />
-                <Legend />
+                <Legend 
+                  wrapperStyle={{
+                    paddingTop: '20px'
+                  }}
+                  iconType="circle"
+                  iconSize={8}
+                />
                 <ReferenceLine 
                   y={objective} 
-                  stroke="hsl(var(--destructive))" 
-                  strokeDasharray="5 5"
-                  label={{ value: 'Objetivo', fill: 'hsl(var(--destructive))' }}
+                  stroke="#f59e0b"
+                  strokeWidth={2}
+                  strokeDasharray="8 4"
+                  label={{ 
+                    value: `Objetivo: ${objective} m³`, 
+                    fill: '#f59e0b',
+                    fontSize: 11,
+                    fontWeight: 500,
+                    position: 'insideTopRight'
+                  }}
                 />
-                <Line 
+                <ReferenceLine 
+                  y={Math.round(average)} 
+                  stroke="hsl(var(--muted-foreground))"
+                  strokeWidth={1}
+                  strokeDasharray="4 4"
+                  opacity={0.6}
+                />
+                <Area 
                   type="monotone" 
                   dataKey="consumo" 
                   name="Consumo Real"
-                  stroke="hsl(var(--primary))" 
-                  strokeWidth={2}
-                  dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2 }}
-                  activeDot={{ r: 6 }}
+                  stroke="url(#strokeGradient)"
+                  strokeWidth={3}
+                  fill="url(#consumoGradient)"
+                  dot={{ 
+                    fill: '#3b82f6', 
+                    strokeWidth: 2,
+                    stroke: '#fff',
+                    r: 5,
+                  }}
+                  activeDot={{ 
+                    r: 8, 
+                    fill: '#8b5cf6',
+                    stroke: '#fff',
+                    strokeWidth: 3,
+                  }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="promedio" 
-                  name="Promedio"
-                  stroke="hsl(var(--muted-foreground))" 
-                  strokeWidth={1}
-                  strokeDasharray="5 5"
-                  dot={false}
-                />
-              </LineChart>
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         ) : (
