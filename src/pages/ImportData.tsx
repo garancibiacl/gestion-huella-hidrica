@@ -614,12 +614,12 @@ export default function ImportData() {
         title: 'Datos importados',
         description: `Se importaron ${humanWaterData.length} registros de consumo humano`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading human water data:', error);
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'No se pudieron importar los datos',
+        title: 'Error al importar',
+        description: error?.message || 'No se pudieron importar los datos. Verifica la consola para más detalles.',
       });
     } finally {
       setLoading(false);
