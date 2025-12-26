@@ -11,6 +11,7 @@ import ImportData from "./pages/ImportData";
 import Periods from "./pages/Periods";
 import SustainabilityActions from "./pages/SustainabilityActions";
 import Settings from "./pages/Settings";
+import AdminUsers from "./pages/AdminUsers";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
               <Route path="/periodos" element={<Periods />} />
               <Route path="/medidas" element={<SustainabilityActions />} />
               <Route path="/configuracion" element={<Settings />} />
+              <Route path="/admin/usuarios" element={<AdminUsers />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
