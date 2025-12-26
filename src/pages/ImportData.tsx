@@ -37,6 +37,30 @@ interface HumanWaterParsedData {
   total_costo?: number;
 }
 
+function normalizeHeader(value: unknown): string {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+function getRowValueByHeader(row: Record<string, unknown>, candidates: string[]): unknown {
+  for (const candidate of candidates) {
+    if (candidate in row) return row[candidate];
+  }
+
+  const normalizedCandidates = new Set(candidates.map(normalizeHeader));
+  for (const key of Object.keys(row)) {
+    if (normalizedCandidates.has(normalizeHeader(key))) {
+      return row[key];
+    }
+  }
+
+  return undefined;
+}
+
 // Map of Spanish month names to numbers
 const monthMap: Record<string, string> = {
   'enero': '01', 'ene': '01', 'jan': '01',
@@ -229,16 +253,16 @@ function parseHumanWaterFormat(rows: Record<string, unknown>[]): { parsed: Human
 
   rows.forEach((row, index) => {
     // Get values from possible column names
-    const fecha = row['Fecha'] || row['fecha'] || row['FECHA'];
-    const mes = row['Mes'] || row['mes'] || row['MES'];
-    const centroTrabajo = row['Centro de Trabajo'] || row['Centro Trabajo'] || row['centro de trabajo'] || row['CENTRO DE TRABAJO'] || '';
-    const faena = row['Faena'] || row['faena'] || row['FAENA'] || '';
-    const tipo = String(row['Tipo'] || row['tipo'] || row['TIPO'] || '').toLowerCase();
-    const proveedor = row['Proveedor'] || row['proveedor'] || row['PROVEEDOR'] || '';
-    const cantidad = row['Cantidad'] || row['cantidad'] || row['CANTIDAD'] || 0;
-    const unidad = row['Unidad'] || row['unidad'] || row['UNIDAD'] || 'unidad';
-    const precioUnitario = row['Precio Unitario'] || row['Precio unitario'] || row['precio unitario'] || row['PRECIO UNITARIO'];
-    const total = row['Total'] || row['total'] || row['TOTAL'] || row['Costo Total'] || row['costo total'] || row['COSTO TOTAL'];
+    const fecha = getRowValueByHeader(row, ['Fecha', 'FECHA', 'fecha']);
+    const mes = getRowValueByHeader(row, ['Mes', 'MES', 'mes']);
+    const centroTrabajo = getRowValueByHeader(row, ['Centro de Trabajo', 'Centro Trabajo', 'CENTRO DE TRABAJO', 'centro de trabajo']) || '';
+    const faena = getRowValueByHeader(row, ['Faena', 'FAENA', 'faena']) || '';
+    const tipo = String(getRowValueByHeader(row, ['Tipo', 'TIPO', 'tipo']) || '').toLowerCase();
+    const proveedor = getRowValueByHeader(row, ['Proveedor', 'PROVEEDOR', 'proveedor']) || '';
+    const cantidad = getRowValueByHeader(row, ['Cantidad', 'CANTIDAD', 'cantidad']) || 0;
+    const unidad = getRowValueByHeader(row, ['Unidad', 'UNIDAD', 'unidad']) || 'unidad';
+    const precioUnitario = getRowValueByHeader(row, ['Precio Unitario', 'PRECIO UNITARIO', 'Precio unitario', 'precio unitario']);
+    const total = getRowValueByHeader(row, ['Total', 'TOTAL', 'total', 'Costo Total', 'COSTO TOTAL', 'costo total']);
 
     // Skip empty rows
     if (!centroTrabajo && !cantidad) return;
@@ -347,11 +371,11 @@ function parsePowerBiFormat(rows: Record<string, unknown>[]): { parsed: ParsedDa
   const errors: string[] = [];
 
   rows.forEach((row, index) => {
-    const mes = row['Mes'] || row['mes'] || row['MES'];
-    const fecha = row['Fecha'] || row['fecha'];
-    const litros = row['Litros'] || row['litros'];
-    const costo = row['Costo Total'] || row['costo total'] || row['Costo'];
-    const faena = row['Faena'] || row['faena'] || '';
+    const mes = getRowValueByHeader(row, ['Mes', 'MES', 'mes']);
+    const fecha = getRowValueByHeader(row, ['Fecha', 'FECHA', 'fecha']);
+    const litros = getRowValueByHeader(row, ['Litros', 'litros', 'LITROS']);
+    const costo = getRowValueByHeader(row, ['Costo Total', 'costo total', 'COSTO TOTAL', 'Costo', 'COSTO']);
+    const faena = getRowValueByHeader(row, ['Faena', 'FAENA', 'faena']) || '';
 
     let period: string | null = null;
     if (mes) {
