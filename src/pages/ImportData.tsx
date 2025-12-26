@@ -1,12 +1,13 @@
 import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Download } from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Download, Gauge, Users } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table,
   TableBody,
@@ -21,6 +22,19 @@ interface ParsedData {
   consumo_m3: number;
   costo?: number;
   observaciones?: string;
+}
+
+interface HumanWaterParsedData {
+  period: string;
+  fecha?: string;
+  centro_trabajo: string;
+  faena?: string;
+  formato: 'botella' | 'bidon_20l';
+  proveedor?: string;
+  cantidad: number;
+  unidad?: string;
+  precio_unitario?: number;
+  total_costo?: number;
 }
 
 // Map of Spanish month names to numbers
@@ -100,7 +114,6 @@ function parsePeriod(rawValue: unknown, year?: number): string | null {
         }
         return `${yr}-${monthMap[part]}`;
       } else if (year) {
-        // Use provided year if no year in string
         return `${year}-${monthMap[part]}`;
       }
     }
@@ -109,23 +122,123 @@ function parsePeriod(rawValue: unknown, year?: number): string | null {
   return null;
 }
 
+// Parse date to YYYY-MM-DD
+function parseDate(rawValue: unknown): string | null {
+  if (typeof rawValue === 'number') {
+    const excelEpoch = new Date(1899, 11, 30);
+    const date = new Date(excelEpoch.getTime() + rawValue * 24 * 60 * 60 * 1000);
+    return date.toISOString().split('T')[0];
+  }
+  
+  const dateStr = String(rawValue || '').trim();
+  if (!dateStr) return null;
+  
+  // Try to parse various date formats
+  const date = new Date(dateStr);
+  if (!isNaN(date.getTime())) {
+    return date.toISOString().split('T')[0];
+  }
+  
+  return null;
+}
+
 // Detect format type based on columns
-type FileFormat = 'simple' | 'esval' | 'powerbi';
+type FileFormat = 'simple' | 'esval' | 'powerbi' | 'human_water';
 
 function detectFormat(headers: string[]): FileFormat {
   const lowerHeaders = headers.map(h => h.toLowerCase());
+  
+  // Human water format (Control de Agua Para Power BI - Agua en Botella)
+  if (lowerHeaders.some(h => h.includes('centro de trabajo') || h.includes('centro trabajo')) && 
+      lowerHeaders.some(h => h.includes('tipo') || h.includes('botella') || h.includes('bidón') || h.includes('bidon'))) {
+    return 'human_water';
+  }
   
   // ESVAL format has specific columns
   if (lowerHeaders.some(h => h.includes('m3 netos') || h.includes('lectura anterior'))) {
     return 'esval';
   }
   
-  // Power BI format has Faena, Centro de Trabajo, Litros
-  if (lowerHeaders.some(h => h.includes('faena') || h.includes('centro de trabajo') || h.includes('litros'))) {
+  // Power BI format has Faena, Centro de Trabajo, Litros (for meter consumption)
+  if (lowerHeaders.some(h => h.includes('litros')) && !lowerHeaders.some(h => h.includes('botella') || h.includes('bidón'))) {
     return 'powerbi';
   }
   
   return 'simple';
+}
+
+// Parse Human Water format (Control de Agua Para Power BI.xlsx - Hoja: Agua en Botella)
+function parseHumanWaterFormat(rows: Record<string, unknown>[]): { parsed: HumanWaterParsedData[], errors: string[] } {
+  const parsed: HumanWaterParsedData[] = [];
+  const errors: string[] = [];
+
+  rows.forEach((row, index) => {
+    // Get values from possible column names
+    const fecha = row['Fecha'] || row['fecha'] || row['FECHA'];
+    const mes = row['Mes'] || row['mes'] || row['MES'];
+    const centroTrabajo = row['Centro de Trabajo'] || row['Centro Trabajo'] || row['centro de trabajo'] || row['CENTRO DE TRABAJO'] || '';
+    const faena = row['Faena'] || row['faena'] || row['FAENA'] || '';
+    const tipo = String(row['Tipo'] || row['tipo'] || row['TIPO'] || '').toLowerCase();
+    const proveedor = row['Proveedor'] || row['proveedor'] || row['PROVEEDOR'] || '';
+    const cantidad = row['Cantidad'] || row['cantidad'] || row['CANTIDAD'] || 0;
+    const unidad = row['Unidad'] || row['unidad'] || row['UNIDAD'] || 'unidad';
+    const precioUnitario = row['Precio Unitario'] || row['Precio unitario'] || row['precio unitario'] || row['PRECIO UNITARIO'];
+    const total = row['Total'] || row['total'] || row['TOTAL'] || row['Costo Total'] || row['costo total'];
+
+    // Skip empty rows
+    if (!centroTrabajo && !cantidad) return;
+
+    // Determine period from Mes or Fecha
+    let period: string | null = null;
+    if (mes) {
+      period = parsePeriod(mes);
+    } else if (fecha) {
+      period = parsePeriod(fecha);
+    }
+
+    if (!period) {
+      errors.push(`Fila ${index + 2}: No se pudo determinar el período`);
+      return;
+    }
+
+    if (!centroTrabajo) {
+      errors.push(`Fila ${index + 2}: Centro de trabajo es requerido`);
+      return;
+    }
+
+    // Determine formato (botella or bidon_20l)
+    let formato: 'botella' | 'bidon_20l' = 'botella';
+    if (tipo.includes('bidón') || tipo.includes('bidon') || tipo.includes('20') || tipo.includes('garrafon') || tipo.includes('garrafa')) {
+      formato = 'bidon_20l';
+    }
+
+    const cantidadNum = typeof cantidad === 'number' ? cantidad : parseFloat(String(cantidad).replace(/[^\d.-]/g, '')) || 0;
+    
+    if (cantidadNum <= 0) {
+      errors.push(`Fila ${index + 2}: Cantidad inválida`);
+      return;
+    }
+
+    const precioNum = typeof precioUnitario === 'number' ? precioUnitario : 
+                      parseFloat(String(precioUnitario || '').replace(/[$.,\s]/g, '')) || undefined;
+    const totalNum = typeof total === 'number' ? total :
+                     parseFloat(String(total || '').replace(/[$.,\s]/g, '')) || undefined;
+
+    parsed.push({
+      period,
+      fecha: parseDate(fecha) || undefined,
+      centro_trabajo: String(centroTrabajo).trim(),
+      faena: faena ? String(faena).trim() : undefined,
+      formato,
+      proveedor: proveedor ? String(proveedor).trim() : undefined,
+      cantidad: cantidadNum,
+      unidad: String(unidad),
+      precio_unitario: precioNum,
+      total_costo: totalNum
+    });
+  });
+
+  return { parsed, errors };
 }
 
 // Parse ESVAL format (CONSUMO_DE_AGUA_PERIODO.xlsx)
@@ -135,7 +248,6 @@ function parseEsvalFormat(rows: Record<string, unknown>[]): { parsed: ParsedData
   const currentYear = new Date().getFullYear();
 
   rows.forEach((row, index) => {
-    // Skip header/metadata rows
     const mes = row['MES'] || row['Mes'] || row['mes'];
     const consumo = row['M3 NETOS CONSUMIDOS POR PERÍODO'] || row['M3 NETOS CONSUMIDOS POR PERIODO'] || 
                    row['m3 netos consumidos por período'] || row['Consumo'];
@@ -184,7 +296,6 @@ function parsePowerBiFormat(rows: Record<string, unknown>[]): { parsed: ParsedDa
     const costo = row['Costo Total'] || row['costo total'] || row['Costo'];
     const faena = row['Faena'] || row['faena'] || '';
 
-    // Get period from Mes column or Fecha
     let period: string | null = null;
     if (mes) {
       period = parsePeriod(mes, new Date().getFullYear());
@@ -216,7 +327,7 @@ function parsePowerBiFormat(rows: Record<string, unknown>[]): { parsed: ParsedDa
   const parsed: ParsedData[] = Object.entries(aggregated)
     .map(([period, data]) => ({
       period,
-      consumo_m3: Math.round(data.litros / 1000 * 100) / 100, // Convert litros to m³
+      consumo_m3: Math.round(data.litros / 1000 * 100) / 100,
       costo: data.costo || undefined,
       observaciones: data.faenas.size > 0 ? `Faenas: ${Array.from(data.faenas).slice(0, 3).join(', ')}${data.faenas.size > 3 ? '...' : ''}` : undefined
     }))
@@ -228,8 +339,10 @@ function parsePowerBiFormat(rows: Record<string, unknown>[]): { parsed: ParsedDa
 export default function ImportData() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState<'medidor' | 'humano'>('medidor');
   const [isDragging, setIsDragging] = useState(false);
   const [parsedData, setParsedData] = useState<ParsedData[]>([]);
+  const [humanWaterData, setHumanWaterData] = useState<HumanWaterParsedData[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploaded, setUploaded] = useState(false);
@@ -248,6 +361,7 @@ export default function ImportData() {
   const processFile = async (file: File) => {
     setErrors([]);
     setParsedData([]);
+    setHumanWaterData([]);
     setUploaded(false);
     setDetectedFormat(null);
 
@@ -270,7 +384,19 @@ export default function ImportData() {
     try {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data);
-      const sheetName = workbook.SheetNames[0];
+      
+      // Try to find the correct sheet for human water consumption
+      let sheetName = workbook.SheetNames[0];
+      const aguaEnBotellaSheet = workbook.SheetNames.find(name => 
+        name.toLowerCase().includes('agua en botella') || 
+        name.toLowerCase().includes('consumo humano') ||
+        name.toLowerCase().includes('botella')
+      );
+      
+      if (aguaEnBotellaSheet && activeTab === 'humano') {
+        sheetName = aguaEnBotellaSheet;
+      }
+      
       const sheet = workbook.Sheets[sheetName];
       const json = XLSX.utils.sheet_to_json(sheet) as Record<string, unknown>[];
 
@@ -281,51 +407,70 @@ export default function ImportData() {
 
       // Detect format based on headers
       const headers = Object.keys(json[0]);
-      const format = detectFormat(headers);
+      let format = detectFormat(headers);
+      
+      // If user is in human water tab, try to parse as human water format
+      if (activeTab === 'humano') {
+        format = 'human_water';
+      }
+      
       setDetectedFormat(format);
 
-      let result: { parsed: ParsedData[], errors: string[] };
-
-      if (format === 'esval') {
-        result = parseEsvalFormat(json);
-      } else if (format === 'powerbi') {
-        result = parsePowerBiFormat(json);
+      if (format === 'human_water') {
+        const result = parseHumanWaterFormat(json);
+        setErrors(result.errors);
+        setHumanWaterData(result.parsed);
+        
+        if (result.parsed.length > 0) {
+          toast({
+            title: 'Archivo procesado',
+            description: `Formato: Consumo Humano de Agua - ${result.parsed.length} registros`,
+          });
+        }
       } else {
-        // Simple format
-        const parsed: ParsedData[] = [];
-        const newErrors: string[] = [];
+        let result: { parsed: ParsedData[], errors: string[] };
 
-        json.forEach((row, index) => {
-          const rawPeriod = row['periodo'] || row['Periodo'] || row['period'] || row['Period'] || row['MES'] || row['Mes'] || '';
-          const consumo = Number(row['consumo_m3'] || row['Consumo'] || row['consumo'] || row['m3'] || 0);
-          const costo = Number(row['costo'] || row['Costo'] || row['cost'] || 0) || undefined;
-          const observaciones = String(row['observaciones'] || row['Observaciones'] || row['notes'] || '') || undefined;
+        if (format === 'esval') {
+          result = parseEsvalFormat(json);
+        } else if (format === 'powerbi') {
+          result = parsePowerBiFormat(json);
+        } else {
+          // Simple format
+          const parsed: ParsedData[] = [];
+          const newErrors: string[] = [];
 
-          const period = parsePeriod(rawPeriod);
-          if (!period) {
-            newErrors.push(`Fila ${index + 2}: Formato de período no reconocido`);
-            return;
-          }
+          json.forEach((row, index) => {
+            const rawPeriod = row['periodo'] || row['Periodo'] || row['period'] || row['Period'] || row['MES'] || row['Mes'] || '';
+            const consumo = Number(row['consumo_m3'] || row['Consumo'] || row['consumo'] || row['m3'] || 0);
+            const costo = Number(row['costo'] || row['Costo'] || row['cost'] || 0) || undefined;
+            const observaciones = String(row['observaciones'] || row['Observaciones'] || row['notes'] || '') || undefined;
 
-          if (isNaN(consumo) || consumo <= 0) {
-            newErrors.push(`Fila ${index + 2}: Consumo debe ser un número positivo`);
-            return;
-          }
+            const period = parsePeriod(rawPeriod);
+            if (!period) {
+              newErrors.push(`Fila ${index + 2}: Formato de período no reconocido`);
+              return;
+            }
 
-          parsed.push({ period, consumo_m3: consumo, costo, observaciones });
-        });
+            if (isNaN(consumo) || consumo <= 0) {
+              newErrors.push(`Fila ${index + 2}: Consumo debe ser un número positivo`);
+              return;
+            }
 
-        result = { parsed, errors: newErrors };
-      }
+            parsed.push({ period, consumo_m3: consumo, costo, observaciones });
+          });
 
-      setErrors(result.errors);
-      setParsedData(result.parsed);
-      
-      if (result.parsed.length > 0) {
-        toast({
-          title: 'Archivo procesado',
-          description: `Formato detectado: ${format === 'esval' ? 'ESVAL Consumo Período' : format === 'powerbi' ? 'Control de Agua (Power BI)' : 'Simple'}`,
-        });
+          result = { parsed, errors: newErrors };
+        }
+
+        setErrors(result.errors);
+        setParsedData(result.parsed);
+        
+        if (result.parsed.length > 0) {
+          toast({
+            title: 'Archivo procesado',
+            description: `Formato detectado: ${format === 'esval' ? 'ESVAL Consumo Período' : format === 'powerbi' ? 'Control de Agua (Power BI)' : 'Simple'}`,
+          });
+        }
       }
     } catch (error) {
       console.error('Error parsing file:', error);
@@ -339,14 +484,14 @@ export default function ImportData() {
     
     const file = e.dataTransfer.files[0];
     if (file) processFile(file);
-  }, []);
+  }, [activeTab]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) processFile(file);
   };
 
-  const handleUpload = async () => {
+  const handleUploadMeter = async () => {
     if (!user || parsedData.length === 0) return;
 
     setLoading(true);
@@ -382,6 +527,48 @@ export default function ImportData() {
     }
   };
 
+  const handleUploadHumanWater = async () => {
+    if (!user || humanWaterData.length === 0) return;
+
+    setLoading(true);
+    try {
+      const dataToInsert = humanWaterData.map(row => ({
+        user_id: user.id,
+        period: row.period,
+        fecha: row.fecha || null,
+        centro_trabajo: row.centro_trabajo,
+        faena: row.faena || null,
+        formato: row.formato,
+        proveedor: row.proveedor || null,
+        cantidad: row.cantidad,
+        unidad: row.unidad || 'unidad',
+        precio_unitario: row.precio_unitario || null,
+        total_costo: row.total_costo || null
+      }));
+
+      const { error } = await supabase
+        .from('human_water_consumption')
+        .insert(dataToInsert);
+
+      if (error) throw error;
+
+      setUploaded(true);
+      toast({
+        title: 'Datos importados',
+        description: `Se importaron ${humanWaterData.length} registros de consumo humano`,
+      });
+    } catch (error) {
+      console.error('Error uploading human water data:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudieron importar los datos',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const downloadTemplate = () => {
     const template = [
       { periodo: '2025-01', consumo_m3: 1200, costo: 45000, observaciones: 'Ejemplo' },
@@ -393,6 +580,52 @@ export default function ImportData() {
     XLSX.writeFile(wb, 'plantilla_consumos.xlsx');
   };
 
+  const downloadHumanWaterTemplate = () => {
+    const template = [
+      { 
+        Fecha: '2025-01-15', 
+        Mes: 'Enero', 
+        'Centro de Trabajo': 'Los Andes', 
+        Faena: 'Operaciones', 
+        Tipo: 'Botella', 
+        Proveedor: 'Vital', 
+        Cantidad: 100, 
+        Unidad: 'unidad', 
+        'Precio Unitario': 500, 
+        Total: 50000 
+      },
+      { 
+        Fecha: '2025-01-15', 
+        Mes: 'Enero', 
+        'Centro de Trabajo': 'Calama', 
+        Faena: 'Mantención', 
+        Tipo: 'Bidón 20L', 
+        Proveedor: 'Vital', 
+        Cantidad: 20, 
+        Unidad: 'unidad', 
+        'Precio Unitario': 3000, 
+        Total: 60000 
+      },
+    ];
+    const ws = XLSX.utils.json_to_sheet(template);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Agua en Botella');
+    XLSX.writeFile(wb, 'plantilla_consumo_humano.xlsx');
+  };
+
+  const resetState = () => {
+    setParsedData([]);
+    setHumanWaterData([]);
+    setErrors([]);
+    setUploaded(false);
+    setDetectedFormat(null);
+  };
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value as 'medidor' | 'humano');
+    resetState();
+  };
+
   return (
     <div className="page-container">
       <PageHeader 
@@ -400,15 +633,41 @@ export default function ImportData() {
         description="Carga archivos CSV o Excel con información de consumo hídrico" 
       />
 
+      {/* Tabs for import type */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-6"
+      >
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="medidor" className="gap-2">
+              <Gauge className="w-4 h-4" />
+              <span className="hidden sm:inline">Consumo Medidor</span>
+              <span className="sm:hidden">Medidor</span>
+            </TabsTrigger>
+            <TabsTrigger value="humano" className="gap-2">
+              <Users className="w-4 h-4" />
+              <span className="hidden sm:inline">Consumo Humano</span>
+              <span className="sm:hidden">Humano</span>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </motion.div>
+
       {/* Upload Zone */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="stat-card mb-6"
       >
-        <h3 className="font-semibold mb-1">Subir Archivo</h3>
+        <h3 className="font-semibold mb-1">
+          {activeTab === 'medidor' ? 'Subir Archivo de Medidor (m³)' : 'Subir Archivo de Consumo Humano'}
+        </h3>
         <p className="text-sm text-muted-foreground mb-4">
-          Formatos aceptados: CSV, XLSX (máximo 10 MB)
+          {activeTab === 'medidor' 
+            ? 'Formatos aceptados: CSV, XLSX con datos de consumo por medidor' 
+            : 'Archivo Excel con datos de botellas y bidones por centro de trabajo'}
         </p>
 
         <div
@@ -448,51 +707,80 @@ export default function ImportData() {
       >
         <h3 className="font-semibold mb-4">Plantillas disponibles</h3>
         <p className="text-sm text-muted-foreground mb-4">
-          Descarga una plantilla compatible con tu formato de datos. El sistema detecta automáticamente el formato.
+          {activeTab === 'medidor' 
+            ? 'Descarga una plantilla compatible con tu formato de datos de medidor.'
+            : 'Descarga la plantilla para registrar consumo humano de agua (botellas y bidones).'}
         </p>
         
-        <div className="grid gap-3 sm:grid-cols-3">
-          <a
-            href="/templates/plantilla_consumo_periodo.xlsx"
-            download
-            className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-          >
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <FileSpreadsheet className="w-5 h-5 text-primary" />
+        {activeTab === 'medidor' ? (
+          <div className="grid gap-3 sm:grid-cols-3">
+            <a
+              href="/templates/plantilla_consumo_periodo.xlsx"
+              download
+              className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+            >
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <FileSpreadsheet className="w-5 h-5 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-medium text-sm truncate">Consumo ESVAL</p>
+                <p className="text-xs text-muted-foreground">Formato boleta mensual</p>
+              </div>
+            </a>
+            
+            <a
+              href="/templates/plantilla_control_agua_detallado.xlsx"
+              download
+              className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
+            >
+              <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center flex-shrink-0">
+                <FileSpreadsheet className="w-5 h-5 text-success" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-medium text-sm truncate">Control Detallado</p>
+                <p className="text-xs text-muted-foreground">Formato Power BI</p>
+              </div>
+            </a>
+            
+            <button
+              onClick={downloadTemplate}
+              className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors text-left"
+            >
+              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                <Download className="w-5 h-5 text-muted-foreground" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-medium text-sm truncate">Plantilla Simple</p>
+                <p className="text-xs text-muted-foreground">Formato básico</p>
+              </div>
+            </button>
+          </div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <button
+              onClick={downloadHumanWaterTemplate}
+              className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors text-left"
+            >
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <FileSpreadsheet className="w-5 h-5 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-medium text-sm truncate">Consumo Humano</p>
+                <p className="text-xs text-muted-foreground">Botellas y bidones por centro</p>
+              </div>
+            </button>
+            
+            <div className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30">
+              <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                <FileSpreadsheet className="w-5 h-5 text-muted-foreground" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-medium text-sm truncate">Control de Agua Power BI</p>
+                <p className="text-xs text-muted-foreground">Hoja: Agua en Botella</p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="font-medium text-sm truncate">Consumo ESVAL</p>
-              <p className="text-xs text-muted-foreground">Formato boleta mensual</p>
-            </div>
-          </a>
-          
-          <a
-            href="/templates/plantilla_control_agua_detallado.xlsx"
-            download
-            className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors"
-          >
-            <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center flex-shrink-0">
-              <FileSpreadsheet className="w-5 h-5 text-success" />
-            </div>
-            <div className="min-w-0">
-              <p className="font-medium text-sm truncate">Control Detallado</p>
-              <p className="text-xs text-muted-foreground">Formato Power BI</p>
-            </div>
-          </a>
-          
-          <button
-            onClick={downloadTemplate}
-            className="flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors text-left"
-          >
-            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-              <Download className="w-5 h-5 text-muted-foreground" />
-            </div>
-            <div className="min-w-0">
-              <p className="font-medium text-sm truncate">Plantilla Simple</p>
-              <p className="text-xs text-muted-foreground">Formato básico</p>
-            </div>
-          </button>
-        </div>
+          </div>
+        )}
       </motion.div>
 
       {/* Format detected badge */}
@@ -505,7 +793,12 @@ export default function ImportData() {
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/10 text-success text-sm">
             <CheckCircle2 className="w-4 h-4" />
             <span>
-              Formato detectado: {detectedFormat === 'esval' ? 'ESVAL Consumo Período' : detectedFormat === 'powerbi' ? 'Control de Agua (Power BI)' : 'Simple'}
+              Formato detectado: {
+                detectedFormat === 'esval' ? 'ESVAL Consumo Período' : 
+                detectedFormat === 'powerbi' ? 'Control de Agua (Power BI)' : 
+                detectedFormat === 'human_water' ? 'Consumo Humano de Agua' :
+                'Simple'
+              }
             </span>
           </div>
         </motion.div>
@@ -523,15 +816,18 @@ export default function ImportData() {
             <h3 className="font-semibold">Errores encontrados</h3>
           </div>
           <ul className="space-y-1">
-            {errors.map((error, i) => (
+            {errors.slice(0, 5).map((error, i) => (
               <li key={i} className="text-sm text-destructive">{error}</li>
             ))}
+            {errors.length > 5 && (
+              <li className="text-sm text-muted-foreground">+{errors.length - 5} errores más</li>
+            )}
           </ul>
         </motion.div>
       )}
 
-      {/* Preview */}
-      {parsedData.length > 0 && (
+      {/* Preview for Meter Data */}
+      {parsedData.length > 0 && activeTab === 'medidor' && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -539,7 +835,7 @@ export default function ImportData() {
         >
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="font-semibold">Vista previa</h3>
+              <h3 className="font-semibold">Vista previa - Consumo Medidor</h3>
               <p className="text-sm text-muted-foreground">
                 {parsedData.length} registros listos para importar
               </p>
@@ -550,7 +846,7 @@ export default function ImportData() {
                 <span className="text-sm font-medium">Importado</span>
               </div>
             ) : (
-              <Button onClick={handleUpload} disabled={loading}>
+              <Button onClick={handleUploadMeter} disabled={loading}>
                 {loading ? 'Importando...' : 'Confirmar importación'}
               </Button>
             )}
@@ -580,6 +876,74 @@ export default function ImportData() {
             {parsedData.length > 10 && (
               <div className="p-3 text-center text-sm text-muted-foreground bg-muted/30">
                 +{parsedData.length - 10} registros más
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Preview for Human Water Data */}
+      {humanWaterData.length > 0 && activeTab === 'humano' && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="stat-card"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-semibold">Vista previa - Consumo Humano</h3>
+              <p className="text-sm text-muted-foreground">
+                {humanWaterData.length} registros listos para importar
+              </p>
+            </div>
+            {uploaded ? (
+              <div className="flex items-center gap-2 text-success">
+                <CheckCircle2 className="w-5 h-5" />
+                <span className="text-sm font-medium">Importado</span>
+              </div>
+            ) : (
+              <Button onClick={handleUploadHumanWater} disabled={loading}>
+                {loading ? 'Importando...' : 'Confirmar importación'}
+              </Button>
+            )}
+          </div>
+
+          <div className="border rounded-lg overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Período</TableHead>
+                  <TableHead>Centro de Trabajo</TableHead>
+                  <TableHead>Formato</TableHead>
+                  <TableHead>Cantidad</TableHead>
+                  <TableHead>Costo Total</TableHead>
+                  <TableHead>Proveedor</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {humanWaterData.slice(0, 10).map((row, i) => (
+                  <TableRow key={i}>
+                    <TableCell className="font-medium">{row.period}</TableCell>
+                    <TableCell>{row.centro_trabajo}</TableCell>
+                    <TableCell>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                        row.formato === 'botella' 
+                          ? 'bg-primary/10 text-primary' 
+                          : 'bg-success/10 text-success'
+                      }`}>
+                        {row.formato === 'botella' ? 'Botella' : 'Bidón 20L'}
+                      </span>
+                    </TableCell>
+                    <TableCell>{row.cantidad.toLocaleString()}</TableCell>
+                    <TableCell>{row.total_costo ? `$${row.total_costo.toLocaleString()}` : '-'}</TableCell>
+                    <TableCell className="text-muted-foreground">{row.proveedor || '-'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            {humanWaterData.length > 10 && (
+              <div className="p-3 text-center text-sm text-muted-foreground bg-muted/30">
+                +{humanWaterData.length - 10} registros más
               </div>
             )}
           </div>

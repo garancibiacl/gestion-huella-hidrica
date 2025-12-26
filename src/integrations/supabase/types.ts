@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      human_water_consumption: {
+        Row: {
+          cantidad: number
+          centro_trabajo: string
+          created_at: string
+          faena: string | null
+          fecha: string | null
+          formato: Database["public"]["Enums"]["water_format"]
+          id: string
+          period: string
+          precio_unitario: number | null
+          proveedor: string | null
+          total_costo: number | null
+          unidad: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cantidad?: number
+          centro_trabajo: string
+          created_at?: string
+          faena?: string | null
+          fecha?: string | null
+          formato: Database["public"]["Enums"]["water_format"]
+          id?: string
+          period: string
+          precio_unitario?: number | null
+          proveedor?: string | null
+          total_costo?: number | null
+          unidad?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cantidad?: number
+          centro_trabajo?: string
+          created_at?: string
+          faena?: string | null
+          fecha?: string | null
+          formato?: Database["public"]["Enums"]["water_format"]
+          id?: string
+          period?: string
+          precio_unitario?: number | null
+          proveedor?: string | null
+          total_costo?: number | null
+          unidad?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       measurement_criteria: {
         Row: {
           created_at: string
@@ -198,6 +249,7 @@ export type Database = {
     Enums: {
       action_status: "propuesta" | "evaluacion" | "implementada"
       app_role: "admin" | "prevencionista"
+      water_format: "botella" | "bidon_20l"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -327,6 +379,7 @@ export const Constants = {
     Enums: {
       action_status: ["propuesta", "evaluacion", "implementada"],
       app_role: ["admin", "prevencionista"],
+      water_format: ["botella", "bidon_20l"],
     },
   },
 } as const
