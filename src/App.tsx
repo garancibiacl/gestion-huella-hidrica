@@ -32,6 +32,7 @@ const App = () => (
               <Route path="/periodos" element={<Periods />} />
               <Route path="/medidas" element={<SustainabilityActions />} />
               <Route path="/configuracion" element={<Settings />} />
+              <Route path="/admin" element={<Navigate to="/admin/usuarios" replace />} />
               <Route path="/admin/usuarios" element={<AdminUsers />} />
             </Route>
             <Route path="*" element={<NotFound />} />
