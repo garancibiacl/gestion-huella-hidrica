@@ -81,8 +81,16 @@ export default function AdminUsers() {
   // Dialog states
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserWithRole | null>(null);
   const [editForm, setEditForm] = useState({ full_name: '', email: '' });
+  const [createForm, setCreateForm] = useState({ 
+    full_name: '', 
+    email: '', 
+    password: '', 
+    role: 'prevencionista' as AppRole 
+  });
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     if (!roleLoading && !isAdmin) {
@@ -276,7 +284,61 @@ export default function AdminUsers() {
     }
   };
 
-  const filteredUsers = users.filter(user => 
+  const handleCreateUser = async () => {
+    if (!createForm.email || !createForm.password) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Email y contraseña son requeridos',
+      });
+      return;
+    }
+
+    if (createForm.password.length < 6) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'La contraseña debe tener al menos 6 caracteres',
+      });
+      return;
+    }
+
+    setCreating(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const response = await supabase.functions.invoke('admin-create-user', {
+        body: {
+          email: createForm.email,
+          password: createForm.password,
+          full_name: createForm.full_name,
+          role: createForm.role,
+        },
+      });
+
+      if (response.error) throw new Error(response.error.message);
+      if (response.data?.error) throw new Error(response.data.error);
+
+      toast({
+        title: 'Usuario creado',
+        description: `El usuario ${createForm.email} ha sido creado exitosamente`,
+      });
+
+      setCreateDialogOpen(false);
+      setCreateForm({ full_name: '', email: '', password: '', role: 'prevencionista' });
+      fetchUsers();
+    } catch (error) {
+      console.error('Error creating user:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'No se pudo crear el usuario',
+      });
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const filteredUsers = users.filter(user =>
     user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -397,14 +459,20 @@ export default function AdminUsers() {
             </div>
           </div>
           
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar usuarios..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
-            />
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar usuarios..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
+              <Plus className="w-4 h-4" />
+              Nuevo Usuario
+            </Button>
           </div>
         </div>
 
@@ -595,6 +663,88 @@ export default function AdminUsers() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Create User Dialog */}
+      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="w-5 h-5 text-primary" />
+              Crear Nuevo Usuario
+            </DialogTitle>
+            <DialogDescription>
+              Crea una nueva cuenta de usuario con acceso al sistema
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="create_full_name">Nombre completo</Label>
+              <Input
+                id="create_full_name"
+                value={createForm.full_name}
+                onChange={(e) => setCreateForm(prev => ({ ...prev, full_name: e.target.value }))}
+                placeholder="Nombre del usuario"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="create_email">Email *</Label>
+              <Input
+                id="create_email"
+                type="email"
+                value={createForm.email}
+                onChange={(e) => setCreateForm(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="correo@ejemplo.com"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="create_password">Contraseña *</Label>
+              <Input
+                id="create_password"
+                type="password"
+                value={createForm.password}
+                onChange={(e) => setCreateForm(prev => ({ ...prev, password: e.target.value }))}
+                placeholder="Mínimo 6 caracteres"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="create_role">Rol</Label>
+              <Select
+                value={createForm.role}
+                onValueChange={(value) => setCreateForm(prev => ({ ...prev, role: value as AppRole }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccionar rol" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="prevencionista">
+                    <div className="flex items-center gap-2">
+                      <UserCog className="w-4 h-4" />
+                      Prevencionista
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="admin">
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-4 h-4" />
+                      Administrador
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleCreateUser} disabled={creating}>
+              {creating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+              Crear Usuario
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
