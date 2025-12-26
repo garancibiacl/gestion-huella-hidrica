@@ -208,9 +208,13 @@ export default function Dashboard() {
 
       {/* Chart */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.3 }}
+        initial={{ opacity: 0, y: 30, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ 
+          duration: 0.6, 
+          delay: 0.3,
+          ease: [0.25, 0.46, 0.45, 0.94]
+        }}
         className="stat-card mb-6"
       >
         <h3 className="font-semibold mb-1">Tendencia de Consumo Hídrico</h3>
@@ -320,6 +324,10 @@ export default function Dashboard() {
                     stroke: '#fff',
                     strokeWidth: 3,
                   }}
+                  isAnimationActive={true}
+                  animationBegin={200}
+                  animationDuration={1500}
+                  animationEasing="ease-out"
                 />
               </AreaChart>
             </ResponsiveContainer>
