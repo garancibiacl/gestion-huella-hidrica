@@ -55,8 +55,10 @@ export default function HumanWaterConsumption() {
   const [data, setData] = useState<HumanWaterData[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
   const [selectedCentro, setSelectedCentro] = useState<string>('all');
+  const [selectedFaena, setSelectedFaena] = useState<string>('all');
   const [periods, setPeriods] = useState<string[]>([]);
   const [centros, setCentros] = useState<string[]>([]);
+  const [faenas, setFaenas] = useState<string[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -82,11 +84,13 @@ export default function HumanWaterConsumption() {
         }));
         setData(typedData);
         
-        // Extract unique periods and centros
+        // Extract unique periods, centros and faenas
         const uniquePeriods = [...new Set(consumptionData.map(d => d.period))].sort().reverse();
         const uniqueCentros = [...new Set(consumptionData.map(d => d.centro_trabajo))].sort();
+        const uniqueFaenas = [...new Set(consumptionData.map(d => d.faena).filter(Boolean) as string[])].sort();
         setPeriods(uniquePeriods);
         setCentros(uniqueCentros);
+        setFaenas(uniqueFaenas);
       }
     } catch (error) {
       console.error('Error fetching human water data:', error);
@@ -98,6 +102,7 @@ export default function HumanWaterConsumption() {
   const filteredData = data.filter(d => {
     if (selectedPeriod !== 'all' && d.period !== selectedPeriod) return false;
     if (selectedCentro !== 'all' && d.centro_trabajo !== selectedCentro) return false;
+    if (selectedFaena !== 'all' && d.faena !== selectedFaena) return false;
     return true;
   });
 
@@ -206,6 +211,20 @@ export default function HumanWaterConsumption() {
             ))}
           </SelectContent>
         </Select>
+
+        {faenas.length > 0 && (
+          <Select value={selectedFaena} onValueChange={setSelectedFaena}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Faena" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas las faenas</SelectItem>
+              {faenas.map(f => (
+                <SelectItem key={f} value={f}>{f}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </motion.div>
 
       {/* Stats */}
