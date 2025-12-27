@@ -73,7 +73,8 @@ export function SyncButton({ onSyncComplete }: SyncButtonProps) {
       .maybeSingle();
 
     // Allow both admin and prevencionista to sync (data is shared)
-    setIsAdmin(data?.role === 'admin' || data?.role === 'prevencionista');
+    const role = data?.role;
+    setIsAdmin(role === 'admin' || role === 'prevencionista');
   };
 
   const fetchLastSync = async () => {
