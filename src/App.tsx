@@ -12,6 +12,7 @@ import Periods from "./pages/Periods";
 import SustainabilityActions from "./pages/SustainabilityActions";
 import Settings from "./pages/Settings";
 import AdminUsers from "./pages/AdminUsers";
+import AdminAnalytics from "./pages/AdminAnalytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
               <Route path="/configuracion" element={<Settings />} />
               <Route path="/admin" element={<Navigate to="/admin/usuarios" replace />} />
               <Route path="/admin/usuarios" element={<AdminUsers />} />
+              <Route path="/admin/analytics" element={<AdminAnalytics />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

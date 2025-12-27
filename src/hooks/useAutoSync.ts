@@ -9,6 +9,7 @@ const CSV_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export
 const MIN_SYNC_INTERVAL = 5 * 60 * 1000;
 const LAST_SYNC_KEY = 'last_google_sheets_sync';
 const LAST_HASH_KEY = 'last_google_sheets_hash';
+const SYNC_LOCK_KEY = 'google_sheets_sync_in_progress';
 
 // Simple hash function for change detection
 function simpleHash(str: string): string {
@@ -19,6 +20,25 @@ function simpleHash(str: string): string {
     hash = hash & hash; // Convert to 32bit integer
   }
   return hash.toString(16);
+}
+
+// Global lock to prevent simultaneous syncs
+function acquireSyncLock(): boolean {
+  const lockTime = localStorage.getItem(SYNC_LOCK_KEY);
+  if (lockTime) {
+    // If lock is older than 30 seconds, consider it stale
+    const elapsed = Date.now() - parseInt(lockTime, 10);
+    if (elapsed < 30000) {
+      console.log('Sync already in progress, skipping...');
+      return false;
+    }
+  }
+  localStorage.setItem(SYNC_LOCK_KEY, Date.now().toString());
+  return true;
+}
+
+function releaseSyncLock(): void {
+  localStorage.removeItem(SYNC_LOCK_KEY);
 }
 
 interface AutoSyncOptions {
@@ -188,9 +208,15 @@ function parseCSV(csvText: string): string[][] {
 }
 
 async function performSync(userId: string, force: boolean = false): Promise<{ success: boolean; rowsProcessed: number }> {
+  // Acquire lock to prevent simultaneous syncs
+  if (!acquireSyncLock()) {
+    return { success: true, rowsProcessed: 0 };
+  }
+  
   try {
     const response = await fetch(CSV_URL);
     if (!response.ok) {
+      releaseSyncLock();
       throw new Error(`Error fetching sheet: ${response.statusText}`);
     }
 
@@ -202,8 +228,13 @@ async function performSync(userId: string, force: boolean = false): Promise<{ su
     
     if (!force && lastHash === currentHash) {
       console.log('Google Sheet content unchanged, skipping sync.');
+      releaseSyncLock();
       return { success: true, rowsProcessed: 0 };
     }
+    
+    // IMPORTANT: Save hash IMMEDIATELY to prevent duplicate syncs
+    localStorage.setItem(LAST_HASH_KEY, currentHash);
+    localStorage.setItem(LAST_SYNC_KEY, Date.now().toString());
     
     console.log(`Content changed (hash: ${currentHash}), proceeding with sync...`);
     
@@ -335,16 +366,23 @@ async function performSync(userId: string, force: boolean = false): Promise<{ su
       console.log('Sync complete. Records in DB should now match Google Sheet exactly.');
     }
 
-    // Update last sync timestamp and hash
-    localStorage.setItem(LAST_SYNC_KEY, Date.now().toString());
-    localStorage.setItem(LAST_HASH_KEY, simpleHash(csvText));
-
+    releaseSyncLock();
     return { success: true, rowsProcessed: records.length };
   } catch (error) {
     console.error('Auto-sync error:', error);
+    releaseSyncLock();
     return { success: false, rowsProcessed: 0 };
   }
 }
+
+// Clean up localStorage on module load to reset sync state
+// This ensures a fresh start and prevents duplicate syncs
+(function cleanupOnLoad() {
+  localStorage.removeItem(LAST_HASH_KEY);
+  localStorage.removeItem(SYNC_LOCK_KEY);
+  localStorage.removeItem(LAST_SYNC_KEY);
+  console.log('Sync state reset on page load.');
+})();
 
 export function useAutoSync(options: AutoSyncOptions = {}) {
   const { enabled = true, onSyncStart, onSyncComplete, userId } = options;

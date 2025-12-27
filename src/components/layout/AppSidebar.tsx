@@ -8,7 +8,8 @@ import {
   Settings, 
   LogOut,
   Droplets,
-  Users
+  Users,
+  BarChart3
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRole } from '@/hooks/useRole';
@@ -28,6 +29,7 @@ const navItems: NavItem[] = [
   { icon: Leaf, label: 'Medidas Sustentables', path: '/medidas' },
   { icon: Settings, label: 'Configuración', path: '/configuracion' },
   { icon: Users, label: 'Usuarios', path: '/admin/usuarios', adminOnly: true },
+  { icon: BarChart3, label: 'Analytics', path: '/admin/analytics', adminOnly: true },
 ];
 
 interface AppSidebarProps {
