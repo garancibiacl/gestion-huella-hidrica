@@ -24,13 +24,10 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  ResponsiveContainer,
-  BarChart,
-  Bar
+  ResponsiveContainer
 } from 'recharts';
 import { useRole } from '@/hooks/useRole';
 import { PageHeader } from '@/components/ui/page-header';
-import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -39,76 +36,72 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 // Color corporativo
 const PRIMARY_COLOR = '#b3382a';
 const SUCCESS_COLOR = '#22c55e';
 
-// Generar datos mock para el gráfico
-const generateChartData = (days: number) => {
-  const data = [];
-  const today = new Date();
-  
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(today);
-    date.setDate(date.getDate() - i);
-    
-    data.push({
-      date: date.toLocaleDateString('es-CL', { day: '2-digit', month: 'short' }),
-      fullDate: date.toISOString().split('T')[0],
-      visitas: Math.floor(Math.random() * 120) + 30,
-      usuarios: Math.floor(Math.random() * 60) + 15,
-    });
-  }
-  
-  return data;
-};
+interface AnalyticsOverview {
+  unique_visitors: number;
+  unique_visitors_prev: number;
+  page_views: number;
+  page_views_prev: number;
+  views_per_visit: number;
+  views_per_visit_prev: number;
+  avg_duration_ms: number;
+  avg_duration_ms_prev: number;
+  bounce_rate: number;
+  bounce_rate_prev: number;
+  daily_stats: Array<{ date: string; visitas: number; usuarios: number }>;
+}
 
-// Datos mock de páginas más visitadas
-const mockPageViews = [
-  { page: '/dashboard', name: 'Dashboard', views: 1245, percentage: 35 },
-  { page: '/auth', name: 'Autenticación', views: 892, percentage: 25 },
-  { page: '/importar', name: 'Importar Datos', views: 534, percentage: 15 },
-  { page: '/periodos', name: 'Períodos', views: 356, percentage: 10 },
-  { page: '/admin', name: 'Admin', views: 267, percentage: 8 },
-  { page: '/medidas', name: 'Medidas', views: 178, percentage: 5 },
-  { page: '/configuracion', name: 'Configuración', views: 71, percentage: 2 },
-];
+interface TopPage {
+  page_path: string;
+  page_name: string;
+  views: number;
+  percentage: number;
+}
 
-// Datos mock de fuentes de tráfico
-const mockTrafficSources = [
-  { source: 'Directo', visits: 2145, percentage: 65 },
-  { source: 'Google', visits: 823, percentage: 25 },
-  { source: 'Referido', visits: 329, percentage: 10 },
-];
+interface DeviceStat {
+  device_type: string;
+  visits: number;
+  percentage: number;
+}
 
-// Datos mock de dispositivos
-const mockDevices = [
-  { device: 'Escritorio', visits: 2156, percentage: 65, icon: Monitor },
-  { device: 'Móvil', visits: 987, percentage: 30, icon: Smartphone },
-  { device: 'Tablet', visits: 164, percentage: 5, icon: Monitor },
-];
+interface CountryStat {
+  country: string;
+  visits: number;
+  percentage: number;
+}
 
-// Datos mock de países
-const mockCountries = [
-  { country: 'Chile', flag: '🇨🇱', visits: 2890, percentage: 87 },
-  { country: 'Estados Unidos', flag: '🇺🇸', visits: 265, percentage: 8 },
-  { country: 'Argentina', flag: '🇦🇷', visits: 99, percentage: 3 },
-  { country: 'Perú', flag: '🇵🇪', visits: 66, percentage: 2 },
-];
+// Helper para calcular cambio porcentual
+function calcChange(current: number, prev: number): number {
+  if (prev === 0) return current > 0 ? 100 : 0;
+  return Math.round(((current - prev) / prev) * 1000) / 10;
+}
 
-// KPIs mock
-const mockKPIs = {
-  uniqueVisitors: 1234,
-  uniqueVisitorsChange: 12.5,
-  pageViews: 4567,
-  pageViewsChange: 8.3,
-  viewsPerVisit: 3.7,
-  viewsPerVisitChange: -2.1,
-  avgDuration: '2m 45s',
-  avgDurationChange: 5.2,
-  bounceRate: 42.3,
-  bounceRateChange: -3.8,
+// Helper para formatear duración
+function formatDuration(ms: number): string {
+  if (ms === 0) return '0s';
+  const seconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  if (minutes === 0) return `${remainingSeconds}s`;
+  return `${minutes}m ${remainingSeconds}s`;
+}
+
+// Mapeo de banderas por país
+const countryFlags: Record<string, string> = {
+  'Chile': '🇨🇱',
+  'Estados Unidos': '🇺🇸',
+  'Argentina': '🇦🇷',
+  'Perú': '🇵🇪',
+  'México': '🇲🇽',
+  'Colombia': '🇨🇴',
+  'España': '🇪🇸',
+  'Brasil': '🇧🇷',
+  'Desconocido': '🌐'
 };
 
 interface KPICardProps {
@@ -184,7 +177,12 @@ export default function AdminAnalytics() {
   const { isAdmin, loading: roleLoading } = useRole();
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('7');
-  const [chartData, setChartData] = useState<any[]>([]);
+  
+  // Data states
+  const [overview, setOverview] = useState<AnalyticsOverview | null>(null);
+  const [topPages, setTopPages] = useState<TopPage[]>([]);
+  const [deviceStats, setDeviceStats] = useState<DeviceStat[]>([]);
+  const [countryStats, setCountryStats] = useState<CountryStat[]>([]);
 
   useEffect(() => {
     if (!roleLoading && !isAdmin) {
@@ -193,15 +191,90 @@ export default function AdminAnalytics() {
   }, [isAdmin, roleLoading, navigate]);
 
   useEffect(() => {
-    // Simular carga de datos
-    setLoading(true);
-    const timer = setTimeout(() => {
-      setChartData(generateChartData(parseInt(period)));
-      setLoading(false);
-    }, 800);
-    
-    return () => clearTimeout(timer);
-  }, [period]);
+    const fetchAnalytics = async () => {
+      setLoading(true);
+      const days = parseInt(period);
+      
+      try {
+        // Fetch all data in parallel
+        const [overviewRes, pagesRes, devicesRes, countriesRes] = await Promise.all([
+          supabase.rpc('get_analytics_overview', { days }),
+          supabase.rpc('get_top_pages', { days, limit_count: 7 }),
+          supabase.rpc('get_device_stats', { days }),
+          supabase.rpc('get_country_stats', { days })
+        ]);
+
+        if (overviewRes.data && overviewRes.data.length > 0) {
+          const row = overviewRes.data[0];
+          const dailyData = Array.isArray(row.daily_stats) ? row.daily_stats : [];
+          setOverview({
+            unique_visitors: Number(row.unique_visitors) || 0,
+            unique_visitors_prev: Number(row.unique_visitors_prev) || 0,
+            page_views: Number(row.page_views) || 0,
+            page_views_prev: Number(row.page_views_prev) || 0,
+            views_per_visit: Number(row.views_per_visit) || 0,
+            views_per_visit_prev: Number(row.views_per_visit_prev) || 0,
+            avg_duration_ms: Number(row.avg_duration_ms) || 0,
+            avg_duration_ms_prev: Number(row.avg_duration_ms_prev) || 0,
+            bounce_rate: Number(row.bounce_rate) || 0,
+            bounce_rate_prev: Number(row.bounce_rate_prev) || 0,
+            daily_stats: dailyData.map((d: any) => ({
+              date: new Date(d.date).toLocaleDateString('es-CL', { day: '2-digit', month: 'short' }),
+              visitas: d.visitas || 0,
+              usuarios: d.usuarios || 0
+            }))
+          });
+        } else {
+          setOverview({
+            unique_visitors: 0,
+            unique_visitors_prev: 0,
+            page_views: 0,
+            page_views_prev: 0,
+            views_per_visit: 0,
+            views_per_visit_prev: 0,
+            avg_duration_ms: 0,
+            avg_duration_ms_prev: 0,
+            bounce_rate: 0,
+            bounce_rate_prev: 0,
+            daily_stats: []
+          });
+        }
+
+        if (pagesRes.data) {
+          setTopPages(pagesRes.data.map((p: any) => ({
+            page_path: p.page_path,
+            page_name: p.page_name,
+            views: Number(p.views) || 0,
+            percentage: Number(p.percentage) || 0
+          })));
+        }
+
+        if (devicesRes.data) {
+          setDeviceStats(devicesRes.data.map((d: any) => ({
+            device_type: d.device_type,
+            visits: Number(d.visits) || 0,
+            percentage: Number(d.percentage) || 0
+          })));
+        }
+
+        if (countriesRes.data) {
+          setCountryStats(countriesRes.data.map((c: any) => ({
+            country: c.country,
+            visits: Number(c.visits) || 0,
+            percentage: Number(c.percentage) || 0
+          })));
+        }
+      } catch (error) {
+        console.error('Error fetching analytics:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (isAdmin) {
+      fetchAnalytics();
+    }
+  }, [period, isAdmin]);
 
   if (roleLoading) {
     return (
@@ -232,6 +305,28 @@ export default function AdminAnalytics() {
     return null;
   };
 
+  const getDeviceIcon = (type: string) => {
+    switch (type) {
+      case 'mobile':
+        return Smartphone;
+      case 'tablet':
+        return Monitor;
+      default:
+        return Monitor;
+    }
+  };
+
+  const getDeviceName = (type: string) => {
+    switch (type) {
+      case 'mobile':
+        return 'Móvil';
+      case 'tablet':
+        return 'Tablet';
+      default:
+        return 'Escritorio';
+    }
+  };
+
   return (
     <div className="page-container">
       <PageHeader 
@@ -259,40 +354,40 @@ export default function AdminAnalytics() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           {[...Array(5)].map((_, i) => <SkeletonCard key={i} />)}
         </div>
-      ) : (
+      ) : overview && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           <KPICard
             title="Visitantes únicos"
-            value={mockKPIs.uniqueVisitors.toLocaleString()}
-            change={mockKPIs.uniqueVisitorsChange}
+            value={overview.unique_visitors.toLocaleString()}
+            change={calcChange(overview.unique_visitors, overview.unique_visitors_prev)}
             icon={<Users className="w-6 h-6" />}
             delay={0}
           />
           <KPICard
             title="Páginas vistas"
-            value={mockKPIs.pageViews.toLocaleString()}
-            change={mockKPIs.pageViewsChange}
+            value={overview.page_views.toLocaleString()}
+            change={calcChange(overview.page_views, overview.page_views_prev)}
             icon={<Eye className="w-6 h-6" />}
             delay={0.1}
           />
           <KPICard
             title="Vistas por visita"
-            value={mockKPIs.viewsPerVisit}
-            change={mockKPIs.viewsPerVisitChange}
+            value={overview.views_per_visit}
+            change={calcChange(overview.views_per_visit, overview.views_per_visit_prev)}
             icon={<MousePointerClick className="w-6 h-6" />}
             delay={0.2}
           />
           <KPICard
             title="Duración promedio"
-            value={mockKPIs.avgDuration}
-            change={mockKPIs.avgDurationChange}
+            value={formatDuration(overview.avg_duration_ms)}
+            change={calcChange(overview.avg_duration_ms, overview.avg_duration_ms_prev)}
             icon={<Clock className="w-6 h-6" />}
             delay={0.3}
           />
           <KPICard
             title="Tasa de rebote"
-            value={`${mockKPIs.bounceRate}%`}
-            change={mockKPIs.bounceRateChange}
+            value={`${overview.bounce_rate}%`}
+            change={calcChange(overview.bounce_rate, overview.bounce_rate_prev)}
             icon={<Percent className="w-6 h-6" />}
             delay={0.4}
           />
@@ -302,7 +397,7 @@ export default function AdminAnalytics() {
       {/* Main Chart */}
       {loading ? (
         <SkeletonChart />
-      ) : (
+      ) : overview && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -314,57 +409,63 @@ export default function AdminAnalytics() {
             Evolución del tráfico en los últimos {period} días
           </p>
           
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorVisitas" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={PRIMARY_COLOR} stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor={PRIMARY_COLOR} stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorUsuarios" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={SUCCESS_COLOR} stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor={SUCCESS_COLOR} stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid 
-                  strokeDasharray="3 3" 
-                  stroke="hsl(var(--border))"
-                  vertical={false}
-                />
-                <XAxis 
-                  dataKey="date" 
-                  stroke="hsl(var(--muted-foreground))" 
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis 
-                  stroke="hsl(var(--muted-foreground))" 
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Area
-                  type="monotone"
-                  dataKey="visitas"
-                  stroke={PRIMARY_COLOR}
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#colorVisitas)"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="usuarios"
-                  stroke={SUCCESS_COLOR}
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#colorUsuarios)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+          {overview.daily_stats.length > 0 ? (
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={overview.daily_stats}>
+                  <defs>
+                    <linearGradient id="colorVisitas" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={PRIMARY_COLOR} stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor={PRIMARY_COLOR} stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorUsuarios" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={SUCCESS_COLOR} stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor={SUCCESS_COLOR} stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid 
+                    strokeDasharray="3 3" 
+                    stroke="hsl(var(--border))"
+                    vertical={false}
+                  />
+                  <XAxis 
+                    dataKey="date" 
+                    stroke="hsl(var(--muted-foreground))" 
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis 
+                    stroke="hsl(var(--muted-foreground))" 
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area
+                    type="monotone"
+                    dataKey="visitas"
+                    stroke={PRIMARY_COLOR}
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorVisitas)"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="usuarios"
+                    stroke={SUCCESS_COLOR}
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#colorUsuarios)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-72 flex items-center justify-center text-muted-foreground">
+              No hay datos de visitas para este período
+            </div>
+          )}
           
           <div className="flex items-center gap-6 mt-4 pt-4 border-t">
             <div className="flex items-center gap-2">
@@ -398,81 +499,39 @@ export default function AdminAnalytics() {
             </div>
           </div>
           
-          <div className="space-y-3">
-            {mockPageViews.map((page, index) => (
-              <div key={page.page} className="flex items-center gap-3">
-                <span className="text-sm text-muted-foreground w-6">{index + 1}.</span>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium">{page.name}</span>
-                    <span className="text-sm text-muted-foreground">{page.views.toLocaleString()}</span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{ 
-                        width: `${page.percentage}%`,
-                        backgroundColor: PRIMARY_COLOR
-                      }}
-                    />
+          {topPages.length > 0 ? (
+            <div className="space-y-3">
+              {topPages.map((page, index) => (
+                <div key={page.page_path} className="flex items-center gap-3">
+                  <span className="text-sm text-muted-foreground w-6">{index + 1}.</span>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium">{page.page_name}</span>
+                      <span className="text-sm text-muted-foreground">{page.views.toLocaleString()}</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{ 
+                          width: `${page.percentage}%`,
+                          backgroundColor: PRIMARY_COLOR
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Traffic Sources */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7 }}
-          className="stat-card"
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Globe className="w-5 h-5 text-primary" />
+              ))}
             </div>
-            <div>
-              <h3 className="font-semibold">Fuentes de tráfico</h3>
-              <p className="text-sm text-muted-foreground">Origen de las visitas</p>
-            </div>
-          </div>
-          
-          <div className="space-y-4">
-            {mockTrafficSources.map((source) => (
-              <div key={source.source} className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-                  <Globe className="w-5 h-5 text-muted-foreground" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium">{source.source}</span>
-                    <span className="text-sm text-muted-foreground">{source.percentage}%</span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full rounded-full"
-                      style={{ 
-                        width: `${source.percentage}%`,
-                        backgroundColor: PRIMARY_COLOR
-                      }}
-                    />
-                  </div>
-                </div>
-                <span className="text-sm font-medium w-16 text-right">
-                  {source.visits.toLocaleString()}
-                </span>
-              </div>
-            ))}
-          </div>
+          ) : (
+            <p className="text-muted-foreground text-center py-8">No hay datos de páginas</p>
+          )}
         </motion.div>
 
         {/* Devices */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
+          transition={{ delay: 0.7 }}
           className="stat-card"
         >
           <div className="flex items-center gap-3 mb-4">
@@ -485,17 +544,69 @@ export default function AdminAnalytics() {
             </div>
           </div>
           
-          <div className="space-y-4">
-            {mockDevices.map((item) => {
-              const Icon = item.icon;
-              return (
-                <div key={item.device} className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-                    <Icon className="w-5 h-5 text-muted-foreground" />
+          {deviceStats.length > 0 ? (
+            <div className="space-y-4">
+              {deviceStats.map((item) => {
+                const Icon = getDeviceIcon(item.device_type);
+                return (
+                  <div key={item.device_type} className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
+                      <Icon className="w-5 h-5 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium">{getDeviceName(item.device_type)}</span>
+                        <span className="text-sm text-muted-foreground">{item.percentage}%</span>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div 
+                          className="h-full rounded-full"
+                          style={{ 
+                            width: `${item.percentage}%`,
+                            backgroundColor: item.device_type === 'desktop' ? PRIMARY_COLOR : SUCCESS_COLOR
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <span className="text-sm font-medium w-16 text-right">
+                      {item.visits.toLocaleString()}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-center py-8">No hay datos de dispositivos</p>
+          )}
+        </motion.div>
+
+        {/* Countries */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+          className="stat-card lg:col-span-2"
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Globe className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-semibold">Países</h3>
+              <p className="text-sm text-muted-foreground">Ubicación de los visitantes</p>
+            </div>
+          </div>
+          
+          {countryStats.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {countryStats.map((item) => (
+                <div key={item.country} className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-xl">
+                    {countryFlags[item.country] || '🌐'}
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium">{item.device}</span>
+                      <span className="font-medium">{item.country}</span>
                       <span className="text-sm text-muted-foreground">{item.percentage}%</span>
                     </div>
                     <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -503,7 +614,7 @@ export default function AdminAnalytics() {
                         className="h-full rounded-full"
                         style={{ 
                           width: `${item.percentage}%`,
-                          backgroundColor: item.device === 'Escritorio' ? PRIMARY_COLOR : SUCCESS_COLOR
+                          backgroundColor: PRIMARY_COLOR
                         }}
                       />
                     </div>
@@ -512,55 +623,11 @@ export default function AdminAnalytics() {
                     {item.visits.toLocaleString()}
                   </span>
                 </div>
-              );
-            })}
-          </div>
-        </motion.div>
-
-        {/* Countries */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.9 }}
-          className="stat-card"
-        >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <ArrowUpRight className="w-5 h-5 text-primary" />
+              ))}
             </div>
-            <div>
-              <h3 className="font-semibold">Países</h3>
-              <p className="text-sm text-muted-foreground">Ubicación de los visitantes</p>
-            </div>
-          </div>
-          
-          <div className="space-y-4">
-            {mockCountries.map((item) => (
-              <div key={item.country} className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-xl">
-                  {item.flag}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium">{item.country}</span>
-                    <span className="text-sm text-muted-foreground">{item.percentage}%</span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full rounded-full"
-                      style={{ 
-                        width: `${item.percentage}%`,
-                        backgroundColor: PRIMARY_COLOR
-                      }}
-                    />
-                  </div>
-                </div>
-                <span className="text-sm font-medium w-16 text-right">
-                  {item.visits.toLocaleString()}
-                </span>
-              </div>
-            ))}
-          </div>
+          ) : (
+            <p className="text-muted-foreground text-center py-8">No hay datos de países</p>
+          )}
         </motion.div>
       </div>
     </div>

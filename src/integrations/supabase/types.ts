@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_events: {
+        Row: {
+          country: string | null
+          created_at: string
+          device_type: string | null
+          duration_ms: number | null
+          event_type: string
+          id: string
+          metadata: Json | null
+          page_path: string | null
+          referrer: string | null
+          session_id: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          device_type?: string | null
+          duration_ms?: number | null
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          page_path?: string | null
+          referrer?: string | null
+          session_id: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          device_type?: string | null
+          duration_ms?: number | null
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          page_path?: string | null
+          referrer?: string | null
+          session_id?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       human_water_consumption: {
         Row: {
           cantidad: number
@@ -274,6 +319,47 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_analytics_overview: {
+        Args: { days?: number }
+        Returns: {
+          avg_duration_ms: number
+          avg_duration_ms_prev: number
+          bounce_rate: number
+          bounce_rate_prev: number
+          daily_stats: Json
+          page_views: number
+          page_views_prev: number
+          unique_visitors: number
+          unique_visitors_prev: number
+          views_per_visit: number
+          views_per_visit_prev: number
+        }[]
+      }
+      get_country_stats: {
+        Args: { days?: number }
+        Returns: {
+          country: string
+          percentage: number
+          visits: number
+        }[]
+      }
+      get_device_stats: {
+        Args: { days?: number }
+        Returns: {
+          device_type: string
+          percentage: number
+          visits: number
+        }[]
+      }
+      get_top_pages: {
+        Args: { days?: number; limit_count?: number }
+        Returns: {
+          page_name: string
+          page_path: string
+          percentage: number
+          views: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
