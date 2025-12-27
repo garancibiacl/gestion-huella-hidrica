@@ -5,10 +5,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { AppSidebar } from './AppSidebar';
 import { Button } from '@/components/ui/button';
+import { usePageTracking } from '@/hooks/usePageTracking';
 
 export function AppLayout() {
   const { user, loading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  // Track page views
+  usePageTracking();
 
   if (loading) {
     return (
