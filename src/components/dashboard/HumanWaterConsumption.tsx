@@ -72,7 +72,6 @@ export default function HumanWaterConsumption() {
       const { data: consumptionData, error } = await supabase
         .from('human_water_consumption')
         .select('*')
-        .eq('user_id', user?.id)
         .order('period', { ascending: false });
 
       if (error) throw error;

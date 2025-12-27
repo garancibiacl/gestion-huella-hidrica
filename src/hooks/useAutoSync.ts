@@ -8,6 +8,18 @@ const CSV_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/export
 // Minimum time between syncs (5 minutes)
 const MIN_SYNC_INTERVAL = 5 * 60 * 1000;
 const LAST_SYNC_KEY = 'last_google_sheets_sync';
+const LAST_HASH_KEY = 'last_google_sheets_hash';
+
+// Simple hash function for change detection
+function simpleHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return hash.toString(16);
+}
 
 interface AutoSyncOptions {
   enabled?: boolean;
@@ -29,45 +41,68 @@ function parsePeriod(rawValue: string | undefined, year?: number): string | null
   if (!rawValue) return null;
   
   const monthMap: Record<string, string> = {
-    'enero': '01', 'ene': '01',
-    'febrero': '02', 'feb': '02',
-    'marzo': '03', 'mar': '03',
-    'abril': '04', 'abr': '04',
+    'enero': '01', 'ene': '01', 'en': '01', 'january': '01', 'jan': '01',
+    'febrero': '02', 'feb': '02', 'fe': '02', 'february': '02',
+    'marzo': '03', 'mar': '03', 'march': '03',
+    'abril': '04', 'abr': '04', 'ab': '04', 'april': '04', 'apr': '04',
     'mayo': '05', 'may': '05',
-    'junio': '06', 'jun': '06',
-    'julio': '07', 'jul': '07',
-    'agosto': '08', 'ago': '08',
-    'septiembre': '09', 'sep': '09', 'sept': '09',
-    'octubre': '10', 'oct': '10',
-    'noviembre': '11', 'nov': '11',
-    'diciembre': '12', 'dic': '12',
+    'junio': '06', 'jun': '06', 'june': '06',
+    'julio': '07', 'jul': '07', 'july': '07',
+    'agosto': '08', 'ago': '08', 'ag': '08', 'august': '08', 'aug': '08',
+    'septiembre': '09', 'sep': '09', 'sept': '09', 'september': '09',
+    'octubre': '10', 'oct': '10', 'oc': '10', 'october': '10',
+    'noviembre': '11', 'nov': '11', 'no': '11', 'november': '11',
+    'diciembre': '12', 'dic': '12', 'di': '12', 'december': '12', 'dec': '12',
   };
 
   const period = String(rawValue).trim();
+  
+  // Format: YYYY-MM
   if (/^\d{4}-\d{2}$/.test(period)) return period;
   
+  // Format: MM/YYYY or M/YYYY
   const slashMatch = period.match(/^(\d{1,2})\/(\d{4})$/);
   if (slashMatch) {
     const month = slashMatch[1].padStart(2, '0');
     return `${slashMatch[2]}-${month}`;
   }
   
+  // Format: DD/MM/YYYY - extract month and year
+  const dateMatch = period.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (dateMatch) {
+    let yr = parseInt(dateMatch[3], 10);
+    if (yr < 100) yr = yr < 50 ? 2000 + yr : 1900 + yr;
+    const month = dateMatch[2].padStart(2, '0');
+    return `${yr}-${month}`;
+  }
+  
+  // Normalize: remove accents, lowercase, split into parts
   const normalized = period.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, ' ').trim();
   const parts = normalized.split(/\s+/);
   
+  // Look for month name in parts
+  let foundMonth: string | null = null;
+  let foundYear: number | null = null;
+  
   for (const part of parts) {
+    // Check if it's a month name
     if (monthMap[part]) {
-      const yearMatch = period.match(/\d{4}/) || period.match(/\d{2}$/);
-      if (yearMatch) {
-        let yr = yearMatch[0];
-        if (yr.length === 2) {
-          yr = parseInt(yr) < 50 ? `20${yr}` : `19${yr}`;
-        }
-        return `${yr}-${monthMap[part]}`;
-      } else if (year) {
-        return `${year}-${monthMap[part]}`;
-      }
+      foundMonth = monthMap[part];
     }
+    // Check if it's a year (4 digits or 2 digits)
+    const numPart = parseInt(part, 10);
+    if (part.length === 4 && numPart >= 2000 && numPart <= 2100) {
+      foundYear = numPart;
+    } else if (part.length === 2 && !isNaN(numPart)) {
+      foundYear = numPart < 50 ? 2000 + numPart : 1900 + numPart;
+    }
+  }
+  
+  // If we found a month
+  if (foundMonth) {
+    // Use found year, or fallback to year parameter, or current year
+    const yr = foundYear || year || new Date().getFullYear();
+    return `${yr}-${foundMonth}`;
   }
   
   return null;
@@ -86,21 +121,31 @@ function extractYearFromDate(rawDate: string | undefined): number | undefined {
 
 function convertToISODate(rawDate: string | undefined): string | null {
   if (!rawDate) return null;
-  const parts = String(rawDate).trim().split(/[/\-\.]/);
+  
+  // Clean and trim the date string
+  const cleaned = String(rawDate).trim();
+  if (!cleaned) return null;
+  
+  // Try to parse DD/MM/YYYY or DD/M/YYYY or D/M/YYYY formats
+  const parts = cleaned.split(/[/\-\.]/);
   if (parts.length !== 3) return null;
   
   let day = parseInt(parts[0], 10);
   let month = parseInt(parts[1], 10);
   let year = parseInt(parts[2], 10);
   
+  // Handle 2-digit years
   if (year < 100) {
     year = year < 50 ? 2000 + year : 1900 + year;
   }
   
+  // Validate ranges
+  if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
   if (year < 2000 || year > 2100) return null;
   if (month < 1 || month > 12) return null;
   if (day < 1 || day > 31) return null;
   
+  // Format as YYYY-MM-DD with zero padding
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
@@ -142,7 +187,7 @@ function parseCSV(csvText: string): string[][] {
   return rows;
 }
 
-async function performSync(userId: string): Promise<{ success: boolean; rowsProcessed: number }> {
+async function performSync(userId: string, force: boolean = false): Promise<{ success: boolean; rowsProcessed: number }> {
   try {
     const response = await fetch(CSV_URL);
     if (!response.ok) {
@@ -150,6 +195,18 @@ async function performSync(userId: string): Promise<{ success: boolean; rowsProc
     }
 
     const csvText = await response.text();
+    
+    // Check if content has changed using hash
+    const currentHash = simpleHash(csvText);
+    const lastHash = localStorage.getItem(LAST_HASH_KEY);
+    
+    if (!force && lastHash === currentHash) {
+      console.log('Google Sheet content unchanged, skipping sync.');
+      return { success: true, rowsProcessed: 0 };
+    }
+    
+    console.log(`Content changed (hash: ${currentHash}), proceeding with sync...`);
+    
     const rows = parseCSV(csvText);
 
     if (rows.length < 2) {
@@ -161,14 +218,18 @@ async function performSync(userId: string): Promise<{ success: boolean; rowsProc
 
     const colIdx = {
       fecha: headers.findIndex(h => h.includes('fecha')),
-      mes: headers.findIndex(h => h === 'mes'),
+      mes: headers.findIndex(h => h.includes('mes') || h.includes('periodo') || h.includes('período')),
       centroTrabajo: headers.findIndex(h => h.includes('centro')),
       faena: headers.findIndex(h => h.includes('faena')),
-      tipo: headers.findIndex(h => h === 'tipo'),
+      tipo: headers.findIndex(h => h.includes('tipo') || h.includes('formato') || h.includes('producto')),
       proveedor: headers.findIndex(h => h.includes('proveedor')),
       cantidad: headers.findIndex(h => h.includes('cantidad')),
       costoTotal: headers.findIndex(h => h.includes('costo')),
+      litros: headers.findIndex(h => h.includes('litros') || h.includes('litro')),
     };
+    
+    console.log('CSV Headers:', headers);
+    console.log('Column indices:', colIdx);
 
     const records: any[] = [];
 
@@ -194,9 +255,24 @@ async function performSync(userId: string): Promise<{ success: boolean; rowsProc
 
       if (!period || !centroTrabajo) continue;
 
-      const formato = (tipo.includes('bidón') || tipo.includes('bidon') || tipo.includes('20')) 
-        ? 'bidon_20l' 
-        : 'botella';
+      // Detect formato from tipo column or litros column
+      const litros = colIdx.litros >= 0 ? row[colIdx.litros] : undefined;
+      const litrosNum = litros ? parseFloat(String(litros).replace(/,/g, '')) : 0;
+      
+      // Bidón if: tipo contains bidón/bidon/20/garraf OR litros >= 15 (assuming 20L containers)
+      const isBidon = tipo.includes('bidón') || 
+                      tipo.includes('bidon') || 
+                      tipo.includes('20') || 
+                      tipo.includes('garraf') ||
+                      tipo.includes('dispenser') ||
+                      litrosNum >= 15;
+      
+      const formato = isBidon ? 'bidon_20l' : 'botella';
+      
+      // Log first few rows for debugging
+      if (i < 3) {
+        console.log(`Row ${i}: tipo="${tipo}", litros=${litrosNum}, formato=${formato}, mes="${mes}", fecha="${fecha}"`);
+      }
 
       const cantidadNum = parseFloat(String(cantidad).replace(/,/g, ''));
       if (isNaN(cantidadNum) || cantidadNum <= 0) continue;
@@ -217,27 +293,51 @@ async function performSync(userId: string): Promise<{ success: boolean; rowsProc
     }
 
     if (records.length > 0) {
-      const periods = [...new Set(records.map(r => r.period))];
+      // Datos compartidos: dejamos que la tabla sea un espejo EXACTO del Google Sheet.
+      // Borramos todos los registros actuales y luego insertamos solo lo que viene del sheet.
       
-      for (const period of periods) {
-        await supabase
-          .from('human_water_consumption')
-          .delete()
-          .eq('user_id', userId)
-          .eq('period', period);
+      // Step 1: Get all existing record IDs
+      const { data: existingRecords } = await supabase
+        .from('human_water_consumption')
+        .select('id');
+      
+      // Step 2: Delete all existing records by ID
+      if (existingRecords && existingRecords.length > 0) {
+        const idsToDelete = existingRecords.map(r => r.id);
+        console.log(`Deleting ${idsToDelete.length} existing records...`);
+        
+        // Delete in batches of 100 to avoid query limits
+        for (let i = 0; i < idsToDelete.length; i += 100) {
+          const batch = idsToDelete.slice(i, i + 100);
+          const { error: deleteError } = await supabase
+            .from('human_water_consumption')
+            .delete()
+            .in('id', batch);
+          
+          if (deleteError) {
+            console.error('Delete error:', deleteError);
+            throw deleteError;
+          }
+        }
       }
 
+      // Step 3: Insert fresh records from Google Sheet
+      console.log(`Inserting ${records.length} new records...`);
       const { error: insertError } = await supabase
         .from('human_water_consumption')
         .insert(records);
 
       if (insertError) {
+        console.error('Insert error:', insertError);
         throw insertError;
       }
+      
+      console.log('Sync complete. Records in DB should now match Google Sheet exactly.');
     }
 
-    // Update last sync timestamp
+    // Update last sync timestamp and hash
     localStorage.setItem(LAST_SYNC_KEY, Date.now().toString());
+    localStorage.setItem(LAST_HASH_KEY, simpleHash(csvText));
 
     return { success: true, rowsProcessed: records.length };
   } catch (error) {
@@ -276,7 +376,7 @@ export function useAutoSync(options: AutoSyncOptions = {}) {
       onSyncStart();
     }
 
-    const result = await performSync(userId);
+    const result = await performSync(userId, force);
 
     syncInProgress.current = false;
 

@@ -61,7 +61,6 @@ export default function MeterConsumption() {
       const { data: readingsData } = await supabase
         .from('water_readings')
         .select('period, consumo_m3')
-        .eq('user_id', user?.id)
         .order('period', { ascending: true })
         .limit(parseInt(period));
 
