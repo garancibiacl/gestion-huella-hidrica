@@ -6,14 +6,28 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MeterConsumption from '@/components/dashboard/MeterConsumption';
 import HumanWaterConsumption from '@/components/dashboard/HumanWaterConsumption';
 import { SyncButton } from '@/components/sync/SyncButton';
+import { useAutoSync } from '@/hooks/useAutoSync';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('medidor');
   const [refreshKey, setRefreshKey] = useState(0);
+  const { user } = useAuth();
 
   const handleSyncComplete = () => {
     setRefreshKey(prev => prev + 1);
   };
+
+  // Auto-sync on mount and when window regains focus
+  useAutoSync({
+    enabled: true,
+    userId: user?.id,
+    onSyncComplete: (success, rowsProcessed) => {
+      if (success && rowsProcessed > 0) {
+        setRefreshKey(prev => prev + 1);
+      }
+    },
+  });
 
   return (
     <div className="page-container">

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { useAutoSync } from '@/hooks/useAutoSync';
 
 interface SyncButtonProps {
   onSyncComplete?: () => void;
@@ -26,6 +27,35 @@ export function SyncButton({ onSyncComplete }: SyncButtonProps) {
   const { toast } = useToast();
   const { user } = useAuth();
 
+  // Use the auto-sync hook for manual sync
+  const { sync } = useAutoSync({
+    enabled: false, // Don't auto-sync in this component
+    userId: user?.id,
+    onSyncStart: () => setSyncing(true),
+    onSyncComplete: (success, rowsProcessed) => {
+      setSyncing(false);
+      
+      if (success) {
+        toast({
+          title: 'Sincronización completada',
+          description: `${rowsProcessed} registros procesados`,
+        });
+        
+        fetchLastSync();
+        
+        if (onSyncComplete) {
+          onSyncComplete();
+        }
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Error al sincronizar',
+          description: 'No se pudo completar la sincronización',
+        });
+      }
+    },
+  });
+
   useEffect(() => {
     if (user) {
       checkAdminRole();
@@ -42,29 +72,24 @@ export function SyncButton({ onSyncComplete }: SyncButtonProps) {
       .eq('user_id', user.id)
       .maybeSingle();
 
-    setIsAdmin(data?.role === 'admin');
+    // Allow both admin and prevencionista to sync (data is shared)
+    setIsAdmin(data?.role === 'admin' || data?.role === 'prevencionista');
   };
 
   const fetchLastSync = async () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('sync_runs')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('source', 'google_sheets')
-        .order('started_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error fetching last sync:', error);
-        return;
-      }
-
-      if (data) {
-        setLastSync(data as SyncRun);
+      const lastSyncTimestamp = localStorage.getItem('last_google_sheets_sync');
+      if (lastSyncTimestamp) {
+        setLastSync({
+          id: 'local',
+          started_at: new Date(parseInt(lastSyncTimestamp)).toISOString(),
+          finished_at: new Date(parseInt(lastSyncTimestamp)).toISOString(),
+          rows_inserted: 0,
+          rows_updated: 0,
+          errors: [],
+        });
       }
     } catch (error) {
       console.error('Error fetching last sync:', error);
@@ -72,55 +97,8 @@ export function SyncButton({ onSyncComplete }: SyncButtonProps) {
   };
 
   const handleSync = async () => {
-    setSyncing(true);
-    
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error('No active session');
-      }
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-google-sheets`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Sync failed');
-      }
-
-      toast({
-        title: 'Sincronización completada',
-        description: `${result.rows_processed} registros procesados`,
-      });
-
-      // Fetch updated last sync
-      await fetchLastSync();
-
-      // Notify parent to refresh data
-      if (onSyncComplete) {
-        onSyncComplete();
-      }
-
-    } catch (error: any) {
-      console.error('Sync error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error al sincronizar',
-        description: error.message || 'No se pudo completar la sincronización',
-      });
-    } finally {
-      setSyncing(false);
-    }
+    // Force sync regardless of time interval
+    await sync(true);
   };
 
   const formatLastSync = (dateStr: string) => {
