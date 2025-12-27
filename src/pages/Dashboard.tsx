@@ -5,16 +5,25 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MeterConsumption from '@/components/dashboard/MeterConsumption';
 import HumanWaterConsumption from '@/components/dashboard/HumanWaterConsumption';
+import { SyncButton } from '@/components/sync/SyncButton';
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('medidor');
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleSyncComplete = () => {
+    setRefreshKey(prev => prev + 1);
+  };
 
   return (
     <div className="page-container">
-      <PageHeader 
-        title="Dashboard Ambiental" 
-        description="Monitoreo de huella hídrica en tiempo real"
-      />
+      <div className="flex items-center justify-between mb-6">
+        <PageHeader 
+          title="Dashboard Ambiental" 
+          description="Monitoreo de huella hídrica en tiempo real"
+        />
+        <SyncButton onSyncComplete={handleSyncComplete} />
+      </div>
 
       {/* Tabs for consumption type */}
       <motion.div
@@ -37,11 +46,11 @@ export default function Dashboard() {
           </TabsList>
           
           <TabsContent value="medidor" className="mt-6">
-            <MeterConsumption />
+            <MeterConsumption key={`meter-${refreshKey}`} />
           </TabsContent>
           
           <TabsContent value="humano" className="mt-6">
-            <HumanWaterConsumption />
+            <HumanWaterConsumption key={`human-${refreshKey}`} />
           </TabsContent>
         </Tabs>
       </motion.div>
