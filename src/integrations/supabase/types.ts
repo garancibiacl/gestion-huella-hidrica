@@ -179,6 +179,42 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_runs: {
+        Row: {
+          created_at: string
+          errors: Json | null
+          finished_at: string | null
+          id: string
+          rows_inserted: number | null
+          rows_updated: number | null
+          source: string
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          errors?: Json | null
+          finished_at?: string | null
+          id?: string
+          rows_inserted?: number | null
+          rows_updated?: number | null
+          source: string
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          errors?: Json | null
+          finished_at?: string | null
+          id?: string
+          rows_inserted?: number | null
+          rows_updated?: number | null
+          source?: string
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string

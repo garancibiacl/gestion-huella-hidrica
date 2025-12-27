@@ -49,22 +49,22 @@ export function SyncButton({ onSyncComplete }: SyncButtonProps) {
     if (!user) return;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      const { data, error } = await supabase
+        .from('sync_runs')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('source', 'google_sheets')
+        .order('started_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/sync_runs?user_id=eq.${user.id}&source=eq.google_sheets&order=started_at.desc&limit=1`,
-        {
-          headers: {
-            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-        }
-      );
+      if (error) {
+        console.error('Error fetching last sync:', error);
+        return;
+      }
 
-      const data = await response.json();
-      if (data && data.length > 0) {
-        setLastSync(data[0]);
+      if (data) {
+        setLastSync(data as SyncRun);
       }
     } catch (error) {
       console.error('Error fetching last sync:', error);
