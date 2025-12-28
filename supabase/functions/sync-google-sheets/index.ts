@@ -135,6 +135,21 @@ serve(async (req) => {
       });
     }
 
+    // Get user's organization
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const organizationId = profileData?.organization_id;
+    if (!organizationId) {
+      return new Response(JSON.stringify({ error: 'User has no organization assigned' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Create sync run record
     const syncStarted = new Date().toISOString();
     const { data: syncRun, error: syncError } = await supabase
@@ -252,6 +267,7 @@ serve(async (req) => {
 
         humanWaterRecords.push({
           user_id: user.id,
+          organization_id: organizationId,
           period,
           fecha: fecha || null,
           centro_trabajo: String(centroTrabajo).trim(),

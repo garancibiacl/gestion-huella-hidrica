@@ -68,6 +68,7 @@ export type Database = {
           fecha: string | null
           formato: Database["public"]["Enums"]["water_format"]
           id: string
+          organization_id: string
           period: string
           precio_unitario: number | null
           proveedor: string | null
@@ -84,6 +85,7 @@ export type Database = {
           fecha?: string | null
           formato: Database["public"]["Enums"]["water_format"]
           id?: string
+          organization_id: string
           period: string
           precio_unitario?: number | null
           proveedor?: string | null
@@ -100,6 +102,7 @@ export type Database = {
           fecha?: string | null
           formato?: Database["public"]["Enums"]["water_format"]
           id?: string
+          organization_id?: string
           period?: string
           precio_unitario?: number | null
           proveedor?: string | null
@@ -108,7 +111,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "human_water_consumption_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       measurement_criteria: {
         Row: {
@@ -152,12 +163,34 @@ export type Database = {
         }
         Relationships: []
       }
+      organizations: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
           email: string | null
           full_name: string | null
           id: string
+          organization_id: string
           role: string | null
           updated_at: string
           user_id: string
@@ -167,6 +200,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          organization_id: string
           role?: string | null
           updated_at?: string
           user_id: string
@@ -176,11 +210,20 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          organization_id?: string
           role?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sustainability_actions: {
         Row: {
@@ -286,6 +329,7 @@ export type Database = {
           evidencia_url: string | null
           id: string
           observaciones: string | null
+          organization_id: string
           period: string
           updated_at: string
           user_id: string
@@ -297,6 +341,7 @@ export type Database = {
           evidencia_url?: string | null
           id?: string
           observaciones?: string | null
+          organization_id: string
           period: string
           updated_at?: string
           user_id: string
@@ -308,11 +353,20 @@ export type Database = {
           evidencia_url?: string | null
           id?: string
           observaciones?: string | null
+          organization_id?: string
           period?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "water_readings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -360,6 +414,7 @@ export type Database = {
           views: number
         }[]
       }
+      get_user_organization_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
