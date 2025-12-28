@@ -37,7 +37,7 @@ export function useOrganization(): UseOrganizationResult {
         console.error('Error loading organization_id:', error);
         setOrganizationId(null);
       } else {
-        setOrganizationId((data as any)?.organization_id ?? null);
+        setOrganizationId(data?.organization_id ?? null);
       }
 
       setLoading(false);
