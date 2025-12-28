@@ -32,7 +32,6 @@ export default function Periods() {
     const { data } = await supabase
       .from('water_readings')
       .select('*')
-      .eq('user_id', user?.id)
       .order('period', { ascending: false });
     
     if (data) setReadings(data.map(r => ({ ...r, consumo_m3: Number(r.consumo_m3), costo: r.costo ? Number(r.costo) : undefined })));

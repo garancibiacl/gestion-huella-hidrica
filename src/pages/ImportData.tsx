@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Download, Gauge, Users } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useAuth } from '@/hooks/useAuth';
+import { useOrganization } from '@/hooks/useOrganization';
 import { supabase } from '@/integrations/supabase/client';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
@@ -419,13 +420,14 @@ function parsePowerBiFormat(rows: Record<string, unknown>[]): { parsed: ParsedDa
 
 export default function ImportData() {
   const { user } = useAuth();
+  const { organizationId, loading: orgLoading } = useOrganization();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<'medidor' | 'humano'>('medidor');
+  const [activeTab, setActiveTab] = useState('meter');
+  const [loading, setLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [parsedData, setParsedData] = useState<ParsedData[]>([]);
   const [humanWaterData, setHumanWaterData] = useState<HumanWaterParsedData[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
   const [uploaded, setUploaded] = useState(false);
   const [detectedFormat, setDetectedFormat] = useState<FileFormat | null>(null);
 
@@ -574,11 +576,20 @@ export default function ImportData() {
 
   const handleUploadMeter = async () => {
     if (!user || parsedData.length === 0) return;
+    if (orgLoading || !organizationId) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo determinar la organización del usuario. Intenta recargar la página.',
+      });
+      return;
+    }
 
     setLoading(true);
     try {
       const dataToInsert = parsedData.map(row => ({
         user_id: user.id,
+        organization_id: organizationId,
         period: row.period,
         consumo_m3: row.consumo_m3,
         costo: row.costo,
@@ -610,11 +621,20 @@ export default function ImportData() {
 
   const handleUploadHumanWater = async () => {
     if (!user || humanWaterData.length === 0) return;
+    if (orgLoading || !organizationId) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'No se pudo determinar la organización del usuario. Intenta recargar la página.',
+      });
+      return;
+    }
 
     setLoading(true);
     try {
       const dataToInsert = humanWaterData.map(row => ({
         user_id: user.id,
+        organization_id: organizationId,
         period: row.period,
         fecha: row.fecha || null,
         centro_trabajo: row.centro_trabajo,

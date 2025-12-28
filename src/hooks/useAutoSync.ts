@@ -214,6 +214,22 @@ async function performSync(userId: string, force: boolean = false): Promise<{ su
   }
   
   try {
+    // Load organization_id for org-based RLS policies
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (profileError) {
+      throw profileError;
+    }
+
+    const organizationId = (profileData as any)?.organization_id as string | undefined;
+    if (!organizationId) {
+      throw new Error('No se pudo determinar la organización del usuario para sincronizar.');
+    }
+
     const response = await fetch(CSV_URL);
     if (!response.ok) {
       releaseSyncLock();
@@ -310,6 +326,7 @@ async function performSync(userId: string, force: boolean = false): Promise<{ su
 
       records.push({
         user_id: userId,
+        organization_id: organizationId,
         period,
         fecha: convertToISODate(fecha),
         centro_trabajo: centroTrabajo,

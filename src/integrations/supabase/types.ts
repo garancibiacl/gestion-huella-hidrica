@@ -68,6 +68,7 @@ export type Database = {
           fecha: string | null
           formato: Database["public"]["Enums"]["water_format"]
           id: string
+          organization_id: string | null
           period: string
           precio_unitario: number | null
           proveedor: string | null
@@ -84,6 +85,7 @@ export type Database = {
           fecha?: string | null
           formato: Database["public"]["Enums"]["water_format"]
           id?: string
+          organization_id?: string | null
           period: string
           precio_unitario?: number | null
           proveedor?: string | null
@@ -100,6 +102,7 @@ export type Database = {
           fecha?: string | null
           formato?: Database["public"]["Enums"]["water_format"]
           id?: string
+          organization_id?: string | null
           period?: string
           precio_unitario?: number | null
           proveedor?: string | null
@@ -158,6 +161,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          organization_id: string | null
           role: string | null
           updated_at: string
           user_id: string
@@ -167,6 +171,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          organization_id?: string | null
           role?: string | null
           updated_at?: string
           user_id: string
@@ -176,6 +181,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          organization_id?: string | null
           role?: string | null
           updated_at?: string
           user_id?: string
@@ -286,6 +292,7 @@ export type Database = {
           evidencia_url: string | null
           id: string
           observaciones: string | null
+          organization_id: string | null
           period: string
           updated_at: string
           user_id: string
@@ -297,6 +304,7 @@ export type Database = {
           evidencia_url?: string | null
           id?: string
           observaciones?: string | null
+          organization_id?: string | null
           period: string
           updated_at?: string
           user_id: string
@@ -308,6 +316,7 @@ export type Database = {
           evidencia_url?: string | null
           id?: string
           observaciones?: string | null
+          organization_id?: string | null
           period?: string
           updated_at?: string
           user_id?: string
