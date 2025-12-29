@@ -167,17 +167,33 @@
     @apply bg-card/80 backdrop-blur-xl border border-border/50;
   }
 
-  /* Gradient backgrounds */
+  /* Gradient backgrounds - Subtle SaaS style */
   .gradient-primary {
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(5 63% 35%) 100%);
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(5 63% 38%) 100%);
+  }
+
+  .gradient-primary-subtle {
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.08) 0%, hsl(var(--primary) / 0.02) 100%);
   }
 
   .gradient-success {
     background: linear-gradient(135deg, hsl(var(--success)) 0%, hsl(152 55% 35%) 100%);
   }
 
+  .gradient-success-subtle {
+    background: linear-gradient(135deg, hsl(var(--success) / 0.08) 0%, hsl(var(--success) / 0.02) 100%);
+  }
+
   .gradient-warning {
     background: linear-gradient(135deg, hsl(var(--warning)) 0%, hsl(38 92% 40%) 100%);
+  }
+
+  /* Mesh gradient background for hero sections */
+  .gradient-mesh {
+    background: 
+      radial-gradient(at 40% 20%, hsl(var(--primary) / 0.06) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, hsl(var(--success) / 0.04) 0px, transparent 50%),
+      radial-gradient(at 0% 50%, hsl(var(--primary) / 0.03) 0px, transparent 50%);
   }
 
   /* Hover effects */
@@ -186,7 +202,16 @@
   }
 
   .hover-lift:hover {
-    @apply -translate-y-0.5 shadow-lg;
+    @apply -translate-y-0.5 shadow-card-hover;
+  }
+
+  /* Modern floating card */
+  .floating-card {
+    @apply bg-card rounded-2xl border border-border/50 shadow-card backdrop-blur-sm;
+  }
+
+  .floating-card:hover {
+    @apply shadow-card-hover border-border/80;
   }
 
   /* Focus ring */
@@ -207,9 +232,23 @@
     @apply bg-warning-light text-warning border border-warning/20;
   }
 
-  /* Stat cards */
+  /* Stat cards - Modern SaaS style */
   .stat-card {
-    @apply bg-card rounded-xl border border-border p-5 hover-lift;
+    @apply bg-card rounded-2xl border border-border/60 p-6 shadow-card transition-all duration-300 ease-out;
+  }
+
+  .stat-card:hover {
+    @apply shadow-card-hover -translate-y-0.5 border-border;
+  }
+
+  /* Stat card with primary accent */
+  .stat-card-primary {
+    @apply stat-card relative overflow-hidden;
+  }
+
+  .stat-card-primary::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none;
   }
 
   /* Page container */

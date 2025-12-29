@@ -38,32 +38,59 @@ interface AppSidebarProps {
 
 export function AppSidebar({ onClose }: AppSidebarProps) {
   const location = useLocation();
-  const { signOut } = useAuth();
-  const { isAdmin } = useRole();
+  const { user, signOut } = useAuth();
+  const { isAdmin, isPrevencionista } = useRole();
+  
+  // Derive user display name and initials
+  const rawName =
+    (user?.user_metadata && (user.user_metadata as any).full_name) ||
+    user?.email ||
+    'Usuario';
+
+  const fullName = rawName
+    .split(' ')
+    .filter(Boolean)
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ');
+
+  const initials = fullName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part.charAt(0).toUpperCase())
+    .join('') || 'BJ';
 
   const handleSignOut = async () => {
     await signOut();
   };
 
-  const filteredNavItems = navItems.filter(item => !item.adminOnly || isAdmin);
+  const filteredNavItems = navItems.filter(item => {
+    if (item.adminOnly && !isAdmin) {
+      return false;
+    }
+    if (isPrevencionista && item.path === '/importar') {
+      return false;
+    }
+    return true;
+  });
 
   return (
-    <div className="flex flex-col h-full bg-sidebar border-r border-sidebar-border">
-      {/* Logo */}
-      <div className="p-6 border-b border-sidebar-border">
-        <Link to="/dashboard" className="flex items-center gap-3" onClick={onClose}>
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-            <Droplets className="w-5 h-5 text-primary-foreground" />
+    <div className="flex flex-col h-full bg-sidebar border-r border-sidebar-border/50">
+      {/* User / Org badge - More compact */}
+      <div className="px-5 py-5 border-b border-sidebar-border/50">
+        <Link to="/dashboard" className="flex items-center gap-3 group" onClick={onClose}>
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm group-hover:shadow-primary-glow transition-shadow duration-300 text-primary-foreground text-sm font-semibold">
+            {initials}
           </div>
           <div>
-            <h1 className="font-semibold text-foreground">Buses JM</h1>
-            <p className="text-xs text-muted-foreground">Los Andes</p>
+            <h1 className="font-semibold text-foreground text-sm tracking-tight truncate max-w-[140px]">{fullName}</h1>
+            <p className="text-[11px] text-muted-foreground">Buses JM</p>
           </div>
         </Link>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+      {/* Navigation - Compact spacing */}
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto scrollbar-thin">
         {filteredNavItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
@@ -72,33 +99,36 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
               to={item.path}
               onClick={onClose}
               className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200",
+                "relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200",
                 isActive 
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground" 
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                  ? "bg-primary/10 text-primary" 
+                  : "text-sidebar-foreground hover:bg-muted/60 hover:text-foreground"
               )}
             >
               {isActive && (
                 <motion.div
                   layoutId="activeTab"
-                  className="absolute left-0 w-1 h-8 bg-primary rounded-r-full"
+                  className="absolute left-0 w-[3px] h-5 bg-primary rounded-r-full"
                   transition={{ type: "spring", stiffness: 500, damping: 30 }}
                 />
               )}
-              <item.icon className="w-5 h-5" />
+              <item.icon className={cn(
+                "w-[18px] h-[18px] transition-colors",
+                isActive ? "text-primary" : ""
+              )} />
               <span>{item.label}</span>
             </Link>
           );
         })}
       </nav>
 
-      {/* Logout */}
-      <div className="p-4 border-t border-sidebar-border">
+      {/* Logout - Subtle */}
+      <div className="px-3 py-3 border-t border-sidebar-border/50">
         <button
           onClick={handleSignOut}
-          className="flex items-center gap-3 px-4 py-3 w-full rounded-lg text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground transition-all duration-200"
+          className="flex items-center gap-3 px-3 py-2.5 w-full rounded-xl text-[13px] font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all duration-200"
         >
-          <LogOut className="w-5 h-5" />
+          <LogOut className="w-[18px] h-[18px]" />
           <span>Cerrar sesión</span>
         </button>
       </div>

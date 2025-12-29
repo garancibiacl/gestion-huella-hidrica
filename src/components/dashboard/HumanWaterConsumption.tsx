@@ -47,7 +47,12 @@ interface ChartData {
   costo: number;
 }
 
-const COLORS = ['#22c55e', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899'];
+// Corporate color palette - Primary red + complementary
+const PRIMARY_COLOR = 'hsl(5, 63%, 43%)'; // #b3382a
+const PRIMARY_LIGHT = 'hsl(5, 63%, 55%)';
+const SECONDARY_COLOR = 'hsl(152, 55%, 42%)'; // Green for success
+const ACCENT_COLOR = 'hsl(220, 13%, 46%)'; // Neutral gray
+const COLORS = [PRIMARY_COLOR, SECONDARY_COLOR, '#8b5cf6', '#f59e0b', '#ec4899'];
 
 export default function HumanWaterConsumption() {
   const { user } = useAuth();
@@ -274,31 +279,61 @@ export default function HumanWaterConsumption() {
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartByCentro} layout="vertical">
+                <defs>
+                  <linearGradient id="botellasGradient" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor={PRIMARY_COLOR} stopOpacity={0.9} />
+                    <stop offset="100%" stopColor={PRIMARY_LIGHT} stopOpacity={1} />
+                  </linearGradient>
+                  <linearGradient id="bidonesGradient" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor={SECONDARY_COLOR} stopOpacity={0.9} />
+                    <stop offset="100%" stopColor="hsl(152, 55%, 50%)" stopOpacity={1} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid 
                   strokeDasharray="3 3" 
                   stroke="hsl(var(--border))"
                   horizontal={true}
                   vertical={false}
+                  opacity={0.5}
                 />
-                <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <XAxis 
+                  type="number" 
+                  stroke="hsl(var(--muted-foreground))" 
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                />
                 <YAxis 
                   type="category" 
                   dataKey="centro" 
                   stroke="hsl(var(--muted-foreground))" 
                   fontSize={11}
                   width={100}
+                  tickLine={false}
+                  axisLine={false}
                 />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
-                    border: 'none',
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.3)',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '14px',
+                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.12)',
+                    padding: '12px 16px',
                   }}
+                  labelStyle={{
+                    fontWeight: 600,
+                    marginBottom: '6px',
+                    color: 'hsl(var(--foreground))'
+                  }}
+                  cursor={{ fill: 'hsl(var(--primary) / 0.04)' }}
                 />
-                <Legend />
-                <Bar dataKey="botellas" name="Botellas" fill="#22c55e" radius={[0, 4, 4, 0]} />
-                <Bar dataKey="bidones" name="Bidones 20L" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+                <Legend 
+                  wrapperStyle={{ paddingTop: '16px' }}
+                  iconType="circle"
+                  iconSize={8}
+                />
+                <Bar dataKey="botellas" name="Botellas" fill="url(#botellasGradient)" radius={[0, 6, 6, 0]} />
+                <Bar dataKey="bidones" name="Bidones 20L" fill="url(#bidonesGradient)" radius={[0, 6, 6, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -323,11 +358,14 @@ export default function HumanWaterConsumption() {
                   data={pieData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
+                  innerRadius={65}
+                  outerRadius={95}
+                  paddingAngle={4}
                   dataKey="value"
+                  stroke="hsl(var(--card))"
+                  strokeWidth={2}
                   label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  labelLine={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1 }}
                 >
                   {pieData.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -336,9 +374,10 @@ export default function HumanWaterConsumption() {
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
-                    border: 'none',
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.3)',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '14px',
+                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.12)',
+                    padding: '12px 16px',
                   }}
                   formatter={(value: number, name: string, props: any) => [
                     `${value.toLocaleString()} unidades (${props.payload.litros.toLocaleString()}L)`,
@@ -377,24 +416,57 @@ export default function HumanWaterConsumption() {
                   };
                 })}
               >
+                <defs>
+                  <linearGradient id="botellasGradientV" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stopColor={PRIMARY_COLOR} stopOpacity={0.8} />
+                    <stop offset="100%" stopColor={PRIMARY_LIGHT} stopOpacity={1} />
+                  </linearGradient>
+                  <linearGradient id="bidonesGradientV" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stopColor={SECONDARY_COLOR} stopOpacity={0.8} />
+                    <stop offset="100%" stopColor="hsl(152, 55%, 50%)" stopOpacity={1} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid 
                   strokeDasharray="3 3" 
                   stroke="hsl(var(--border))"
                   vertical={false}
+                  opacity={0.5}
                 />
-                <XAxis dataKey="period" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                <XAxis 
+                  dataKey="period" 
+                  stroke="hsl(var(--muted-foreground))" 
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis 
+                  stroke="hsl(var(--muted-foreground))" 
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
-                    border: 'none',
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.3)',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '14px',
+                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.12)',
+                    padding: '12px 16px',
                   }}
+                  labelStyle={{
+                    fontWeight: 600,
+                    marginBottom: '6px',
+                    color: 'hsl(var(--foreground))'
+                  }}
+                  cursor={{ fill: 'hsl(var(--primary) / 0.04)' }}
                 />
-                <Legend />
-                <Bar dataKey="botellas" name="Botellas" fill="#22c55e" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="bidones" name="Bidones 20L" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Legend 
+                  wrapperStyle={{ paddingTop: '16px' }}
+                  iconType="circle"
+                  iconSize={8}
+                />
+                <Bar dataKey="botellas" name="Botellas" fill="url(#botellasGradientV)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="bidones" name="Bidones 20L" fill="url(#bidonesGradientV)" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
