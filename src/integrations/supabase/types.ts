@@ -59,6 +59,59 @@ export type Database = {
         }
         Relationships: []
       }
+      electric_meter_readings: {
+        Row: {
+          centro_trabajo: string
+          consumo_kwh: number
+          costo_total: number | null
+          created_at: string
+          id: string
+          medidor: string
+          organization_id: string
+          period: string
+          proveedor: string | null
+          tipo_uso: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          centro_trabajo: string
+          consumo_kwh?: number
+          costo_total?: number | null
+          created_at?: string
+          id?: string
+          medidor: string
+          organization_id: string
+          period: string
+          proveedor?: string | null
+          tipo_uso?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          centro_trabajo?: string
+          consumo_kwh?: number
+          costo_total?: number | null
+          created_at?: string
+          id?: string
+          medidor?: string
+          organization_id?: string
+          period?: string
+          proveedor?: string | null
+          tipo_uso?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "electric_meter_readings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       human_water_consumption: {
         Row: {
           cantidad: number
