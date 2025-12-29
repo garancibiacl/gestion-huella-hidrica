@@ -283,17 +283,26 @@ serve(async (req) => {
 
       // Upsert human water consumption records
       if (humanWaterRecords.length > 0) {
-        const { error: upsertError, count } = await supabase
+        // Mirror sync: keep table as an exact copy of Google Sheet for this organization.
+        // 1) Delete all current rows for this organization.
+        const { error: deleteError } = await supabase
           .from('human_water_consumption')
-          .upsert(humanWaterRecords, {
-            onConflict: 'user_id,period,centro_trabajo,formato',
-            count: 'exact',
-          });
+          .delete()
+          .eq('organization_id', organizationId);
 
-        if (upsertError) {
-          errors.push(`Upsert error: ${upsertError.message}`);
+        if (deleteError) {
+          errors.push(`Delete error: ${deleteError.message}`);
         } else {
-          totalInserted = count || 0;
+          // 2) Insert fresh rows.
+          const { error: insertError } = await supabase
+            .from('human_water_consumption')
+            .insert(humanWaterRecords);
+
+          if (insertError) {
+            errors.push(`Insert error: ${insertError.message}`);
+          } else {
+            totalInserted = humanWaterRecords.length;
+          }
         }
       }
     }

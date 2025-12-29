@@ -25,11 +25,7 @@ export function useOrganization(): UseOrganizationResult {
 
       setLoading(true);
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      const { data, error } = await supabase.rpc('get_user_organization_id', { _user_id: user.id });
 
       if (!mounted) return;
 
@@ -37,7 +33,7 @@ export function useOrganization(): UseOrganizationResult {
         console.error('Error loading organization_id:', error);
         setOrganizationId(null);
       } else {
-        setOrganizationId(data?.organization_id ?? null);
+        setOrganizationId(data ?? null);
       }
 
       setLoading(false);
