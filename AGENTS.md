@@ -140,4 +140,22 @@ Los siguientes agentes **deben usar estas reglas como checklist obligatorio** en
   - Responsable de: `[QA-01..03]`, robustez general y no-regresiones.  
   - Exige escenarios de prueba claros y resultados esperados para cambios de negocio clave.
 
+---
+
+### 8. Mantenimiento, Calidad y Documentación
+
+- **[MAINT-01] Evolución del repositorio y componentes**  
+  - Mantener y extender el repositorio siguiendo las mejores prácticas de desarrollo mencionadas en este documento.  
+  - Contribuir activamente a la evolución del sistema de diseño multimarca, reutilizando y mejorando componentes existentes antes de crear nuevos.
+
+- **[CODE-01] Calidad de código**  
+  - Implementar soluciones limpias, eficientes y fáciles de mantener.  
+  - Seguir los estándares de código definidos en las reglas de *Architecture / System Patterns*.  
+  - Mantener alineamiento con las guías de estilos UI/UX establecidas (tipografía, espaciados, uso de color, componentes de diseño).
+
+- **[DOC-01] Documentación viva**  
+  - Mantener actualizada la documentación del proyecto (README, guías de uso, decisiones técnicas clave).  
+  - Documentar nuevos componentes, hooks y flujos relevantes cuando se introducen cambios de negocio o arquitectura.  
+  - Asegurar que la documentación sea suficiente para que otro desarrollador pueda continuar el trabajo sin fricción.
+
 > **Regla global:** Ningún cambio se considera “aprobado” si no pasa explícitamente por estos criterios de Architecture/System Patterns y por los agentes designados arriba.

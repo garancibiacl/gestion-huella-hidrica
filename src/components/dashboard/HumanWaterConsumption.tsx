@@ -367,8 +367,12 @@ export default function HumanWaterConsumption() {
                   label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                   labelLine={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1 }}
                 >
-                  {pieData.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  {pieData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      // Botellas siempre en rojo corporativo, Bidones siempre en verde
+                      fill={entry.name === 'Botellas' ? PRIMARY_COLOR : SECONDARY_COLOR}
+                    />
                   ))}
                 </Pie>
                 <Tooltip
