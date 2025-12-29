@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Droplets, Mail, Lock, Loader2, User } from 'lucide-react';
+import { Droplets, Mail, Lock, Loader2, User, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,6 +28,7 @@ export default function AuthPage() {
   const [lastName, setLastName] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showPassword, setShowPassword] = useState(false);
   
   const navigate = useNavigate();
   const { user, signIn, signUp, signInWithGoogle } = useAuth();
@@ -83,6 +85,41 @@ export default function AuthPage() {
         });
         setErrors(fieldErrors);
       }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast({
+        variant: 'destructive',
+        title: 'Ingresa tu correo',
+        description: 'Escribe tu correo electrónico para enviar el enlace de restablecimiento.',
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/auth',
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: 'Correo enviado',
+        description: 'Revisa tu bandeja de entrada para restablecer la contraseña.',
+      });
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'No se pudo enviar el correo',
+        description: error?.message || 'Intenta nuevamente en unos minutos.',
+      });
     } finally {
       setLoading(false);
     }
@@ -154,12 +191,21 @@ export default function AuthPage() {
                       placeholder="Nombre"
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
-                      className="pl-10"
+                      className="pl-10 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                       disabled={loading}
+                      aria-label="Nombre"
+                      aria-invalid={!!errors.firstName}
+                      aria-describedby={errors.firstName ? 'firstName-error' : undefined}
                     />
                   </div>
                   {errors.firstName && (
-                    <p className="text-xs text-destructive">{errors.firstName}</p>
+                    <p
+                      id="firstName-error"
+                      className="text-xs text-destructive"
+                      role="alert"
+                    >
+                      {errors.firstName}
+                    </p>
                   )}
                 </div>
                 <div className="space-y-2">
@@ -172,10 +218,19 @@ export default function AuthPage() {
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
                       disabled={loading}
+                      aria-label="Apellido"
+                      aria-invalid={!!errors.lastName}
+                      aria-describedby={errors.lastName ? 'lastName-error' : undefined}
                     />
                   </div>
                   {errors.lastName && (
-                    <p className="text-xs text-destructive">{errors.lastName}</p>
+                    <p
+                      id="lastName-error"
+                      className="text-xs text-destructive"
+                      role="alert"
+                    >
+                      {errors.lastName}
+                    </p>
                   )}
                 </div>
               </div>
@@ -191,12 +246,21 @@ export default function AuthPage() {
                   placeholder="tu@empresa.cl"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                   disabled={loading}
+                  aria-label="Correo electrónico"
+                  aria-invalid={!!errors.email}
+                  aria-describedby={errors.email ? 'email-error' : undefined}
                 />
               </div>
               {errors.email && (
-                <p className="text-xs text-destructive">{errors.email}</p>
+                <p
+                  id="email-error"
+                  className="text-xs text-destructive"
+                  role="alert"
+                >
+                  {errors.email}
+                </p>
               )}
             </div>
 
@@ -206,22 +270,48 @@ export default function AuthPage() {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 pr-10 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                   disabled={loading}
+                  aria-label="Contraseña"
+                  aria-invalid={!!errors.password}
+                  aria-describedby={errors.password ? 'password-error' : undefined}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-full p-1"
+                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
               {errors.password && (
-                <p className="text-xs text-destructive">{errors.password}</p>
+                <p
+                  id="password-error"
+                  className="text-xs text-destructive"
+                  role="alert"
+                >
+                  {errors.password}
+                </p>
+              )}
+              {isLogin && (
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="mt-1 text-xs text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
               )}
             </div>
 
             <Button 
               type="submit" 
-              className="w-full" 
+              className="w-full h-11 text-sm font-medium focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               disabled={loading}
             >
               {loading ? (
