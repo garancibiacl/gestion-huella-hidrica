@@ -31,7 +31,7 @@ const PRIMARY_COLOR = 'hsl(210, 80%, 50%)'; // azul para consumo kWh
 const SECONDARY_COLOR = 'hsl(5, 63%, 43%)'; // rojo corporativo para resaltar
 
 export default function ElectricMeterConsumption() {
-  const { data, loading } = useElectricMeters();
+  const { data, loading, error } = useElectricMeters();
   const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
   const [selectedCentro, setSelectedCentro] = useState<string>('all');
   const [selectedMedidor, setSelectedMedidor] = useState<string>('all');
@@ -62,9 +62,9 @@ export default function ElectricMeterConsumption() {
     [data, selectedPeriod, selectedCentro, selectedMedidor]
   );
 
-  const totalKwh = filtered.reduce((sum, d) => sum + d.consumo_kwh, 0);
+  const totalKwh = filtered.reduce((sum, d) => sum + Number(d.consumo_kwh), 0);
   const totalCosto = filtered.reduce(
-    (sum, d) => sum + (d.costo_total ?? 0),
+    (sum, d) => sum + Number(d.costo_total ?? 0),
     0
   );
   const totalMedidores = new Set(filtered.map((d) => d.medidor)).size;
@@ -74,8 +74,8 @@ export default function ElectricMeterConsumption() {
     if (centroData.length === 0) return { centro, consumo: 0, costo: 0 };
     return {
       centro: centro.length > 18 ? centro.substring(0, 15) + '…' : centro,
-      consumo: centroData.reduce((sum, d) => sum + d.consumo_kwh, 0),
-      costo: centroData.reduce((sum, d) => sum + (d.costo_total ?? 0), 0),
+      consumo: centroData.reduce((sum, d) => sum + Number(d.consumo_kwh), 0),
+      costo: centroData.reduce((sum, d) => sum + Number(d.costo_total ?? 0), 0),
     };
   }).filter((d) => d.consumo > 0);
 
@@ -84,7 +84,7 @@ export default function ElectricMeterConsumption() {
     if (medidorData.length === 0) return { medidor: m, consumo: 0 };
     return {
       medidor: m,
-      consumo: medidorData.reduce((sum, d) => sum + d.consumo_kwh, 0),
+      consumo: medidorData.reduce((sum, d) => sum + Number(d.consumo_kwh), 0),
     };
   }).filter((d) => d.consumo > 0);
 
@@ -98,7 +98,7 @@ export default function ElectricMeterConsumption() {
     const periodData = filtered.filter((d) => d.period === p);
     return {
       period: formatPeriod(p),
-      consumo: periodData.reduce((sum, d) => sum + d.consumo_kwh, 0),
+      consumo: periodData.reduce((sum, d) => sum + Number(d.consumo_kwh), 0),
     };
   });
 
@@ -115,6 +115,22 @@ export default function ElectricMeterConsumption() {
     );
   }
 
+  if (error) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="stat-card flex flex-col items-center justify-center py-12 border-destructive/50"
+      >
+        <Zap className="w-16 h-16 text-destructive mb-4" />
+        <h3 className="text-lg font-semibold mb-2 text-destructive">Error cargando datos</h3>
+        <p className="text-muted-foreground text-center mb-2 max-w-md">
+          {error}
+        </p>
+      </motion.div>
+    );
+  }
+
   if (data.length === 0) {
     return (
       <motion.div
@@ -128,7 +144,7 @@ export default function ElectricMeterConsumption() {
           Aún no hay registros de consumo de energía eléctrica por medidor.
         </p>
         <p className="text-muted-foreground text-xs text-center max-w-md">
-          Importa tus datos desde el Excel de luz para comenzar a monitorear kWh y costos.
+          Sincroniza los datos desde Google Sheets para comenzar a monitorear kWh y costos.
         </p>
       </motion.div>
     );

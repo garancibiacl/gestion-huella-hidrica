@@ -248,14 +248,12 @@ serve(async (req) => {
           user_id: user.id,
           organization_id: organizationId,
           period,
-          fecha: fecha || null,
           centro_trabajo: String(centroTrabajo).trim(),
           medidor: String(medidor).trim(),
           tipo_uso: tipoUso || null,
           consumo_kwh: consumoNum,
           costo_total: parseChileanCurrency(costoTotal),
           proveedor: proveedor || null,
-          observaciones: observaciones || null,
         });
       });
 
