@@ -8,18 +8,14 @@ import HumanWaterConsumption from '@/components/dashboard/HumanWaterConsumption'
 import { SyncButton } from '@/components/sync/SyncButton';
 import { useAutoSync } from '@/hooks/useAutoSync';
 import { useAuth } from '@/hooks/useAuth';
-import { useLastUpdated } from '@/hooks/useLastUpdated';
-import { LastUpdatedIndicator } from '@/components/dashboard/LastUpdatedIndicator';
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('medidor');
   const [refreshKey, setRefreshKey] = useState(0);
   const { user } = useAuth();
-  const { lastUpdated, isLoading: isLoadingLastUpdated, refetch: refetchLastUpdated } = useLastUpdated();
 
   const handleSyncComplete = () => {
     setRefreshKey(prev => prev + 1);
-    refetchLastUpdated();
   };
 
   // Auto-sync on mount and when window regains focus
@@ -35,14 +31,11 @@ export default function Dashboard() {
 
   return (
     <div className="page-container">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div className="flex flex-col gap-1">
-          <PageHeader 
-            title="Dashboard Ambiental" 
-            description="Monitoreo de huella hídrica en tiempo real"
-          />
-          <LastUpdatedIndicator lastUpdated={lastUpdated} isLoading={isLoadingLastUpdated} />
-        </div>
+      <div className="flex items-center justify-between mb-6">
+        <PageHeader 
+          title="Dashboard Ambiental" 
+          description="Monitoreo de huella hídrica en tiempo real"
+        />
         <SyncButton onSyncComplete={handleSyncComplete} />
       </div>
 
