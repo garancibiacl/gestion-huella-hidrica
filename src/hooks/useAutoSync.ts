@@ -207,6 +207,38 @@ function parseCSV(csvText: string): string[][] {
   return rows;
 }
 
+async function syncElectricMeters(userId: string): Promise<{ success: boolean; rowsInserted: number; errors: string[] }> {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData?.session?.access_token;
+    
+    if (!accessToken) {
+      return { success: false, rowsInserted: 0, errors: ['No hay sesión activa'] };
+    }
+
+    const { data, error } = await supabase.functions.invoke('sync-electric-meters', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (error) {
+      console.error('Error calling sync-electric-meters:', error);
+      return { success: false, rowsInserted: 0, errors: [error.message] };
+    }
+
+    console.log('sync-electric-meters response:', data);
+    return {
+      success: data?.success ?? false,
+      rowsInserted: data?.rows_inserted ?? 0,
+      errors: data?.errors ?? [],
+    };
+  } catch (err: any) {
+    console.error('Error syncing electric meters:', err);
+    return { success: false, rowsInserted: 0, errors: [err.message] };
+  }
+}
+
 async function performSync(userId: string, force: boolean = false): Promise<{ success: boolean; rowsProcessed: number }> {
   // Acquire lock to prevent simultaneous syncs
   if (!acquireSyncLock()) {
@@ -230,6 +262,7 @@ async function performSync(userId: string, force: boolean = false): Promise<{ su
       throw new Error('No se pudo determinar la organización del usuario para sincronizar.');
     }
 
+    // Sync human water consumption from CSV
     const response = await fetch(CSV_URL);
     if (!response.ok) {
       releaseSyncLock();
@@ -242,147 +275,148 @@ async function performSync(userId: string, force: boolean = false): Promise<{ su
     const currentHash = simpleHash(csvText);
     const lastHash = localStorage.getItem(LAST_HASH_KEY);
     
-    if (!force && lastHash === currentHash) {
-      console.log('Google Sheet content unchanged, skipping sync.');
-      releaseSyncLock();
-      return { success: true, rowsProcessed: 0 };
-    }
+    let humanWaterRowsProcessed = 0;
     
-    // IMPORTANT: Save hash IMMEDIATELY to prevent duplicate syncs
-    localStorage.setItem(LAST_HASH_KEY, currentHash);
-    localStorage.setItem(LAST_SYNC_KEY, Date.now().toString());
-    
-    console.log(`Content changed (hash: ${currentHash}), proceeding with sync...`);
-    
-    const rows = parseCSV(csvText);
-
-    if (rows.length < 2) {
-      return { success: true, rowsProcessed: 0 };
-    }
-
-    const headers = rows[0].map(h => h.toLowerCase().trim());
-    const dataRows = rows.slice(1);
-
-    const colIdx = {
-      fecha: headers.findIndex(h => h.includes('fecha')),
-      mes: headers.findIndex(h => h.includes('mes') || h.includes('periodo') || h.includes('período')),
-      centroTrabajo: headers.findIndex(h => h.includes('centro')),
-      faena: headers.findIndex(h => h.includes('faena')),
-      tipo: headers.findIndex(h => h.includes('tipo') || h.includes('formato') || h.includes('producto')),
-      proveedor: headers.findIndex(h => h.includes('proveedor')),
-      cantidad: headers.findIndex(h => h.includes('cantidad')),
-      costoTotal: headers.findIndex(h => h.includes('costo')),
-      litros: headers.findIndex(h => h.includes('litros') || h.includes('litro')),
-    };
-    
-    console.log('CSV Headers:', headers);
-    console.log('Column indices:', colIdx);
-
-    const records: any[] = [];
-
-    for (let i = 0; i < dataRows.length; i++) {
-      const row = dataRows[i];
+    if (force || lastHash !== currentHash) {
+      // IMPORTANT: Save hash IMMEDIATELY to prevent duplicate syncs
+      localStorage.setItem(LAST_HASH_KEY, currentHash);
+      localStorage.setItem(LAST_SYNC_KEY, Date.now().toString());
       
-      const fecha = colIdx.fecha >= 0 ? row[colIdx.fecha] : undefined;
-      const mes = colIdx.mes >= 0 ? row[colIdx.mes] : undefined;
-      const centroTrabajo = colIdx.centroTrabajo >= 0 ? row[colIdx.centroTrabajo]?.trim() : '';
-      const faena = colIdx.faena >= 0 ? row[colIdx.faena]?.trim() : '';
-      const tipo = colIdx.tipo >= 0 ? row[colIdx.tipo]?.toLowerCase() : '';
-      const proveedor = colIdx.proveedor >= 0 ? row[colIdx.proveedor]?.trim() : '';
-      const cantidad = colIdx.cantidad >= 0 ? row[colIdx.cantidad] : '0';
-      const costoTotal = colIdx.costoTotal >= 0 ? row[colIdx.costoTotal] : undefined;
-
-      if (!centroTrabajo && !cantidad) continue;
-
-      const yearFromDate = extractYearFromDate(fecha);
-      let period = parsePeriod(mes, yearFromDate);
-      if (!period && fecha) {
-        period = parsePeriod(fecha);
-      }
-
-      if (!period || !centroTrabajo) continue;
-
-      // Detect formato SOLO desde la columna "Tipo" para respetar lo que indica el Excel
-      // Ejemplos que se consideran bidón: "Bidón", "Bidon 20L", "Bidón 20 L", "Garrafón", etc.
-      const normalizedTipo = String(tipo || '').toLowerCase();
-      const isBidon =
-        normalizedTipo.includes('bidón') ||
-        normalizedTipo.includes('bidon') ||
-        normalizedTipo.includes('20l') ||
-        normalizedTipo.includes('20 l') ||
-        normalizedTipo.includes('garraf');
+      console.log(`Content changed (hash: ${currentHash}), proceeding with sync...`);
       
-      const formato = isBidon ? 'bidon_20l' : 'botella';
-      
-      // Log first few rows for debugging
-      if (i < 3) {
-        console.log(`Row ${i}: tipo="${tipo}", formato=${formato}, mes="${mes}", fecha="${fecha}"`);
-      }
+      const rows = parseCSV(csvText);
 
-      const cantidadNum = parseFloat(String(cantidad).replace(/,/g, ''));
-      if (isNaN(cantidadNum) || cantidadNum <= 0) continue;
+      if (rows.length >= 2) {
+        const headers = rows[0].map(h => h.toLowerCase().trim());
+        const dataRows = rows.slice(1);
 
-      records.push({
-        user_id: userId,
-        organization_id: organizationId,
-        period,
-        fecha: convertToISODate(fecha),
-        centro_trabajo: centroTrabajo,
-        faena: faena || null,
-        formato,
-        proveedor: proveedor || null,
-        cantidad: cantidadNum,
-        unidad: 'unidad',
-        precio_unitario: null,
-        total_costo: parseChileanCurrency(costoTotal),
-      });
-    }
-
-    if (records.length > 0) {
-      // Datos compartidos: dejamos que la tabla sea un espejo EXACTO del Google Sheet.
-      // Borramos todos los registros actuales y luego insertamos solo lo que viene del sheet.
-      
-      // Step 1: Get all existing record IDs
-      const { data: existingRecords } = await supabase
-        .from('human_water_consumption')
-        .select('id');
-      
-      // Step 2: Delete all existing records by ID
-      if (existingRecords && existingRecords.length > 0) {
-        const idsToDelete = existingRecords.map(r => r.id);
-        console.log(`Deleting ${idsToDelete.length} existing records...`);
+        const colIdx = {
+          fecha: headers.findIndex(h => h.includes('fecha')),
+          mes: headers.findIndex(h => h.includes('mes') || h.includes('periodo') || h.includes('período')),
+          centroTrabajo: headers.findIndex(h => h.includes('centro')),
+          faena: headers.findIndex(h => h.includes('faena')),
+          tipo: headers.findIndex(h => h.includes('tipo') || h.includes('formato') || h.includes('producto')),
+          proveedor: headers.findIndex(h => h.includes('proveedor')),
+          cantidad: headers.findIndex(h => h.includes('cantidad')),
+          costoTotal: headers.findIndex(h => h.includes('costo')),
+          litros: headers.findIndex(h => h.includes('litros') || h.includes('litro')),
+        };
         
-        // Delete in batches of 100 to avoid query limits
-        for (let i = 0; i < idsToDelete.length; i += 100) {
-          const batch = idsToDelete.slice(i, i + 100);
-          const { error: deleteError } = await supabase
-            .from('human_water_consumption')
-            .delete()
-            .in('id', batch);
+        console.log('CSV Headers:', headers);
+        console.log('Column indices:', colIdx);
+
+        const records: any[] = [];
+
+        for (let i = 0; i < dataRows.length; i++) {
+          const row = dataRows[i];
           
-          if (deleteError) {
-            console.error('Delete error:', deleteError);
-            throw deleteError;
+          const fecha = colIdx.fecha >= 0 ? row[colIdx.fecha] : undefined;
+          const mes = colIdx.mes >= 0 ? row[colIdx.mes] : undefined;
+          const centroTrabajo = colIdx.centroTrabajo >= 0 ? row[colIdx.centroTrabajo]?.trim() : '';
+          const faena = colIdx.faena >= 0 ? row[colIdx.faena]?.trim() : '';
+          const tipo = colIdx.tipo >= 0 ? row[colIdx.tipo]?.toLowerCase() : '';
+          const proveedor = colIdx.proveedor >= 0 ? row[colIdx.proveedor]?.trim() : '';
+          const cantidad = colIdx.cantidad >= 0 ? row[colIdx.cantidad] : '0';
+          const costoTotal = colIdx.costoTotal >= 0 ? row[colIdx.costoTotal] : undefined;
+
+          if (!centroTrabajo && !cantidad) continue;
+
+          const yearFromDate = extractYearFromDate(fecha);
+          let period = parsePeriod(mes, yearFromDate);
+          if (!period && fecha) {
+            period = parsePeriod(fecha);
           }
+
+          if (!period || !centroTrabajo) continue;
+
+          const normalizedTipo = String(tipo || '').toLowerCase();
+          const isBidon =
+            normalizedTipo.includes('bidón') ||
+            normalizedTipo.includes('bidon') ||
+            normalizedTipo.includes('20l') ||
+            normalizedTipo.includes('20 l') ||
+            normalizedTipo.includes('garraf');
+          
+          const formato = isBidon ? 'bidon_20l' : 'botella';
+          
+          if (i < 3) {
+            console.log(`Row ${i}: tipo="${tipo}", formato=${formato}, mes="${mes}", fecha="${fecha}"`);
+          }
+
+          const cantidadNum = parseFloat(String(cantidad).replace(/,/g, ''));
+          if (isNaN(cantidadNum) || cantidadNum <= 0) continue;
+
+          records.push({
+            user_id: userId,
+            organization_id: organizationId,
+            period,
+            fecha: convertToISODate(fecha),
+            centro_trabajo: centroTrabajo,
+            faena: faena || null,
+            formato,
+            proveedor: proveedor || null,
+            cantidad: cantidadNum,
+            unidad: 'unidad',
+            precio_unitario: null,
+            total_costo: parseChileanCurrency(costoTotal),
+          });
+        }
+
+        if (records.length > 0) {
+          const { data: existingRecords } = await supabase
+            .from('human_water_consumption')
+            .select('id');
+          
+          if (existingRecords && existingRecords.length > 0) {
+            const idsToDelete = existingRecords.map(r => r.id);
+            console.log(`Deleting ${idsToDelete.length} existing records...`);
+            
+            for (let i = 0; i < idsToDelete.length; i += 100) {
+              const batch = idsToDelete.slice(i, i + 100);
+              const { error: deleteError } = await supabase
+                .from('human_water_consumption')
+                .delete()
+                .in('id', batch);
+              
+              if (deleteError) {
+                console.error('Delete error:', deleteError);
+                throw deleteError;
+              }
+            }
+          }
+
+          console.log(`Inserting ${records.length} new records...`);
+          const { error: insertError } = await supabase
+            .from('human_water_consumption')
+            .insert(records);
+
+          if (insertError) {
+            console.error('Insert error:', insertError);
+            throw insertError;
+          }
+          
+          humanWaterRowsProcessed = records.length;
+          console.log('Human water sync complete.');
         }
       }
+    } else {
+      console.log('Google Sheet content unchanged, skipping human water sync.');
+    }
 
-      // Step 3: Insert fresh records from Google Sheet
-      console.log(`Inserting ${records.length} new records...`);
-      const { error: insertError } = await supabase
-        .from('human_water_consumption')
-        .insert(records);
-
-      if (insertError) {
-        console.error('Insert error:', insertError);
-        throw insertError;
-      }
-      
-      console.log('Sync complete. Records in DB should now match Google Sheet exactly.');
+    // Also sync electric meters via edge function
+    console.log('Syncing electric meters...');
+    const electricResult = await syncElectricMeters(userId);
+    console.log('Electric meters sync result:', electricResult);
+    
+    if (electricResult.errors.length > 0) {
+      console.warn('Electric meters sync errors:', electricResult.errors);
     }
 
     releaseSyncLock();
-    return { success: true, rowsProcessed: records.length };
+    return { 
+      success: true, 
+      rowsProcessed: humanWaterRowsProcessed + electricResult.rowsInserted 
+    };
   } catch (error) {
     console.error('Auto-sync error:', error);
     releaseSyncLock();
