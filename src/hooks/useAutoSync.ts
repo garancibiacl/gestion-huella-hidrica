@@ -392,15 +392,6 @@ async function performSync(userId: string, force: boolean = false): Promise<{ su
   }
 }
 
-// Clean up localStorage on module load to reset sync state
-// This ensures a fresh start and prevents duplicate syncs
-(function cleanupOnLoad() {
-  localStorage.removeItem(LAST_HASH_KEY);
-  localStorage.removeItem(SYNC_LOCK_KEY);
-  localStorage.removeItem(LAST_SYNC_KEY);
-  console.log('Sync state reset on page load.');
-})();
-
 export function useAutoSync(options: AutoSyncOptions = {}) {
   const { enabled = true, onSyncStart, onSyncComplete, userId } = options;
   const syncInProgress = useRef(false);

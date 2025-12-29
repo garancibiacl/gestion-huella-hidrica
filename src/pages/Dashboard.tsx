@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('medidor');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [humanReady, setHumanReady] = useState(false);
   const { user } = useAuth();
 
   const handleSyncComplete = () => {
@@ -23,6 +24,10 @@ export default function Dashboard() {
     enabled: true,
     userId: user?.id,
     onSyncComplete: (success, rowsProcessed) => {
+      // Marcamos que la primera sync (o intento) ya terminó
+      setHumanReady(true);
+
+      // Si hubo cambios reales en la hoja, forzamos recarga de data
       if (success && rowsProcessed > 0) {
         setRefreshKey(prev => prev + 1);
       }
@@ -70,7 +75,13 @@ export default function Dashboard() {
           </TabsContent>
           
           <TabsContent value="humano" className="mt-6">
-            <HumanWaterConsumption key={`human-${refreshKey}`} />
+            {humanReady ? (
+              <HumanWaterConsumption key={`human-${refreshKey}`} />
+            ) : (
+              <div className="stat-card">
+                <p className="text-sm text-muted-foreground">Sincronizando datos de consumo humano...</p>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </motion.div>

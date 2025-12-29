@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { AlertTriangle, Bell, Target, Save } from 'lucide-react';
+import { AlertTriangle, Bell, Target, Save, User, KeyRound } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useOrganization } from '@/hooks/useOrganization';
 import { supabase } from '@/integrations/supabase/client';
 import { PageHeader } from '@/components/ui/page-header';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,13 @@ import { useToast } from '@/hooks/use-toast';
 export default function Settings() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { organizationId } = useOrganization();
   const [loading, setLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
   const [settings, setSettings] = useState({
     umbral_alerta_pct: 15,
     objetivo_mensual: 1000,
@@ -24,8 +31,32 @@ export default function Settings() {
   });
 
   useEffect(() => {
-    if (user) fetchSettings();
+    if (user) {
+      fetchProfile();
+      fetchSettings();
+    }
   }, [user]);
+
+  const fetchProfile = async () => {
+    setProfileLoading(true);
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('user_id', user?.id)
+        .maybeSingle();
+
+      const fullName = data?.full_name || '';
+      const parts = fullName.split(' ').filter(Boolean);
+      setFirstName(parts[0] || '');
+      setLastName(parts.slice(1).join(' ') || '');
+      setEmail(data?.email || user?.email || '');
+    } catch (error) {
+      console.error('Error fetching profile', error);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
 
   const fetchSettings = async () => {
     const { data } = await supabase.from('measurement_criteria').select('*').eq('user_id', user?.id).maybeSingle();
@@ -47,11 +78,133 @@ export default function Settings() {
     else toast({ variant: 'destructive', title: 'Error al guardar' });
   };
 
+  const handleSaveProfile = async () => {
+    if (!user || !organizationId) {
+      toast({ variant: 'destructive', title: 'No se pudo determinar la organización del usuario' });
+      return;
+    }
+    setProfileLoading(true);
+    try {
+      const full_name = [firstName, lastName].filter(Boolean).join(' ').trim() || null;
+
+      const { error } = await supabase
+        .from('profiles')
+        .upsert(
+          {
+            user_id: user.id,
+            organization_id: organizationId,
+            full_name,
+            email: email || user.email,
+          },
+          { onConflict: 'user_id' }
+        );
+
+      if (error) throw error;
+
+      // Update auth metadata so the sidebar avatar reflects the new name
+      await supabase.auth.updateUser({
+        data: {
+          full_name: full_name || undefined,
+        },
+      });
+
+      toast({ title: 'Perfil actualizado' });
+    } catch (error) {
+      console.error('Error updating profile', error);
+      toast({ variant: 'destructive', title: 'Error al actualizar perfil' });
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!email) {
+      toast({ variant: 'destructive', title: 'Ingresa un correo para restablecer la contraseña' });
+      return;
+    }
+    setResetLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/auth',
+      });
+      if (error) throw error;
+      toast({ title: 'Correo de restablecimiento enviado', description: 'Revisa tu bandeja de entrada.' });
+    } catch (error) {
+      console.error('Error sending reset email', error);
+      toast({ variant: 'destructive', title: 'No se pudo enviar el correo de restablecimiento' });
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   return (
     <div className="page-container">
-      <PageHeader title="Configuración" description="Personaliza alertas y parámetros del sistema" />
+      <PageHeader title="Configuración" description="Datos de tu cuenta y parámetros del sistema" />
 
       <div className="space-y-6 max-w-2xl">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="stat-card"
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <User className="w-5 h-5 text-primary" />
+            <h3 className="font-semibold">Perfil de usuario</h3>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Actualiza tu nombre, apellido y correo electrónico.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div>
+              <Label>Nombre</Label>
+              <Input
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder="Nombre"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>Apellido</Label>
+              <Input
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder="Apellido"
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <div className="mb-4">
+            <Label>Correo electrónico</Label>
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="correo@busesjm.cl"
+              className="mt-1"
+            />
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center mt-4">
+            <Button
+              onClick={handleSaveProfile}
+              disabled={profileLoading}
+              className="w-full sm:w-auto"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {profileLoading ? 'Guardando perfil...' : 'Guardar perfil'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleResetPassword}
+              disabled={resetLoading}
+              className="w-full sm:w-auto gap-2"
+            >
+              <KeyRound className="w-4 h-4" />
+              {resetLoading ? 'Enviando enlace...' : 'Restablecer contraseña'}
+            </Button>
+          </div>
+        </motion.div>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="stat-card">
           <div className="flex items-center gap-2 mb-4"><AlertTriangle className="w-5 h-5 text-warning" /><h3 className="font-semibold">Alertas de Consumo</h3></div>
           <p className="text-sm text-muted-foreground mb-4">Configura cuándo recibir notificaciones sobre consumo elevado</p>
