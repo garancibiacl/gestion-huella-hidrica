@@ -302,23 +302,21 @@ async function performSync(userId: string, force: boolean = false): Promise<{ su
 
       if (!period || !centroTrabajo) continue;
 
-      // Detect formato from tipo column or litros column
-      const litros = colIdx.litros >= 0 ? row[colIdx.litros] : undefined;
-      const litrosNum = litros ? parseFloat(String(litros).replace(/,/g, '')) : 0;
-      
-      // Bidón if: tipo contains bidón/bidon/20/garraf OR litros >= 15 (assuming 20L containers)
-      const isBidon = tipo.includes('bidón') || 
-                      tipo.includes('bidon') || 
-                      tipo.includes('20') || 
-                      tipo.includes('garraf') ||
-                      tipo.includes('dispenser') ||
-                      litrosNum >= 15;
+      // Detect formato SOLO desde la columna "Tipo" para respetar lo que indica el Excel
+      // Ejemplos que se consideran bidón: "Bidón", "Bidon 20L", "Bidón 20 L", "Garrafón", etc.
+      const normalizedTipo = String(tipo || '').toLowerCase();
+      const isBidon =
+        normalizedTipo.includes('bidón') ||
+        normalizedTipo.includes('bidon') ||
+        normalizedTipo.includes('20l') ||
+        normalizedTipo.includes('20 l') ||
+        normalizedTipo.includes('garraf');
       
       const formato = isBidon ? 'bidon_20l' : 'botella';
       
       // Log first few rows for debugging
       if (i < 3) {
-        console.log(`Row ${i}: tipo="${tipo}", litros=${litrosNum}, formato=${formato}, mes="${mes}", fecha="${fecha}"`);
+        console.log(`Row ${i}: tipo="${tipo}", formato=${formato}, mes="${mes}", fecha="${fecha}"`);
       }
 
       const cantidadNum = parseFloat(String(cantidad).replace(/,/g, ''));
