@@ -15,6 +15,8 @@ import { StatCard } from '@/components/ui/stat-card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useElectricMeters } from '@/hooks/useElectricMeters';
 import { useRiskSignals } from '@/hooks/useRiskSignals';
+import { ExportPDFButton } from '@/components/export/ExportPDFButton';
+import { exportElectricReport } from '@/lib/pdf-export';
 
 interface PeriodSummary {
   period: string;
@@ -147,20 +149,35 @@ export default function ElectricConsumptionHistory() {
             Visión consolidada para análisis de tendencias y riesgos.
           </p>
         </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor="electric-history-range" className="text-xs font-medium text-muted-foreground">
-            Rango
-          </label>
-          <Select value={range} onValueChange={(value) => setRange(value as '6' | '12' | 'all')}>
-            <SelectTrigger id="electric-history-range" className="w-full sm:w-48">
-              <SelectValue placeholder="Selecciona rango" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="6">Últimos 6 períodos</SelectItem>
-              <SelectItem value="12">Últimos 12 períodos</SelectItem>
-              <SelectItem value="all">Todo el histórico</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex items-end gap-3">
+          <ExportPDFButton
+            onExport={() => exportElectricReport({
+              summaries: filteredSummaries,
+              totalKwh,
+              totalCost,
+              variation,
+              forecastKwh,
+              forecastCost,
+              alerts,
+              dateRange: range === 'all' ? 'Todo el histórico' : `Últimos ${range} períodos`,
+            })}
+            label="Exportar PDF"
+          />
+          <div className="flex flex-col gap-1">
+            <label htmlFor="electric-history-range" className="text-xs font-medium text-muted-foreground">
+              Rango
+            </label>
+            <Select value={range} onValueChange={(value) => setRange(value as '6' | '12' | 'all')}>
+              <SelectTrigger id="electric-history-range" className="w-full sm:w-48">
+                <SelectValue placeholder="Selecciona rango" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="6">Últimos 6 períodos</SelectItem>
+                <SelectItem value="12">Últimos 12 períodos</SelectItem>
+                <SelectItem value="all">Todo el histórico</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 

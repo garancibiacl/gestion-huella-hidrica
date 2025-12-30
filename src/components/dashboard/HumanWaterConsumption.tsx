@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Droplets, 
   Package,
   Building2,
   DollarSign,
-  TrendingUp
+  TrendingUp,
+  Upload
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -27,7 +28,8 @@ import { SkeletonCard, SkeletonChart } from '@/components/ui/skeleton-card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Upload } from 'lucide-react';
+import { ExportPDFButton } from '@/components/export/ExportPDFButton';
+import { exportHumanWaterReport } from '@/lib/pdf-export';
 
 interface HumanWaterData {
   id: string;
@@ -266,15 +268,39 @@ export default function HumanWaterConsumption() {
         </div>
       </motion.div>
 
-      <div className="mb-6 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-        <span className="rounded-full border border-border bg-background px-3 py-1">
-          Litros botellas: <span className="font-medium text-foreground">{(totalBotellas * 0.5).toLocaleString()} L</span>
-          <span className="text-muted-foreground"> ({totalLitros > 0 ? ((totalBotellas * 0.5) / totalLitros * 100).toFixed(0) : '0'}%)</span>
-        </span>
-        <span className="rounded-full border border-border bg-background px-3 py-1">
-          Litros bidones: <span className="font-medium text-foreground">{(totalBidones * 20).toLocaleString()} L</span>
-          <span className="text-muted-foreground"> ({totalLitros > 0 ? ((totalBidones * 20) / totalLitros * 100).toFixed(0) : '0'}%)</span>
-        </span>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <span className="rounded-full border border-border bg-background px-3 py-1">
+            Litros botellas: <span className="font-medium text-foreground">{(totalBotellas * 0.5).toLocaleString()} L</span>
+            <span className="text-muted-foreground"> ({totalLitros > 0 ? ((totalBotellas * 0.5) / totalLitros * 100).toFixed(0) : '0'}%)</span>
+          </span>
+          <span className="rounded-full border border-border bg-background px-3 py-1">
+            Litros bidones: <span className="font-medium text-foreground">{(totalBidones * 20).toLocaleString()} L</span>
+            <span className="text-muted-foreground"> ({totalLitros > 0 ? ((totalBidones * 20) / totalLitros * 100).toFixed(0) : '0'}%)</span>
+          </span>
+        </div>
+        <ExportPDFButton
+          onExport={() => {
+            const periodData = periods.slice(0, 12).reverse().map(period => {
+              const pData = data.filter(d => d.period === period);
+              return {
+                period: formatPeriod(period),
+                botellas: pData.filter(d => d.formato === 'botella').reduce((sum, d) => sum + Number(d.cantidad), 0),
+                bidones: pData.filter(d => d.formato === 'bidon_20l').reduce((sum, d) => sum + Number(d.cantidad), 0),
+                costo: pData.reduce((sum, d) => sum + (Number(d.total_costo) || 0), 0)
+              };
+            });
+            exportHumanWaterReport({
+              periods: periodData,
+              totalBotellas,
+              totalBidones,
+              totalLitros,
+              totalCosto,
+              dateRange: selectedPeriod === 'all' ? 'Todos los períodos' : formatPeriod(selectedPeriod),
+            });
+          }}
+          label="Exportar PDF"
+        />
       </div>
 
       {/* Stats */}
