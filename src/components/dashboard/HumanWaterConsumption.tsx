@@ -114,6 +114,40 @@ export default function HumanWaterConsumption() {
     return true;
   });
 
+  const centerMetrics = useMemo(() => {
+    const grouped = filteredData.reduce<Record<string, { period: string; litros: number; cost: number }[]>>((acc, row) => {
+      if (!acc[row.centro_trabajo]) acc[row.centro_trabajo] = [];
+      const litros = row.formato === 'botella' ? Number(row.cantidad) * 0.5 : Number(row.cantidad) * 20;
+      const existing = acc[row.centro_trabajo].find((item) => item.period === row.period);
+      if (existing) {
+        existing.litros += litros;
+        existing.cost += Number(row.total_costo ?? 0);
+      } else {
+        acc[row.centro_trabajo].push({
+          period: row.period,
+          litros,
+          cost: Number(row.total_costo ?? 0),
+        });
+      }
+      return acc;
+    }, {});
+
+    const metrics = Object.entries(grouped).map(([centro, rows]) => {
+      const ordered = [...rows].sort((a, b) => a.period.localeCompare(b.period));
+      const last = ordered[ordered.length - 1];
+      const prev = ordered[ordered.length - 2];
+      const variationPct = last && prev && prev.litros > 0 ? ((last.litros - prev.litros) / prev.litros) * 100 : 0;
+      const costPerLiter = last && last.litros > 0 ? last.cost / last.litros : 0;
+      const prevCostPerLiter = prev && prev.litros > 0 ? prev.cost / prev.litros : 0;
+      const costPerLiterPct = prevCostPerLiter > 0 ? ((costPerLiter - prevCostPerLiter) / prevCostPerLiter) * 100 : 0;
+      return { centro, variationPct, costPerLiter, costPerLiterPct };
+    });
+
+    const topVariation = [...metrics].sort((a, b) => b.variationPct - a.variationPct).slice(0, 3);
+    const topCostPerLiter = [...metrics].sort((a, b) => b.costPerLiterPct - a.costPerLiterPct).slice(0, 3);
+    return { topVariation, topCostPerLiter };
+  }, [filteredData]);
+
   // Calculate totals
   const totalBotellas = filteredData
     .filter(d => d.formato === 'botella')
@@ -339,6 +373,45 @@ export default function HumanWaterConsumption() {
           subtitle="Con registros cargados"
           delay={0.4}
         />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="stat-card">
+          <h4 className="font-semibold mb-1">Variación vs período anterior</h4>
+          <p className="text-sm text-muted-foreground mb-4">Top centros con mayor aumento de litros.</p>
+          <div className="space-y-3 text-sm">
+            {centerMetrics.topVariation.length > 0 ? (
+              centerMetrics.topVariation.map((item) => (
+                <div key={item.centro} className="flex items-center justify-between border-b border-border/60 pb-2 last:border-b-0 last:pb-0">
+                  <span className="font-medium">{item.centro}</span>
+                  <span className={`text-xs font-medium ${item.variationPct > 0 ? 'text-warning' : 'text-success'}`}>
+                    {item.variationPct.toFixed(1)}%
+                  </span>
+                </div>
+              ))
+            ) : (
+              <p className="text-muted-foreground">Sin datos suficientes para comparar.</p>
+            )}
+          </div>
+        </div>
+        <div className="stat-card">
+          <h4 className="font-semibold mb-1">Costo por litro</h4>
+          <p className="text-sm text-muted-foreground mb-4">Centros con alza de costo unitario.</p>
+          <div className="space-y-3 text-sm">
+            {centerMetrics.topCostPerLiter.length > 0 ? (
+              centerMetrics.topCostPerLiter.map((item) => (
+                <div key={item.centro} className="flex items-center justify-between border-b border-border/60 pb-2 last:border-b-0 last:pb-0">
+                  <span className="font-medium">{item.centro}</span>
+                  <span className={`text-xs font-medium ${item.costPerLiterPct > 0 ? 'text-warning' : 'text-success'}`}>
+                    {item.costPerLiter.toFixed(2)} $/L · {item.costPerLiterPct.toFixed(1)}%
+                  </span>
+                </div>
+              ))
+            ) : (
+              <p className="text-muted-foreground">Sin datos suficientes para comparar.</p>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Charts */}

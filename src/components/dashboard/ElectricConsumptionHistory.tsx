@@ -74,6 +74,39 @@ export default function ElectricConsumptionHistory() {
     return summaries.slice(-limit);
   }, [summaries, range]);
 
+  const centerMetrics = useMemo(() => {
+    const grouped = data.reduce<Record<string, { period: string; kwh: number; cost: number }[]>>((acc, row) => {
+      if (!acc[row.centro_trabajo]) acc[row.centro_trabajo] = [];
+      const existing = acc[row.centro_trabajo].find((item) => item.period === row.period);
+      if (existing) {
+        existing.kwh += Number(row.consumo_kwh || 0);
+        existing.cost += Number(row.costo_total || 0);
+      } else {
+        acc[row.centro_trabajo].push({
+          period: row.period,
+          kwh: Number(row.consumo_kwh || 0),
+          cost: Number(row.costo_total || 0),
+        });
+      }
+      return acc;
+    }, {});
+
+    const metrics = Object.entries(grouped).map(([centro, rows]) => {
+      const ordered = [...rows].sort((a, b) => a.period.localeCompare(b.period));
+      const last = ordered[ordered.length - 1];
+      const prev = ordered[ordered.length - 2];
+      const variationPct = last && prev && prev.kwh > 0 ? ((last.kwh - prev.kwh) / prev.kwh) * 100 : 0;
+      const costPerKwh = last && last.kwh > 0 ? last.cost / last.kwh : 0;
+      const prevCostPerKwh = prev && prev.kwh > 0 ? prev.cost / prev.kwh : 0;
+      const costPerKwhPct = prevCostPerKwh > 0 ? ((costPerKwh - prevCostPerKwh) / prevCostPerKwh) * 100 : 0;
+      return { centro, variationPct, costPerKwh, costPerKwhPct };
+    });
+
+    const topVariation = [...metrics].sort((a, b) => b.variationPct - a.variationPct).slice(0, 3);
+    const topCostPerKwh = [...metrics].sort((a, b) => b.costPerKwhPct - a.costPerKwhPct).slice(0, 3);
+    return { topVariation, topCostPerKwh };
+  }, [data]);
+
   const forecastKwh = weightedForecast(filteredSummaries.map((s) => s.kwh));
   const forecastCost = weightedForecast(filteredSummaries.map((s) => s.cost));
   const averageKwh = useMemo(() => {
@@ -224,6 +257,45 @@ export default function ElectricConsumptionHistory() {
           subtitle={`Rango $${Math.round(Math.max(0, forecastCost - costStdDev)).toLocaleString()}–$${Math.round(forecastCost + costStdDev).toLocaleString()}`}
           delay={0.1}
         />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="stat-card">
+          <h4 className="font-semibold mb-1">Variación vs período anterior</h4>
+          <p className="text-sm text-muted-foreground mb-4">Top centros con mayor aumento de kWh.</p>
+          <div className="space-y-3 text-sm">
+            {centerMetrics.topVariation.length > 0 ? (
+              centerMetrics.topVariation.map((item) => (
+                <div key={item.centro} className="flex items-center justify-between border-b border-border/60 pb-2 last:border-b-0 last:pb-0">
+                  <span className="font-medium">{item.centro}</span>
+                  <span className={`text-xs font-medium ${item.variationPct > 0 ? 'text-warning' : 'text-success'}`}>
+                    {item.variationPct.toFixed(1)}%
+                  </span>
+                </div>
+              ))
+            ) : (
+              <p className="text-muted-foreground">Sin datos suficientes para comparar.</p>
+            )}
+          </div>
+        </div>
+        <div className="stat-card">
+          <h4 className="font-semibold mb-1">Costo por kWh</h4>
+          <p className="text-sm text-muted-foreground mb-4">Centros con alza de costo unitario.</p>
+          <div className="space-y-3 text-sm">
+            {centerMetrics.topCostPerKwh.length > 0 ? (
+              centerMetrics.topCostPerKwh.map((item) => (
+                <div key={item.centro} className="flex items-center justify-between border-b border-border/60 pb-2 last:border-b-0 last:pb-0">
+                  <span className="font-medium">{item.centro}</span>
+                  <span className={`text-xs font-medium ${item.costPerKwhPct > 0 ? 'text-warning' : 'text-success'}`}>
+                    {item.costPerKwh.toFixed(2)} $/kWh · {item.costPerKwhPct.toFixed(1)}%
+                  </span>
+                </div>
+              ))
+            ) : (
+              <p className="text-muted-foreground">Sin datos suficientes para comparar.</p>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
