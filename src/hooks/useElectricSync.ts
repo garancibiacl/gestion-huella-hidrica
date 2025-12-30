@@ -357,13 +357,13 @@ export function useElectricSync(options: UseElectricSyncOptions = {}) {
     return result;
   }, [user?.id, shouldSync, onSyncStart, onSyncComplete]);
 
-  // Auto-sync on mount if enabled
-  useEffect(() => {
-    if (enabled && user?.id && !hasInitialSynced.current) {
-      hasInitialSynced.current = true;
-      syncElectric(true);
-    }
-  }, [enabled, user?.id, syncElectric]);
-
+  // Auto-sync disabled to prevent duplicate data on page reload
+  // Users must click "Sincronizar Energía" button manually
+  // useEffect(() => {
+  //   if (enabled && user?.id && !hasInitialSynced.current) {
+  //     hasInitialSynced.current = true;
+  //     syncElectric(true);
+  //   }
+  // }, [enabled, user?.id, syncElectric]);
   return { syncElectric, isSyncing, lastSyncAt };
 }
