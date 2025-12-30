@@ -2,3 +2,7 @@ project_id = "limnkascqjmscnbanbts"
 
 [functions.admin-create-user]
 verify_jwt = false
+
+[functions.sync-electric-meters]
+verify_jwt = false
+
