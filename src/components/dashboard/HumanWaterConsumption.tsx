@@ -61,6 +61,7 @@ export default function HumanWaterConsumption() {
   const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
   const [selectedCentro, setSelectedCentro] = useState<string>('all');
   const [selectedFaena, setSelectedFaena] = useState<string>('all');
+  const [selectedFormato, setSelectedFormato] = useState<string>('all');
   const [periods, setPeriods] = useState<string[]>([]);
   const [centros, setCentros] = useState<string[]>([]);
   const [faenas, setFaenas] = useState<string[]>([]);
@@ -107,6 +108,7 @@ export default function HumanWaterConsumption() {
     if (selectedPeriod !== 'all' && d.period !== selectedPeriod) return false;
     if (selectedCentro !== 'all' && d.centro_trabajo !== selectedCentro) return false;
     if (selectedFaena !== 'all' && d.faena !== selectedFaena) return false;
+    if (selectedFormato !== 'all' && d.formato !== selectedFormato) return false;
     return true;
   });
 
@@ -229,6 +231,17 @@ export default function HumanWaterConsumption() {
             </SelectContent>
           </Select>
         )}
+
+        <Select value={selectedFormato} onValueChange={setSelectedFormato}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Formato" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos los formatos</SelectItem>
+            <SelectItem value="botella">Botellas</SelectItem>
+            <SelectItem value="bidon_20l">Bidones 20L</SelectItem>
+          </SelectContent>
+        </Select>
       </motion.div>
 
       {/* Stats */}
