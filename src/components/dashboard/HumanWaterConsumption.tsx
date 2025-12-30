@@ -266,8 +266,19 @@ export default function HumanWaterConsumption() {
         </div>
       </motion.div>
 
+      <div className="mb-6 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        <span className="rounded-full border border-border bg-background px-3 py-1">
+          Litros botellas: <span className="font-medium text-foreground">{(totalBotellas * 0.5).toLocaleString()} L</span>
+          <span className="text-muted-foreground"> ({totalLitros > 0 ? ((totalBotellas * 0.5) / totalLitros * 100).toFixed(0) : '0'}%)</span>
+        </span>
+        <span className="rounded-full border border-border bg-background px-3 py-1">
+          Litros bidones: <span className="font-medium text-foreground">{(totalBidones * 20).toLocaleString()} L</span>
+          <span className="text-muted-foreground"> ({totalLitros > 0 ? ((totalBidones * 20) / totalLitros * 100).toFixed(0) : '0'}%)</span>
+        </span>
+      </div>
+
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <StatCard
           title="Total Botellas"
           value={totalBotellas.toLocaleString()}
@@ -283,17 +294,24 @@ export default function HumanWaterConsumption() {
           delay={0.1}
         />
         <StatCard
+          title="Litros Totales"
+          value={totalLitros.toLocaleString()}
+          icon={<Droplets className="w-5 h-5" />}
+          subtitle="Botellas + bidones"
+          delay={0.2}
+        />
+        <StatCard
           title="Costo Total"
           value={`$${totalCosto.toLocaleString()}`}
           icon={<DollarSign className="w-5 h-5" />}
-          delay={0.2}
+          delay={0.3}
         />
         <StatCard
           title="Centros de Trabajo"
           value={centros.length.toString()}
           icon={<Building2 className="w-5 h-5" />}
-          subtitle={`${totalLitros.toLocaleString()} L totales`}
-          delay={0.3}
+          subtitle="Con registros cargados"
+          delay={0.4}
         />
       </div>
 
