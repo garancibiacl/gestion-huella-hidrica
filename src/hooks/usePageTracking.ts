@@ -36,10 +36,12 @@ export function usePageTracking() {
     const trackPageView = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        
+        // Evitar 401: la tabla app_events solo permite inserts para usuarios autenticados
+        if (!user?.id) return;
+
         await supabase.from('app_events').insert({
           event_type: 'page_view',
-          user_id: user?.id || null,
+          user_id: user.id,
           session_id: sessionId,
           page_path: location.pathname,
           referrer: document.referrer || null,
@@ -47,8 +49,8 @@ export function usePageTracking() {
           device_type: deviceType,
           metadata: {
             search: location.search,
-            hash: location.hash
-          }
+            hash: location.hash,
+          },
         });
       } catch (error) {
         console.error('Error tracking page view:', error);

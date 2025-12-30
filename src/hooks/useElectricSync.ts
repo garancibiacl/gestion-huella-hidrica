@@ -2,8 +2,9 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
-// URL pública del Google Sheet de luz (formato CSV) - Hoja1
-const CSV_URL = 'https://docs.google.com/spreadsheets/d/18Chw9GKYlblBOljJ7ZGJ0aJBYQU7t1Ax/gviz/tq?tqx=out:csv&gid=0';
+// URL pública del Google Sheet de energía (formato CSV)
+// Importante: usar /export?format=csv&gid=... (no /edit) para asegurar datos consistentes.
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/18Chw9GKYlblBOljJ7ZGJ0aJBYQU7t1Ax/export?format=csv&gid=23328836';
 const LAST_SYNC_KEY = 'last_electric_sync';
 const LAST_HASH_KEY = 'last_electric_hash';
 const MIN_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
@@ -179,10 +180,18 @@ async function performElectricSync(userId: string, force: boolean = false): Prom
       return { success: false, rowsInserted: 0, errors: ['No se pudo determinar la organización del usuario.'] };
     }
 
-    console.log('Fetching electric CSV from:', CSV_URL);
-    const response = await fetch(CSV_URL);
+    const fetchUrl = force
+      ? `${CSV_URL}${CSV_URL.includes('?') ? '&' : '?'}cacheBust=${Date.now()}`
+      : CSV_URL;
+
+    console.log('Fetching electric CSV from:', fetchUrl);
+    const response = await fetch(fetchUrl, { cache: 'no-store' });
     if (!response.ok) {
-      return { success: false, rowsInserted: 0, errors: [`Error fetching Google Sheet: ${response.statusText}`] };
+      return {
+        success: false,
+        rowsInserted: 0,
+        errors: [`Error fetching Google Sheet: ${response.status} ${response.statusText}`],
+      };
     }
 
     const csvText = await response.text();
@@ -195,9 +204,6 @@ async function performElectricSync(userId: string, force: boolean = false): Prom
       console.log('Electric sheet content unchanged, skipping sync.');
       return { success: true, rowsInserted: 0, errors: [] };
     }
-
-    localStorage.setItem(LAST_HASH_KEY, currentHash);
-    localStorage.setItem(LAST_SYNC_KEY, Date.now().toString());
 
     const rows = parseCSV(csvText);
     if (rows.length < 2) {
@@ -285,6 +291,10 @@ async function performElectricSync(userId: string, force: boolean = false): Prom
         return { success: false, rowsInserted: 0, errors: [insertError.message] };
       }
     }
+
+    // Marcar caché SOLO si la sincronización fue exitosa
+    localStorage.setItem(LAST_HASH_KEY, currentHash);
+    localStorage.setItem(LAST_SYNC_KEY, Date.now().toString());
 
     return { success: true, rowsInserted: records.length, errors };
   } catch (error) {
