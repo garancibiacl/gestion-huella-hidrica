@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Zap, Building2, DollarSign, Activity } from 'lucide-react';
 import {
@@ -31,10 +31,15 @@ const PRIMARY_COLOR = 'hsl(210, 80%, 50%)'; // azul para consumo kWh
 const SECONDARY_COLOR = 'hsl(5, 63%, 43%)'; // rojo corporativo para resaltar
 
 export default function ElectricMeterConsumption() {
-  const { data, loading, error } = useElectricMeters();
+  const { data, loading, error, refetch } = useElectricMeters();
   const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
   const [selectedCentro, setSelectedCentro] = useState<string>('all');
   const [selectedMedidor, setSelectedMedidor] = useState<string>('all');
+
+  // Refetch data on mount to ensure fresh data after sync
+  useEffect(() => {
+    refetch();
+  }, []);
 
   const periods = useMemo(
     () => Array.from(new Set(data.map((d) => d.period))).sort().reverse(),

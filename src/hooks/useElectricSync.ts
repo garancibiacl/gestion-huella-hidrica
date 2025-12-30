@@ -2,8 +2,8 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
-// URL pública del Google Sheet de luz (formato CSV)
-const CSV_URL = 'https://docs.google.com/spreadsheets/d/18Chw9GKYlblBOljJ7ZGJ0aJBYQU7t1Ax/export?format=csv&gid=23328836';
+// URL pública del Google Sheet de luz (formato CSV) - Hoja1
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/18Chw9GKYlblBOljJ7ZGJ0aJBYQU7t1Ax/gviz/tq?tqx=out:csv&gid=0';
 const LAST_SYNC_KEY = 'last_electric_sync';
 const LAST_HASH_KEY = 'last_electric_hash';
 const MIN_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
@@ -221,6 +221,7 @@ async function performElectricSync(userId: string, force: boolean = false): Prom
       // Map columns flexibly
       const fecha = rowObj['fecha'] || '';
       const centroTrabajo = rowObj['centro trabajo'] || rowObj['centro de trabajo'] || '';
+      const direccion = (rowObj['direccion'] || rowObj['dirección'] || '').trim();
       const medidor = rowObj['n medidor'] || rowObj['n de medidor'] || rowObj['medidor'] || rowObj['numero medidor'] || '';
       const consumo = rowObj['m3 consumidos por periodo'] || rowObj['consumo kwh'] || rowObj['consumo'] || '';
       const costoTotal = rowObj['total pagar'] || rowObj['costo pagar'] || rowObj['costo total'] || '';
@@ -253,7 +254,7 @@ async function performElectricSync(userId: string, force: boolean = false): Prom
         organization_id: organizationId,
         period,
         centro_trabajo: centroTrabajo || 'Sin especificar',
-        medidor: medidor || 'Sin especificar',
+        medidor: medidor || direccion || 'Sin medidor',
         consumo_kwh: consumoNum,
         costo_total: parseChileanCurrency(costoTotal),
         tipo_uso: tipoUso || null,

@@ -1,73 +1,172 @@
-# Welcome to your Lovable project
+ # Gestión Huella Hídrica y Energía
 
-## Project info
+ Plataforma web para **Prevención de Riesgos** y **sostenibilidad**, enfocada en el monitoreo de consumo, costos y tendencias asociadas a **huella hídrica** y **energía eléctrica** (base para iniciativas de eficiencia y reducción de impacto).
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+ ## Resumen ejecutivo
 
-## How can I edit this code?
+ Esta aplicación permite centralizar información operativa desde **Google Sheets** y visualizarla en dashboards separados por módulo (**Agua** y **Energía Eléctrica**). Incluye filtros, KPIs y gráficos para apoyar la toma de decisiones, seguimiento de consumo y control de costos.
 
-There are several ways of editing your application.
+ ## Objetivo
 
-**Use Lovable**
+ - **Prevención de Riesgos:** entregar visibilidad y control sobre consumos y costos que afectan la operación (gestión preventiva, control de desviaciones, seguimiento por centro/faena/medidor).
+ - **Sostenibilidad:** aportar métricas y trazabilidad para iniciativas relacionadas a **huella hídrica** y **energía** (insumo para análisis de eficiencia y reducción de impacto).
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+ ## Módulos y rutas
 
-Changes made via Lovable will be committed automatically to this repo.
+ - **Dashboard Agua**: ` /dashboard/agua `
+   - Consumo por medidor.
+   - Consumo humano (botellas/bidones) con filtros y desglose.
+ - **Dashboard Energía Eléctrica**: ` /dashboard/energia `
+   - Consumo por medidor eléctrico.
+   - Filtros por período/centro/medidor.
+ - **Sincronización**: botones “Sincronizar” por módulo para traer lo último desde Google Sheets.
 
-**Use your preferred IDE**
+ ## Funcionalidades principales
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+ ### Agua
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+ - KPIs (totales, costo, distribución por formato, litros totales, etc.).
+ - Gráficos (Recharts) y tablas/segmentación por centro/período/faena.
+ - Filtros:
+   - Período
+   - Centro de trabajo
+   - Faena
+   - Formato (botellas/bidones)
 
-Follow these steps:
+ ### Energía Eléctrica
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+ - KPIs (consumo y costo) y visualización por centro/medidor/período.
+ - Filtros:
+   - Período
+   - Centro de trabajo
+   - Medidor
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+ ### Sincronización (Google Sheets → Supabase)
 
-# Step 3: Install the necessary dependencies.
-npm i
+ - Sincronización iniciada por el usuario desde la UI.
+ - Estrategia de cache:
+   - Se guarda `last_*_hash` y `last_*_sync` en `localStorage`.
+   - Si el contenido del CSV no cambió (hash), puede reportar “0 registros insertados”.
+ - Se recomienda mantener la estructura de columnas estable para evitar errores de parsing.
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+ ## Stack tecnológico
 
-**Edit a file directly in GitHub**
+ ### Frontend
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+ - **React** + **TypeScript**
+ - **Vite**
+ - **TailwindCSS**
+ - **shadcn/ui** (componentes UI)
+ - **Recharts** (gráficos)
+ - **Framer Motion** (animaciones)
 
-**Use GitHub Codespaces**
+ ### Backend
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+ - **Supabase**
+   - Postgres
+   - Auth
+   - RLS (Row-Level Security)
+   - Edge Functions (opcional, según configuración del entorno)
 
-## What technologies are used for this project?
+ ### Fuente de datos
 
-This project is built with:
+ - **Google Sheets** exportado como **CSV**.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+ ## Arquitectura (alto nivel)
 
-## How can I deploy this project?
+ - **Separación por módulos** (Agua / Energía) con rutas dedicadas.
+ - **Hooks de dominio** para encapsular lógica:
+   - `useWaterSync` (sincronización módulo Agua)
+   - `useElectricSync` (sincronización módulo Energía)
+ - **Componentes presentacionales** (UI/gráficos) separados de lógica de sync y acceso a datos.
+ - **Multi-tenant por `organization_id`** (si aplica):
+   - Los registros se guardan asociados a una organización.
+   - RLS restringe visibilidad/modificación según usuario/rol/organización.
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+ ## Roles y permisos
 
-## Can I connect a custom domain to my Lovable project?
+ - **admin**: acceso completo, incluyendo sincronización.
+ - **prevencionista**: acceso a sincronización y visualización (según reglas de negocio).
 
-Yes, you can!
+ > Nota: Los permisos finos dependen de las políticas RLS y la configuración del proyecto.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+ ## Requisitos
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+ - Node.js (recomendado via nvm)
+ - Cuenta y proyecto en Supabase
+
+ ## Configuración (variables de entorno)
+
+ Crea un archivo `.env` (o `.env.local`) con:
+
+ ```bash
+ VITE_SUPABASE_URL=<TU_SUPABASE_URL>
+ VITE_SUPABASE_ANON_KEY=<TU_SUPABASE_ANON_KEY>
+ ```
+
+ **No** commitear secretos.
+
+ ## Desarrollo local
+
+ ```bash
+ npm install
+ npm run dev
+ ```
+
+ ## Guía de sincronización (Google Sheets)
+
+ ### Recomendaciones para preparar el Sheet
+
+ - Mantener encabezados/columnas estables (no renombrar sin revisar parsing).
+ - Asegurar consistencia en nombres de centros/medidores.
+ - Fechas y números:
+   - Preferir formatos consistentes (ej. fechas dd-mm-aaaa o `YYYY-MM`).
+   - Respetar separadores decimales/miles (la app contempla formatos comunes).
+
+ ### Permisos
+
+ - Para que el frontend pueda obtener el CSV, el documento o pestaña debe permitir lectura:
+   - “**Cualquier persona con el enlace → Ver**”
+   - o el método de publicación equivalente.
+
+ ### ¿Qué significa “0 registros insertados”?
+
+ - Puede ser normal si **no hubo cambios** en el Google Sheet desde la última sincronización.
+ - La aplicación compara el contenido del CSV usando un hash (cache) para evitar cargas repetidas.
+
+ ## Troubleshooting: cuando los datos quedan “pegados” (no se actualizan)
+
+ 1. **Forzar sincronización desde el dashboard**
+    - Clic en **Sincronizar** (Agua o Energía).
+    - Esperar el spinner y el mensaje de resultado.
+    - Si sale “0 registros insertados”, puede ser porque el sheet no cambió.
+
+ 2. **Hard refresh del navegador** (evita caché)
+    - Windows/Linux: `Ctrl + F5`
+    - Mac: `Cmd + Shift + R`
+
+ 3. **Cambiar de pestaña/módulo y volver**
+    - Ejemplo: Agua → Energía → Agua.
+
+ 4. **Limpiar caché local (localStorage)**
+    - En consola del navegador (F12 → Console):
+      ```js
+      localStorage.clear();
+      location.reload();
+      ```
+
+ 5. **Verificar permisos del Google Sheet**
+    - Debe permitir lectura pública (o método equivalente).
+
+ 6. **Verificar que el `gid`/URL del CSV corresponde a la pestaña correcta**
+    - Si se editó otra pestaña del documento, la app podría estar leyendo otra.
+
+ ## Contribuir
+
+ - Crear un branch por feature/fix.
+ - Mantener cambios acotados y con responsabilidad única.
+ - Validar estados límite: sin datos, muchos datos, errores de red.
+
+ ## Licencia
+
+ _Pendiente definir._

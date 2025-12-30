@@ -41,7 +41,8 @@ export function useElectricMeters(): UseElectricMetersResult {
   useEffect(() => {
     if (!user) return;
     load();
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   return { data, loading, error, refetch: load };
 }

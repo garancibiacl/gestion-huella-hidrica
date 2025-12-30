@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Activity, AlertTriangle, TrendingUp, Zap } from 'lucide-react';
 import {
@@ -43,18 +43,27 @@ const weightedForecast = (values: number[]) => {
 };
 
 export default function ElectricConsumptionHistory() {
-  const { data, loading } = useElectricMeters();
+  const { data, loading, refetch } = useElectricMeters();
   const [range, setRange] = useState<'6' | '12' | 'all'>('12');
 
+  // Refetch data on mount to ensure fresh data
+  useEffect(() => {
+    refetch();
+  }, []);
+
   const summaries = useMemo<PeriodSummary[]>(() => {
+    console.log('ElectricConsumptionHistory - raw data:', data);
     const periods = Array.from(new Set(data.map((d) => d.period))).sort();
-    return periods.map((period) => {
+    const result = periods.map((period) => {
       const periodRows = data.filter((d) => d.period === period);
       const medidores = new Set(periodRows.map((d) => d.medidor)).size;
-      const kwh = periodRows.reduce((sum, d) => sum + Number(d.consumo_kwh), 0);
-      const cost = periodRows.reduce((sum, d) => sum + Number(d.costo_total ?? 0), 0);
+      const kwh = periodRows.reduce((sum, d) => sum + Number(d.consumo_kwh || 0), 0);
+      const cost = periodRows.reduce((sum, d) => sum + Number(d.costo_total || 0), 0);
+      console.log(`Period ${period}: ${periodRows.length} rows, kwh=${kwh}, cost=${cost}`);
       return { period, label: formatPeriod(period), kwh, cost, medidores };
     });
+    console.log('ElectricConsumptionHistory - summaries:', result);
+    return result;
   }, [data]);
 
   const filteredSummaries = useMemo(() => {

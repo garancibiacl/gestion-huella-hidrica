@@ -148,7 +148,7 @@ serve(async (req) => {
     let totalInserted = 0;
 
     const spreadsheetId = "18Chw9GKYlblBOljJ7ZGJ0aJBYQU7t1Ax";
-    const gid = "0";
+    const gid = "23328836";
     const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`;
 
     console.log("Fetching CSV from:", csvUrl);
@@ -201,7 +201,8 @@ serve(async (req) => {
 
         const fecha = rowObj["fecha"];
         const centroTrabajo = rowObj["centro trabajo"] || rowObj["centro de trabajo"];
-        const medidor = rowObj["n medidor"] || rowObj["medidor"] || rowObj["numero medidor"];
+        const direccion = rowObj["direccion"] || rowObj["dirección"];
+        const medidor = rowObj["n medidor"] || rowObj["medidor"] || rowObj["numero medidor"] || direccion;
         const consumoPeriodo = rowObj["m3 consumidos por periodo"] || rowObj["consumo kwh"] || rowObj["consumo"];
         const costoTotal = rowObj["total pagar"] || rowObj["costo total"];
         const tipoUso = rowObj["tipo"] || rowObj["tipo medidor uso"] || null;
@@ -215,12 +216,12 @@ serve(async (req) => {
           return;
         }
 
-        if (!centroTrabajo || !medidor) {
-          errors.push(`Row ${i + 2}: Missing Centro de Trabajo or Medidor`);
+        if (!centroTrabajo) {
+          errors.push(`Row ${i + 2}: Missing Centro de Trabajo`);
           return;
         }
 
-        const consumoNum = parseFloat(String(consumoPeriodo || "0").replace(/,/g, ""));
+        const consumoNum = parseFloat(String(consumoPeriodo || "0").replace(/\./g, "").replace(/,/g, "."));
         if (isNaN(consumoNum) || consumoNum <= 0) {
           errors.push(`Row ${i + 2}: Invalid consumo value "${consumoPeriodo}"`);
           return;
@@ -231,7 +232,7 @@ serve(async (req) => {
           organization_id: organizationId,
           period,
           centro_trabajo: String(centroTrabajo).trim(),
-          medidor: String(medidor).trim(),
+          medidor: String(medidor || "Sin medidor").trim(),
           tipo_uso: tipoUso || null,
           consumo_kwh: consumoNum,
           costo_total: parseChileanCurrency(costoTotal),
