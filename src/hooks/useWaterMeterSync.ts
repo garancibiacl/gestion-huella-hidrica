@@ -2,8 +2,9 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
-// URL pública del Google Sheet de agua medidor (formato CSV) - Hoja1
-const CSV_URL = 'https://docs.google.com/spreadsheets/d/1yVo_zxvA-hSf04aUXABijRUeAuHq-huc/export?format=csv&gid=0';
+// URL pública del Google Sheet de agua medidor (formato CSV)
+// IMPORTANTE: El archivo debe estar publicado en la web (Archivo > Compartir > Publicar en la web)
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/1yVo_zxvA-hSf04aUXABijRUeAuHq-huc/export?format=csv';
 const LAST_SYNC_KEY = 'last_water_meter_sync';
 const LAST_HASH_KEY = 'last_water_meter_hash';
 const MIN_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
