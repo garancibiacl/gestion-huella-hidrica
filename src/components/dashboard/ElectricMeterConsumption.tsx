@@ -52,7 +52,9 @@ export default function ElectricMeterConsumption() {
   );
 
   const medidores = useMemo(
-    () => Array.from(new Set(data.map((d) => d.medidor))).sort(),
+    () => Array.from(new Set(data.map((d) => d.medidor)))
+      .filter((m) => m && m !== 'Sin medidor' && m !== 'Sin especificar')
+      .sort(),
     [data]
   );
 
