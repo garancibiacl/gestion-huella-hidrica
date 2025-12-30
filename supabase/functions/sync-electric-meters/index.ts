@@ -12,14 +12,10 @@ interface SheetRow {
 }
 
 function normalizeHeader(header: string): string {
-  // Normaliza encabezados para que sean tolerantes a tildes, símbolos y espacios
   return header
     .toLowerCase()
-    // Reemplaza caracteres con tilde por su versión simple
     .normalize("NFD")
-    // Elimina marcas diacríticas (acentos) de forma compatible con más runtimes
     .replace(/[\u0300-\u036f]/g, "")
-    // Reemplaza cualquier cosa que no sea letra o número por espacio
     .replace(/[^a-z0-9]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -38,7 +34,6 @@ function parsePeriod(rawValue: string | undefined): string | null {
 
   if (/^\d{4}-\d{2}$/.test(value)) return value;
 
-  // Soporta fechas numéricas tipo 24-01-2025 o 24/01/2025
   const dateMatch = value.match(/(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})/);
   if (dateMatch) {
     const day = parseInt(dateMatch[1], 10);
@@ -51,30 +46,18 @@ function parsePeriod(rawValue: string | undefined): string | null {
   }
 
   const monthMap: Record<string, string> = {
-    enero: "01",
-    ene: "01",
-    febrero: "02",
-    feb: "02",
-    marzo: "03",
-    mar: "03",
-    abril: "04",
-    abr: "04",
-    mayo: "05",
-    may: "05",
-    junio: "06",
-    jun: "06",
-    julio: "07",
-    jul: "07",
-    agosto: "08",
-    ago: "08",
-    septiembre: "09",
-    sep: "09",
-    octubre: "10",
-    oct: "10",
-    noviembre: "11",
-    nov: "11",
-    diciembre: "12",
-    dic: "12",
+    enero: "01", ene: "01",
+    febrero: "02", feb: "02",
+    marzo: "03", mar: "03",
+    abril: "04", abr: "04",
+    mayo: "05", may: "05",
+    junio: "06", jun: "06",
+    julio: "07", jul: "07",
+    agosto: "08", ago: "08",
+    septiembre: "09", sep: "09",
+    octubre: "10", oct: "10",
+    noviembre: "11", nov: "11",
+    diciembre: "12", dic: "12",
   };
 
   const normalized = value.toLowerCase().replace(/[^a-záéíóú0-9]/g, " ").trim();
@@ -90,8 +73,7 @@ function parsePeriod(rawValue: string | undefined): string | null {
 
   const yearMatch = value.match(/\d{4}/);
   if (!yearMatch) return null;
-  const year = yearMatch[0];
-  return `${year}-${month}`;
+  return `${yearMatch[0]}-${month}`;
 }
 
 serve(async (req) => {
@@ -113,10 +95,7 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace("Bearer ", "");
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser(token);
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
     if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -131,13 +110,8 @@ serve(async (req) => {
       .eq("user_id", user.id)
       .maybeSingle();
 
-<<<<<<< HEAD
-    const allowedRoles = ["admin", "prevencionista"];
-    if (!roleData || !allowedRoles.includes(roleData.role)) {
-=======
     const userRole = roleData?.role;
     if (!userRole || (userRole !== "admin" && userRole !== "prevencionista")) {
->>>>>>> d21afe208a7befdab5680b3862e77e97fc55b920
       return new Response(JSON.stringify({ error: "Forbidden: Admin or Prevencionista role required" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -161,24 +135,25 @@ serve(async (req) => {
     const errors: string[] = [];
     let totalInserted = 0;
 
-    // Sheet de consumo de luz por medidor
     const spreadsheetId = "18Chw9GKYlblBOljJ7ZGJ0aJBYQU7t1Ax";
-    const gid = "0"; // primera hoja del documento
+    const gid = "0";
     const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`;
 
+    console.log("Fetching CSV from:", csvUrl);
     const response = await fetch(csvUrl);
     if (!response.ok) {
       throw new Error(`Error fetching Google Sheet: ${response.statusText}`);
     }
 
     const csvText = await response.text();
+    console.log("CSV first 500 chars:", csvText.substring(0, 500));
+
     const rows = csvText
       .split("\n")
       .map((line) => {
         const values: string[] = [];
         let current = "";
         let inQuotes = false;
-
         for (let i = 0; i < line.length; i++) {
           const char = line[i];
           if (char === '"') {
@@ -200,42 +175,31 @@ serve(async (req) => {
     } else {
       const headers = rows[0].map((h) => h.trim());
       const normalizedHeaders = headers.map((h) => normalizeHeader(h));
-      const dataRows = rows.slice(1);
+      console.log("Headers found:", headers);
+      console.log("Normalized headers:", normalizedHeaders);
 
+      const dataRows = rows.slice(1);
       const records: any[] = [];
 
       dataRows.forEach((row, i) => {
         const rowObj: SheetRow = {};
-        normalizedHeaders.forEach((normalizedHeader, idx) => {
-          rowObj[normalizedHeader] = row[idx];
+        normalizedHeaders.forEach((nh, idx) => {
+          rowObj[nh] = row[idx];
         });
 
-        // Encabezados reales del sheet de luz (normalizados):
-        // fecha, centro trabajo, direccion, n medidor, lectura en m3,
-        // m3 consumidos por periodo, sobre consumo en m3, total pagar, observaciones
-
-        const fecha = rowObj["fecha"]; // "Fecha"
-        const centroTrabajo = rowObj["centro trabajo"]; // "Centro de Trabajo"
-        const medidor = rowObj["n medidor"] || rowObj["medidor"]; // "N° de Medidor" o "Medidor"
-
-        // Columna de consumo principal: "M3 Consumidos por Periodo." o fallback a consumo kWh
-        const consumoPeriodo =
-          rowObj["m3 consumidos por periodo"] ||
-          rowObj["consumo kwh"] ||
-          rowObj["consumo"];
-
-        // Total a pagar: "Total Pagar" o fallback antiguo
+        const fecha = rowObj["fecha"];
+        const centroTrabajo = rowObj["centro trabajo"] || rowObj["centro de trabajo"];
+        const medidor = rowObj["n medidor"] || rowObj["medidor"] || rowObj["numero medidor"];
+        const consumoPeriodo = rowObj["m3 consumidos por periodo"] || rowObj["consumo kwh"] || rowObj["consumo"];
         const costoTotal = rowObj["total pagar"] || rowObj["costo total"];
-
         const tipoUso = rowObj["tipo"] || rowObj["tipo medidor uso"] || null;
         const proveedor = rowObj["proveedor"] || null;
-        const observaciones = rowObj["observaciones"] || null;
 
         if (!centroTrabajo && !consumoPeriodo) return;
 
         const period = parsePeriod(fecha || undefined);
         if (!period) {
-          errors.push(`Row ${i + 2}: Could not parse period`);
+          errors.push(`Row ${i + 2}: Could not parse period from "${fecha}"`);
           return;
         }
 
@@ -246,7 +210,7 @@ serve(async (req) => {
 
         const consumoNum = parseFloat(String(consumoPeriodo || "0").replace(/,/g, ""));
         if (isNaN(consumoNum) || consumoNum <= 0) {
-          errors.push(`Row ${i + 2}: Invalid consumo_kwh`);
+          errors.push(`Row ${i + 2}: Invalid consumo value "${consumoPeriodo}"`);
           return;
         }
 
@@ -263,8 +227,9 @@ serve(async (req) => {
         });
       });
 
+      console.log("Records to insert:", records.length);
+
       if (records.length > 0) {
-        // Mirror: borrar todo lo de la organización y volver a insertar
         const { error: deleteError } = await supabase
           .from("electric_meter_readings")
           .delete()
@@ -286,24 +251,21 @@ serve(async (req) => {
       }
     }
 
+    console.log("Sync complete. Inserted:", totalInserted, "Errors:", errors);
+
     return new Response(
       JSON.stringify({
         success: errors.length === 0,
         rows_inserted: totalInserted,
         errors,
       }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Sync electric meters error:", error);
     return new Response(
       JSON.stringify({ success: false, error: (error as Error).message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      },
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
