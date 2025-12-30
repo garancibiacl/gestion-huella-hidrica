@@ -192,56 +192,78 @@ export default function HumanWaterConsumption() {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-wrap gap-3 mb-6"
+        className="mb-6"
       >
-        <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Período" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los períodos</SelectItem>
-            {periods.map(p => (
-              <SelectItem key={p} value={p}>{formatPeriod(p)}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        
-        <Select value={selectedCentro} onValueChange={setSelectedCentro}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Centro de trabajo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los centros</SelectItem>
-            {centros.map(c => (
-              <SelectItem key={c} value={c}>{c}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="flex flex-col gap-1">
+            <label htmlFor="human-water-period" className="text-xs font-medium text-muted-foreground">
+              Período
+            </label>
+            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+              <SelectTrigger id="human-water-period" className="w-full [&>span]:line-clamp-2 [&>span]:leading-tight">
+                <SelectValue placeholder="Selecciona un período" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los períodos</SelectItem>
+                {periods.map(p => (
+                  <SelectItem key={p} value={p}>{formatPeriod(p)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex flex-col gap-1">
+            <label htmlFor="human-water-centro" className="text-xs font-medium text-muted-foreground">
+              Centro de trabajo
+            </label>
+            <Select value={selectedCentro} onValueChange={setSelectedCentro}>
+              <SelectTrigger id="human-water-centro" className="w-full [&>span]:line-clamp-2 [&>span]:leading-tight">
+                <SelectValue placeholder="Selecciona un centro" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los centros</SelectItem>
+                {centros.map(c => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        {faenas.length > 0 && (
-          <Select value={selectedFaena} onValueChange={setSelectedFaena}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Faena" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas las faenas</SelectItem>
-              {faenas.map(f => (
-                <SelectItem key={f} value={f}>{f}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
+          {faenas.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <label htmlFor="human-water-faena" className="text-xs font-medium text-muted-foreground">
+                Faena
+              </label>
+              <Select value={selectedFaena} onValueChange={setSelectedFaena}>
+                <SelectTrigger id="human-water-faena" className="w-full [&>span]:line-clamp-2 [&>span]:leading-tight">
+                  <SelectValue placeholder="Selecciona una faena" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas las faenas</SelectItem>
+                  {faenas.map(f => (
+                    <SelectItem key={f} value={f}>{f}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
-        <Select value={selectedFormato} onValueChange={setSelectedFormato}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Formato" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los formatos</SelectItem>
-            <SelectItem value="botella">Botellas</SelectItem>
-            <SelectItem value="bidon_20l">Bidones 20L</SelectItem>
-          </SelectContent>
-        </Select>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="human-water-formato" className="text-xs font-medium text-muted-foreground">
+              Formato
+            </label>
+            <Select value={selectedFormato} onValueChange={setSelectedFormato}>
+              <SelectTrigger id="human-water-formato" className="w-full [&>span]:line-clamp-2 [&>span]:leading-tight">
+                <SelectValue placeholder="Selecciona un formato" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los formatos</SelectItem>
+                <SelectItem value="botella">Botellas</SelectItem>
+                <SelectItem value="bidon_20l">Bidones 20L</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </motion.div>
 
       {/* Stats */}

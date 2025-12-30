@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Gauge, Users, RefreshCw, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { Gauge, Users, RefreshCw, CheckCircle2, Clock, LineChart } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import MeterConsumption from '@/components/dashboard/MeterConsumption';
 import HumanWaterConsumption from '@/components/dashboard/HumanWaterConsumption';
+import WaterConsumptionHistory from '@/components/dashboard/WaterConsumptionHistory';
 import { useWaterSync } from '@/hooks/useWaterSync';
 import { useAuth } from '@/hooks/useAuth';
 import { useRole } from '@/hooks/useRole';
@@ -102,7 +103,7 @@ export default function WaterDashboard() {
         className="mb-6"
       >
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2 bg-muted/60 rounded-xl p-1">
+          <TabsList className="grid w-full max-w-xl grid-cols-3 bg-muted/60 rounded-xl p-1">
             <TabsTrigger
               value="medidor"
               className="gap-2 rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm"
@@ -119,6 +120,14 @@ export default function WaterDashboard() {
               <span className="hidden sm:inline">Consumo Humano</span>
               <span className="sm:hidden">Humano</span>
             </TabsTrigger>
+            <TabsTrigger
+              value="historico"
+              className="gap-2 rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm"
+            >
+              <LineChart className="w-4 h-4" />
+              <span className="hidden sm:inline">Histórico</span>
+              <span className="sm:hidden">Histórico</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="medidor" className="mt-6">
@@ -134,6 +143,10 @@ export default function WaterDashboard() {
                 <p className="text-sm text-muted-foreground">Sincronizando datos de consumo humano...</p>
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="historico" className="mt-6">
+            <WaterConsumptionHistory />
           </TabsContent>
         </Tabs>
       </motion.div>

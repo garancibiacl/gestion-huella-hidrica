@@ -37,6 +37,31 @@ function parseChileanCurrency(value: string | undefined): number | null {
   return isNaN(num) ? null : num;
 }
 
+function parseChileanNumber(value: string | undefined): number | null {
+  if (value === undefined || value === null) return null;
+  const raw = String(value).trim();
+  if (!raw) return null;
+
+  if (raw.includes(',')) {
+    const normalized = raw.replace(/\./g, '').replace(/,/g, '.');
+    const num = parseFloat(normalized);
+    return isNaN(num) ? null : num;
+  }
+
+  if (raw.includes('.')) {
+    const parts = raw.split('.');
+    const isThousands = parts.length === 2 && parts[1].length === 3 && parts[0].length >= 1;
+    if (isThousands) {
+      const normalized = raw.replace(/\./g, '');
+      const num = parseFloat(normalized);
+      return isNaN(num) ? null : num;
+    }
+  }
+
+  const num = parseFloat(raw);
+  return isNaN(num) ? null : num;
+}
+
 function parsePeriod(rawValue: string | undefined): string | null {
   if (!rawValue) return null;
   // Normalizar: quitar guiones/slashes múltiples consecutivos
@@ -198,7 +223,7 @@ async function performElectricSync(userId: string, force: boolean = false): Prom
       const centroTrabajo = rowObj['centro trabajo'] || rowObj['centro de trabajo'] || '';
       const medidor = rowObj['n medidor'] || rowObj['n de medidor'] || rowObj['medidor'] || rowObj['numero medidor'] || '';
       const consumo = rowObj['m3 consumidos por periodo'] || rowObj['consumo kwh'] || rowObj['consumo'] || '';
-      const costoTotal = rowObj['total pagar'] || rowObj['costo total'] || '';
+      const costoTotal = rowObj['total pagar'] || rowObj['costo pagar'] || rowObj['costo total'] || '';
       const tipoUso = rowObj['tipo'] || rowObj['tipo medidor uso'] || '';
       const proveedor = rowObj['proveedor'] || '';
 
@@ -216,8 +241,8 @@ async function performElectricSync(userId: string, force: boolean = false): Prom
         return;
       }
 
-      const consumoNum = parseFloat(String(consumo).replace(/,/g, '.'));
-      if (isNaN(consumoNum) || consumoNum <= 0) {
+      const consumoNum = parseChileanNumber(consumo);
+      if (!consumoNum || consumoNum <= 0) {
         errors.push(`Fila ${i + 2}: Consumo inválido "${consumo}"`);
         console.log(`Row ${i + 2}: Skipped - invalid consumo`);
         return;

@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Activity, RefreshCw, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { Zap, Activity, RefreshCw, CheckCircle2, Clock, LineChart } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import ElectricMeterConsumption from '@/components/dashboard/ElectricMeterConsumption';
+import ElectricConsumptionHistory from '@/components/dashboard/ElectricConsumptionHistory';
 import { useElectricSync } from '@/hooks/useElectricSync';
 import { useElectricMeters } from '@/hooks/useElectricMeters';
 import { useAuth } from '@/hooks/useAuth';
@@ -115,7 +116,7 @@ export default function ElectricDashboard() {
         className="mb-6"
       >
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2 bg-muted/60 rounded-xl p-1">
+          <TabsList className="grid w-full max-w-xl grid-cols-3 bg-muted/60 rounded-xl p-1">
             <TabsTrigger
               value="medidor"
               className="gap-2 rounded-lg data-[state=active]:bg-amber-500/10 data-[state=active]:text-amber-600 data-[state=active]:shadow-sm"
@@ -133,6 +134,14 @@ export default function ElectricDashboard() {
               <span className="hidden sm:inline">Eficiencia</span>
               <span className="sm:hidden">Eficiencia</span>
             </TabsTrigger>
+            <TabsTrigger
+              value="historico"
+              className="gap-2 rounded-lg data-[state=active]:bg-amber-500/10 data-[state=active]:text-amber-600 data-[state=active]:shadow-sm"
+            >
+              <LineChart className="w-4 h-4" />
+              <span className="hidden sm:inline">Histórico</span>
+              <span className="sm:hidden">Histórico</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="medidor" className="mt-6">
@@ -147,6 +156,10 @@ export default function ElectricDashboard() {
                 Panel de eficiencia energética y alertas de consumo anómalo.
               </p>
             </div>
+          </TabsContent>
+
+          <TabsContent value="historico" className="mt-6">
+            <ElectricConsumptionHistory />
           </TabsContent>
         </Tabs>
       </motion.div>

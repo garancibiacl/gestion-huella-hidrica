@@ -156,49 +156,66 @@ export default function ElectricMeterConsumption() {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-wrap gap-3 mb-6"
+        className="mb-6"
       >
-        <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Período" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los períodos</SelectItem>
-            {periods.map((p) => (
-              <SelectItem key={p} value={p}>
-                {formatPeriod(p)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="flex flex-col gap-1">
+            <label htmlFor="electric-period" className="text-xs font-medium text-muted-foreground">
+              Período
+            </label>
+            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+              <SelectTrigger id="electric-period" className="w-full [&>span]:line-clamp-2 [&>span]:leading-tight">
+                <SelectValue placeholder="Selecciona un período" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los períodos</SelectItem>
+                {periods.map((p) => (
+                  <SelectItem key={p} value={p}>
+                    {formatPeriod(p)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        <Select value={selectedCentro} onValueChange={setSelectedCentro}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Centro de trabajo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los centros</SelectItem>
-            {centros.map((c) => (
-              <SelectItem key={c} value={c}>
-                {c}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="electric-centro" className="text-xs font-medium text-muted-foreground">
+              Centro de trabajo
+            </label>
+            <Select value={selectedCentro} onValueChange={setSelectedCentro}>
+              <SelectTrigger id="electric-centro" className="w-full [&>span]:line-clamp-2 [&>span]:leading-tight">
+                <SelectValue placeholder="Selecciona un centro" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los centros</SelectItem>
+                {centros.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        <Select value={selectedMedidor} onValueChange={setSelectedMedidor}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Medidor" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los medidores</SelectItem>
-            {medidores.map((m) => (
-              <SelectItem key={m} value={m}>
-                {m}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="electric-medidor" className="text-xs font-medium text-muted-foreground">
+              Medidor
+            </label>
+            <Select value={selectedMedidor} onValueChange={setSelectedMedidor}>
+              <SelectTrigger id="electric-medidor" className="w-full [&>span]:line-clamp-2 [&>span]:leading-tight">
+                <SelectValue placeholder="Selecciona un medidor" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los medidores</SelectItem>
+                {medidores.map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {m}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </motion.div>
 
       {/* KPIs */}

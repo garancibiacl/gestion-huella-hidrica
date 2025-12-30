@@ -146,19 +146,24 @@ export default function MeterConsumption() {
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex justify-end mb-4"
+        className="mb-4"
       >
-        <Select value={period} onValueChange={setPeriod}>
-          <SelectTrigger className="w-40">
-            <Calendar className="w-4 h-4 mr-2" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="3">Últimos 3 meses</SelectItem>
-            <SelectItem value="6">Últimos 6 meses</SelectItem>
-            <SelectItem value="12">Último año</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex flex-col gap-1 sm:items-end">
+          <label htmlFor="meter-period" className="text-xs font-medium text-muted-foreground">
+            Período
+          </label>
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger id="meter-period" className="w-full sm:w-56 [&>span]:line-clamp-2 [&>span]:leading-tight">
+              <Calendar className="w-4 h-4 mr-2" />
+              <SelectValue placeholder="Selecciona un período" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="3">Últimos 3 meses</SelectItem>
+              <SelectItem value="6">Últimos 6 meses</SelectItem>
+              <SelectItem value="12">Último año</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </motion.div>
 
       {/* Stats */}
