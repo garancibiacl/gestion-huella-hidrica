@@ -211,70 +211,157 @@ export default function ElectricConsumptionHistory() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="stat-card"
+          initial={{ opacity: 0, x: -30, rotateY: -5 }}
+          animate={{ opacity: 1, x: 0, rotateY: 0 }}
+          transition={{ duration: 0.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          className="stat-card relative overflow-hidden group"
         >
-          <h4 className="font-semibold mb-1">kWh por período</h4>
-          <p className="text-sm text-muted-foreground mb-4">
-            Tendencia de consumo eléctrico acumulado.
-          </p>
-          <div className="h-72">
+          {/* Animated accent line */}
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ duration: 0.8, delay: 0.5 }}
+            className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-500/60 via-yellow-400/40 to-transparent origin-left"
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+          
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+          >
+            <h4 className="font-semibold mb-1">kWh por período</h4>
+            <p className="text-sm text-muted-foreground mb-4">
+              Tendencia de consumo eléctrico acumulado.
+            </p>
+          </motion.div>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+            className="h-72"
+          >
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={filteredSummaries}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <defs>
+                  <linearGradient id="historyKwhGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#f59e0b" stopOpacity={1} />
+                    <stop offset="100%" stopColor="#fcd34d" stopOpacity={0.6} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} opacity={0.5} />
                 <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
                 <YAxis fontSize={11} tickLine={false} axisLine={false} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
+                    border: 'none',
                     borderRadius: '12px',
-                    padding: '10px 12px',
+                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.3)',
+                    padding: '12px 16px',
                   }}
+                  cursor={{ fill: 'hsl(var(--primary) / 0.05)' }}
                   formatter={(value: number) => `${value.toLocaleString()} kWh`}
                 />
-                <Legend />
-                <Bar dataKey="kwh" name="Consumo kWh" fill={PRIMARY_COLOR} radius={[6, 6, 0, 0]} />
+                <Legend wrapperStyle={{ paddingTop: '16px' }} iconType="circle" iconSize={8} />
+                <Bar 
+                  dataKey="kwh" 
+                  name="Consumo kWh" 
+                  fill="url(#historyKwhGradient)" 
+                  radius={[6, 6, 0, 0]}
+                  isAnimationActive={true}
+                  animationBegin={400}
+                  animationDuration={1200}
+                  animationEasing="ease-out"
+                />
               </BarChart>
             </ResponsiveContainer>
-          </div>
+          </motion.div>
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="stat-card"
+          initial={{ opacity: 0, x: 30, rotateY: 5 }}
+          animate={{ opacity: 1, x: 0, rotateY: 0 }}
+          transition={{ duration: 0.6, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
+          className="stat-card relative overflow-hidden group"
         >
-          <h4 className="font-semibold mb-1">Costo por período</h4>
-          <p className="text-sm text-muted-foreground mb-4">
-            Seguimiento del gasto asociado al consumo.
-          </p>
-          <div className="h-72">
+          {/* Animated accent line */}
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ duration: 0.8, delay: 0.55 }}
+            className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-rose-500/60 via-red-400/40 to-transparent origin-left"
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-rose-500/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+          
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.45 }}
+          >
+            <h4 className="font-semibold mb-1">Costo por período</h4>
+            <p className="text-sm text-muted-foreground mb-4">
+              Seguimiento del gasto asociado al consumo.
+            </p>
+          </motion.div>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.55 }}
+            className="h-72"
+          >
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={filteredSummaries}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <defs>
+                  <linearGradient id="historyCostGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#ef4444" stopOpacity={1} />
+                    <stop offset="100%" stopColor="#fca5a5" stopOpacity={0.6} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} opacity={0.5} />
                 <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
                 <YAxis fontSize={11} tickLine={false} axisLine={false} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
+                    border: 'none',
                     borderRadius: '12px',
-                    padding: '10px 12px',
+                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.3)',
+                    padding: '12px 16px',
                   }}
+                  cursor={{ fill: 'hsl(var(--primary) / 0.05)' }}
                   formatter={(value: number) => `$${value.toLocaleString()}`}
                 />
-                <Legend />
-                <Bar dataKey="cost" name="Costo total" fill={SECONDARY_COLOR} radius={[6, 6, 0, 0]} />
+                <Legend wrapperStyle={{ paddingTop: '16px' }} iconType="circle" iconSize={8} />
+                <Bar 
+                  dataKey="cost" 
+                  name="Costo total" 
+                  fill="url(#historyCostGradient)" 
+                  radius={[6, 6, 0, 0]}
+                  isAnimationActive={true}
+                  animationBegin={500}
+                  animationDuration={1200}
+                  animationEasing="ease-out"
+                />
               </BarChart>
             </ResponsiveContainer>
-          </div>
+          </motion.div>
         </motion.div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 stat-card">
+        <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          className="lg:col-span-2 stat-card relative overflow-hidden"
+        >
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ duration: 0.8, delay: 0.6 }}
+            className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-primary/50 via-blue-400/30 to-transparent origin-left"
+          />
           <h4 className="font-semibold mb-1">Detalle por período</h4>
           <p className="text-sm text-muted-foreground mb-4">
             Base para análisis y exportación.
@@ -290,20 +377,37 @@ export default function ElectricConsumptionHistory() {
                 </tr>
               </thead>
               <tbody>
-                {filteredSummaries.map((s) => (
-                  <tr key={s.period} className="border-b last:border-b-0">
+                {filteredSummaries.map((s, index) => (
+                  <motion.tr 
+                    key={s.period} 
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: 0.5 + index * 0.03 }}
+                    className="border-b last:border-b-0 hover:bg-muted/30 transition-colors"
+                  >
                     <td className="py-2 pr-3">{s.label}</td>
                     <td className="py-2 px-3 text-right">{s.kwh.toLocaleString()}</td>
                     <td className="py-2 px-3 text-right">${s.cost.toLocaleString()}</td>
                     <td className="py-2 pl-3 text-right">{s.medidores}</td>
-                  </tr>
+                  </motion.tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="stat-card">
+        <motion.div 
+          initial={{ opacity: 0, x: 30, rotateY: 5 }}
+          animate={{ opacity: 1, x: 0, rotateY: 0 }}
+          transition={{ duration: 0.6, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}
+          className="stat-card relative overflow-hidden"
+        >
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ duration: 0.8, delay: 0.65 }}
+            className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-warning/60 via-amber-400/40 to-transparent origin-left"
+          />
           <h4 className="font-semibold mb-1">Acciones recomendadas</h4>
           <p className="text-sm text-muted-foreground mb-4">
             Sugerencias para prevención de riesgos.
@@ -311,43 +415,94 @@ export default function ElectricConsumptionHistory() {
           <div className="space-y-3 text-sm">
             {alerts.length > 0 ? (
               alerts.map((alert, index) => (
-                <div key={index} className="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/10 p-3">
-                  <AlertTriangle className="w-4 h-4 text-warning mt-0.5" />
+                <motion.div 
+                  key={index} 
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.4, delay: 0.6 + index * 0.1 }}
+                  whileHover={{ scale: 1.02, x: 4 }}
+                  className="flex items-start gap-3 rounded-lg border border-warning/30 bg-gradient-to-r from-warning/10 to-amber-500/5 p-3 cursor-default"
+                >
+                  <motion.div
+                    animate={{ rotate: [0, -10, 10, 0] }}
+                    transition={{ duration: 0.5, delay: 0.8 + index * 0.1 }}
+                  >
+                    <AlertTriangle className="w-4 h-4 text-warning mt-0.5" />
+                  </motion.div>
                   <span>{alert}</span>
-                </div>
+                </motion.div>
               ))
             ) : (
-              <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6 }}
+                className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3"
+              >
                 <Activity className="w-4 h-4 text-muted-foreground mt-0.5" />
                 <span>Sin alertas relevantes en el rango seleccionado.</span>
-              </div>
+              </motion.div>
             )}
-            <div className="flex items-start gap-3 rounded-lg border border-border bg-background p-3">
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.7 }}
+              className="flex items-start gap-3 rounded-lg border border-border bg-background p-3"
+            >
               <TrendingUp className="w-4 h-4 text-muted-foreground mt-0.5" />
               <span>Revisar centros con variación mensual sostenida para acciones correctivas.</span>
-            </div>
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
       </div>
 
-      <div className="stat-card mt-6">
+      <motion.div 
+        initial={{ opacity: 0, y: 40, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.7, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        className="stat-card mt-6 relative overflow-hidden"
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1.2, delay: 0.7 }}
+          className="absolute inset-0 bg-gradient-to-br from-destructive/[0.02] via-transparent to-warning/[0.02] pointer-events-none"
+        />
+        <motion.div
+          initial={{ x: -100, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.7 }}
+          className="absolute top-0 left-0 w-24 h-1 bg-gradient-to-r from-destructive/50 to-transparent rounded-full"
+        />
+        
         <h4 className="font-semibold mb-1">Señales de riesgo por centro</h4>
         <p className="text-sm text-muted-foreground mb-4">
           Detección temprana basada en tendencia de 3 períodos.
         </p>
         <div className="space-y-3 text-sm">
           {filteredRiskSignals.length > 0 ? (
-            filteredRiskSignals.map((signal) => (
-              <div key={signal.center} className="rounded-lg border border-border p-3">
+            filteredRiskSignals.map((signal, index) => (
+              <motion.div 
+                key={signal.center} 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.6 + index * 0.1 }}
+                whileHover={{ scale: 1.01, x: 4 }}
+                className="rounded-lg border border-border p-3 cursor-default hover:border-primary/20 transition-colors"
+              >
                 <div className="flex items-center justify-between gap-3">
                   <span className="font-medium">{signal.center}</span>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                  <motion.span 
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.3, delay: 0.7 + index * 0.1 }}
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                     signal.level === 'high'
-                      ? 'bg-destructive/10 text-destructive'
-                      : 'bg-warning/10 text-warning'
+                      ? 'bg-gradient-to-r from-destructive/15 to-red-500/10 text-destructive border border-destructive/20'
+                      : 'bg-gradient-to-r from-warning/15 to-amber-500/10 text-warning border border-warning/20'
                   }`}>
                     {signal.level === 'high' ? 'Riesgo alto' : 'Riesgo medio'}
-                  </span>
+                  </motion.span>
                 </div>
                 <div className="mt-2 text-muted-foreground">
                   {signal.reasons.join(' · ')}
@@ -363,16 +518,21 @@ export default function ElectricConsumptionHistory() {
                 <div className="mt-2 text-xs text-muted-foreground">
                   {signal.actions.join(' · ')}
                 </div>
-              </div>
+              </motion.div>
             ))
           ) : (
-            <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3"
+            >
               <Activity className="w-4 h-4 text-muted-foreground mt-0.5" />
               <span>Sin señales de riesgo relevantes en el rango seleccionado.</span>
-            </div>
+            </motion.div>
           )}
         </div>
-      </div>
+      </motion.div>
     </>
   );
 }

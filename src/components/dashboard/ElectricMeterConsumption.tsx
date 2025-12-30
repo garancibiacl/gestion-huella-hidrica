@@ -253,18 +253,49 @@ export default function ElectricMeterConsumption() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Consumo por centro */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="stat-card"
+          initial={{ opacity: 0, x: -30, rotateY: -5 }}
+          animate={{ opacity: 1, x: 0, rotateY: 0 }}
+          transition={{ duration: 0.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          className="stat-card relative overflow-hidden group"
         >
-          <h3 className="font-semibold mb-1">Consumo por Centro de Trabajo</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Distribución de kWh y costo por centro de trabajo
-          </p>
-          <div className="h-72">
+          {/* Animated accent line */}
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ duration: 0.8, delay: 0.5 }}
+            className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-500/60 via-yellow-400/40 to-transparent origin-left"
+          />
+          {/* Subtle gradient overlay on hover */}
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+          
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+          >
+            <h3 className="font-semibold mb-1">Consumo por Centro de Trabajo</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Distribución de kWh y costo por centro de trabajo
+            </p>
+          </motion.div>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+            className="h-72"
+          >
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartByCentro} layout="vertical">
+                <defs>
+                  <linearGradient id="electricConsumoGradient" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.8} />
+                    <stop offset="100%" stopColor="#eab308" stopOpacity={1} />
+                  </linearGradient>
+                  <linearGradient id="electricCostoGradient" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#ef4444" stopOpacity={0.8} />
+                    <stop offset="100%" stopColor="#dc2626" stopOpacity={1} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="hsl(var(--border))"
@@ -291,12 +322,13 @@ export default function ElectricMeterConsumption() {
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '14px',
-                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.12)',
+                    border: 'none',
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.3)',
                     padding: '12px 16px',
                   }}
-                  formatter={(value: any, name: string, props: any) => {
+                  cursor={{ fill: 'hsl(var(--primary) / 0.05)' }}
+                  formatter={(value: any, name: string) => {
                     if (name === 'Consumo') {
                       return [`${value.toLocaleString()} kWh`, 'Consumo'];
                     }
@@ -304,27 +336,71 @@ export default function ElectricMeterConsumption() {
                   }}
                 />
                 <Legend wrapperStyle={{ paddingTop: '16px' }} iconType="circle" iconSize={8} />
-                <Bar dataKey="consumo" name="Consumo" fill={PRIMARY_COLOR} radius={[0, 6, 6, 0]} />
-                <Bar dataKey="costo" name="Costo" fill={SECONDARY_COLOR} radius={[0, 6, 6, 0]} />
+                <Bar 
+                  dataKey="consumo" 
+                  name="Consumo" 
+                  fill="url(#electricConsumoGradient)" 
+                  radius={[0, 6, 6, 0]}
+                  isAnimationActive={true}
+                  animationBegin={400}
+                  animationDuration={1200}
+                  animationEasing="ease-out"
+                />
+                <Bar 
+                  dataKey="costo" 
+                  name="Costo" 
+                  fill="url(#electricCostoGradient)" 
+                  radius={[0, 6, 6, 0]}
+                  isAnimationActive={true}
+                  animationBegin={600}
+                  animationDuration={1200}
+                  animationEasing="ease-out"
+                />
               </BarChart>
             </ResponsiveContainer>
-          </div>
+          </motion.div>
         </motion.div>
 
         {/* Consumo por medidor */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-          className="stat-card"
+          initial={{ opacity: 0, x: 30, rotateY: 5 }}
+          animate={{ opacity: 1, x: 0, rotateY: 0 }}
+          transition={{ duration: 0.6, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
+          className="stat-card relative overflow-hidden group"
         >
-          <h3 className="font-semibold mb-1">Consumo por Medidor</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            kWh acumulados por medidor en el período filtrado
-          </p>
-          <div className="h-72">
+          {/* Animated accent line */}
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ duration: 0.8, delay: 0.55 }}
+            className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500/60 via-cyan-400/40 to-transparent origin-left"
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+          
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.45 }}
+          >
+            <h3 className="font-semibold mb-1">Consumo por Medidor</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              kWh acumulados por medidor en el período filtrado
+            </p>
+          </motion.div>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.55 }}
+            className="h-72"
+          >
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartByMedidor}>
+                <defs>
+                  <linearGradient id="medidorGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
+                    <stop offset="100%" stopColor="#1d4ed8" stopOpacity={0.8} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="hsl(var(--border))"
@@ -347,69 +423,135 @@ export default function ElectricMeterConsumption() {
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '14px',
-                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.12)',
+                    border: 'none',
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.3)',
                     padding: '12px 16px',
                   }}
+                  cursor={{ fill: 'hsl(var(--primary) / 0.05)' }}
                   formatter={(value: any) => [`${value.toLocaleString()} kWh`, 'Consumo']}
                 />
                 <Legend wrapperStyle={{ paddingTop: '16px' }} iconType="circle" iconSize={8} />
-                <Bar dataKey="consumo" name="Consumo" fill={PRIMARY_COLOR} radius={[6, 6, 0, 0]} />
+                <Bar 
+                  dataKey="consumo" 
+                  name="Consumo" 
+                  fill="url(#medidorGradient)" 
+                  radius={[6, 6, 0, 0]}
+                  isAnimationActive={true}
+                  animationBegin={500}
+                  animationDuration={1200}
+                  animationEasing="ease-out"
+                />
               </BarChart>
             </ResponsiveContainer>
-          </div>
+          </motion.div>
         </motion.div>
       </div>
 
       {/* Evolución mensual */}
       {periods.length > 0 && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="stat-card"
+          initial={{ opacity: 0, y: 40, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          className="stat-card relative overflow-hidden group"
         >
-          <h3 className="font-semibold mb-1">Evolución Mensual de Consumo</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Tendencia de kWh consumidos por período
-          </p>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={evolutionData}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="hsl(var(--border))"
-                  vertical={false}
-                  opacity={0.5}
-                />
-                <XAxis
-                  dataKey="period"
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '14px',
-                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.12)',
-                    padding: '12px 16px',
-                  }}
-                  formatter={(value: any) => [`${value.toLocaleString()} kWh`, 'Consumo']}
-                />
-                <Legend wrapperStyle={{ paddingTop: '16px' }} iconType="circle" iconSize={8} />
-                <Bar dataKey="consumo" name="Consumo" fill={PRIMARY_COLOR} radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          {/* Animated background gradient */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1.2, delay: 0.6 }}
+            className="absolute inset-0 bg-gradient-to-br from-amber-500/[0.03] via-transparent to-blue-500/[0.02] pointer-events-none"
+          />
+          
+          {/* Animated corner accent */}
+          <motion.div
+            initial={{ x: -100, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.7, ease: "easeOut" }}
+            className="absolute top-0 left-0 w-32 h-1 bg-gradient-to-r from-amber-500/50 via-yellow-400/30 to-transparent rounded-full"
+          />
+          
+          <div className="relative">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.5 }}
+            >
+              <h3 className="font-semibold mb-1">Evolución Mensual de Consumo</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Tendencia de kWh consumidos por período
+              </p>
+            </motion.div>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+              className="h-72"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={evolutionData}>
+                  <defs>
+                    <linearGradient id="evolutionGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.9} />
+                      <stop offset="50%" stopColor="#eab308" stopOpacity={0.7} />
+                      <stop offset="100%" stopColor="#fcd34d" stopOpacity={0.4} />
+                    </linearGradient>
+                    <filter id="electricGlow">
+                      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                      <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                      </feMerge>
+                    </filter>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="hsl(var(--border))"
+                    vertical={false}
+                    opacity={0.5}
+                  />
+                  <XAxis
+                    dataKey="period"
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                    dy={10}
+                  />
+                  <YAxis
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                    dx={-10}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: 'none',
+                      borderRadius: '12px',
+                      boxShadow: '0 10px 40px -10px rgba(0,0,0,0.3)',
+                      padding: '12px 16px',
+                    }}
+                    cursor={{ fill: 'hsl(var(--primary) / 0.05)' }}
+                    formatter={(value: any) => [`${value.toLocaleString()} kWh`, 'Consumo']}
+                  />
+                  <Legend wrapperStyle={{ paddingTop: '16px' }} iconType="circle" iconSize={8} />
+                  <Bar 
+                    dataKey="consumo" 
+                    name="Consumo" 
+                    fill="url(#evolutionGradient)" 
+                    radius={[6, 6, 0, 0]}
+                    filter="url(#electricGlow)"
+                    isAnimationActive={true}
+                    animationBegin={600}
+                    animationDuration={1500}
+                    animationEasing="ease-out"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </motion.div>
           </div>
         </motion.div>
       )}
