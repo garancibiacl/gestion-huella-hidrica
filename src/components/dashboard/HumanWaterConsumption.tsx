@@ -319,17 +319,37 @@ export default function HumanWaterConsumption() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Bar chart by centro */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="stat-card"
+          initial={{ opacity: 0, x: -30, rotateY: -5 }}
+          animate={{ opacity: 1, x: 0, rotateY: 0 }}
+          transition={{ duration: 0.6, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          className="stat-card relative overflow-hidden group"
         >
-          <h3 className="font-semibold mb-1">Consumo por Centro de Trabajo</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Distribución de botellas y bidones
-          </p>
+          {/* Animated accent line */}
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ duration: 0.8, delay: 0.6 }}
+            className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-rose-500/60 via-red-400/40 to-transparent origin-left"
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-rose-500/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
           
-          <div className="h-72">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.5 }}
+          >
+            <h3 className="font-semibold mb-1">Consumo por Centro de Trabajo</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Distribución de botellas y bidones
+            </p>
+          </motion.div>
+          
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+            className="h-72"
+          >
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartByCentro} layout="vertical">
                 <defs>
@@ -368,9 +388,9 @@ export default function HumanWaterConsumption() {
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '14px',
-                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.12)',
+                    border: 'none',
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.3)',
                     padding: '12px 16px',
                   }}
                   labelStyle={{
@@ -378,33 +398,71 @@ export default function HumanWaterConsumption() {
                     marginBottom: '6px',
                     color: 'hsl(var(--foreground))'
                   }}
-                  cursor={{ fill: 'hsl(var(--primary) / 0.04)' }}
+                  cursor={{ fill: 'hsl(var(--primary) / 0.05)' }}
                 />
                 <Legend 
                   wrapperStyle={{ paddingTop: '16px' }}
                   iconType="circle"
                   iconSize={8}
                 />
-                <Bar dataKey="botellas" name="Botellas" fill="url(#botellasGradient)" radius={[0, 6, 6, 0]} />
-                <Bar dataKey="bidones" name="Bidones 20L" fill="url(#bidonesGradient)" radius={[0, 6, 6, 0]} />
+                <Bar 
+                  dataKey="botellas" 
+                  name="Botellas" 
+                  fill="url(#botellasGradient)" 
+                  radius={[0, 6, 6, 0]}
+                  isAnimationActive={true}
+                  animationBegin={500}
+                  animationDuration={1200}
+                  animationEasing="ease-out"
+                />
+                <Bar 
+                  dataKey="bidones" 
+                  name="Bidones 20L" 
+                  fill="url(#bidonesGradient)" 
+                  radius={[0, 6, 6, 0]}
+                  isAnimationActive={true}
+                  animationBegin={700}
+                  animationDuration={1200}
+                  animationEasing="ease-out"
+                />
               </BarChart>
             </ResponsiveContainer>
-          </div>
+          </motion.div>
         </motion.div>
 
         {/* Pie chart for format distribution */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="stat-card"
+          initial={{ opacity: 0, x: 30, rotateY: 5 }}
+          animate={{ opacity: 1, x: 0, rotateY: 0 }}
+          transition={{ duration: 0.6, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="stat-card relative overflow-hidden group"
         >
-          <h3 className="font-semibold mb-1">Distribución por Formato</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Proporción de botellas vs bidones
-          </p>
+          {/* Animated accent line */}
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ duration: 0.8, delay: 0.7 }}
+            className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500/60 via-teal-400/40 to-transparent origin-left"
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
           
-          <div className="h-72">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.5, delay: 0.6 }}
+          >
+            <h3 className="font-semibold mb-1">Distribución por Formato</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Proporción de botellas vs bidones
+            </p>
+          </motion.div>
+          
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.7 }}
+            className="h-72"
+          >
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -419,11 +477,14 @@ export default function HumanWaterConsumption() {
                   strokeWidth={2}
                   label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                   labelLine={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1 }}
+                  isAnimationActive={true}
+                  animationBegin={600}
+                  animationDuration={1500}
+                  animationEasing="ease-out"
                 >
                   {pieData.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
-                      // Botellas siempre en rojo corporativo, Bidones siempre en verde
                       fill={entry.name === 'Botellas' ? PRIMARY_COLOR : SECONDARY_COLOR}
                     />
                   ))}
@@ -431,9 +492,9 @@ export default function HumanWaterConsumption() {
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '14px',
-                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.12)',
+                    border: 'none',
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.3)',
                     padding: '12px 16px',
                   }}
                   formatter={(value: number, name: string, props: any) => [
@@ -443,89 +504,146 @@ export default function HumanWaterConsumption() {
                 />
               </PieChart>
             </ResponsiveContainer>
-          </div>
+          </motion.div>
         </motion.div>
       </div>
 
       {/* Summary by period */}
       {selectedPeriod === 'all' && periods.length > 0 && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="stat-card"
+          initial={{ opacity: 0, y: 40, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.8, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="stat-card relative overflow-hidden group"
         >
-          <h3 className="font-semibold mb-1">Evolución Mensual</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Tendencia de consumo humano por período
-          </p>
+          {/* Animated background gradient */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1.2, delay: 0.8 }}
+            className="absolute inset-0 bg-gradient-to-br from-rose-500/[0.03] via-transparent to-emerald-500/[0.02] pointer-events-none"
+          />
           
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart 
-                data={periods.slice(0, 12).reverse().map(period => {
-                  const periodData = data.filter(d => d.period === period);
-                  return {
-                    period: formatPeriod(period),
-                    botellas: periodData.filter(d => d.formato === 'botella').reduce((sum, d) => sum + Number(d.cantidad), 0),
-                    bidones: periodData.filter(d => d.formato === 'bidon_20l').reduce((sum, d) => sum + Number(d.cantidad), 0),
-                    costo: periodData.reduce((sum, d) => sum + (Number(d.total_costo) || 0), 0)
-                  };
-                })}
-              >
-                <defs>
-                  <linearGradient id="botellasGradientV" x1="0" y1="1" x2="0" y2="0">
-                    <stop offset="0%" stopColor={PRIMARY_COLOR} stopOpacity={0.8} />
-                    <stop offset="100%" stopColor={PRIMARY_LIGHT} stopOpacity={1} />
-                  </linearGradient>
-                  <linearGradient id="bidonesGradientV" x1="0" y1="1" x2="0" y2="0">
-                    <stop offset="0%" stopColor={SECONDARY_COLOR} stopOpacity={0.8} />
-                    <stop offset="100%" stopColor="hsl(152, 55%, 50%)" stopOpacity={1} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid 
-                  strokeDasharray="3 3" 
-                  stroke="hsl(var(--border))"
-                  vertical={false}
-                  opacity={0.5}
-                />
-                <XAxis 
-                  dataKey="period" 
-                  stroke="hsl(var(--muted-foreground))" 
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis 
-                  stroke="hsl(var(--muted-foreground))" 
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '14px',
-                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.12)',
-                    padding: '12px 16px',
-                  }}
-                  labelStyle={{
-                    fontWeight: 600,
-                    marginBottom: '6px',
-                    color: 'hsl(var(--foreground))'
-                  }}
-                  cursor={{ fill: 'hsl(var(--primary) / 0.04)' }}
-                />
-                <Legend 
-                  wrapperStyle={{ paddingTop: '16px' }}
-                  iconType="circle"
-                  iconSize={8}
-                />
-                <Bar dataKey="botellas" name="Botellas" fill="url(#botellasGradientV)" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="bidones" name="Bidones 20L" fill="url(#bidonesGradientV)" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          {/* Animated corner accent */}
+          <motion.div
+            initial={{ x: -100, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.8, ease: "easeOut" }}
+            className="absolute top-0 left-0 w-32 h-1 bg-gradient-to-r from-rose-500/50 via-red-400/30 to-transparent rounded-full"
+          />
+          
+          <div className="relative">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.7 }}
+            >
+              <h3 className="font-semibold mb-1">Evolución Mensual</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Tendencia de consumo humano por período
+              </p>
+            </motion.div>
+            
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.8 }}
+              className="h-72"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart 
+                  data={periods.slice(0, 12).reverse().map(period => {
+                    const periodData = data.filter(d => d.period === period);
+                    return {
+                      period: formatPeriod(period),
+                      botellas: periodData.filter(d => d.formato === 'botella').reduce((sum, d) => sum + Number(d.cantidad), 0),
+                      bidones: periodData.filter(d => d.formato === 'bidon_20l').reduce((sum, d) => sum + Number(d.cantidad), 0),
+                      costo: periodData.reduce((sum, d) => sum + (Number(d.total_costo) || 0), 0)
+                    };
+                  })}
+                >
+                  <defs>
+                    <linearGradient id="botellasGradientV" x1="0" y1="1" x2="0" y2="0">
+                      <stop offset="0%" stopColor={PRIMARY_COLOR} stopOpacity={0.6} />
+                      <stop offset="100%" stopColor={PRIMARY_LIGHT} stopOpacity={1} />
+                    </linearGradient>
+                    <linearGradient id="bidonesGradientV" x1="0" y1="1" x2="0" y2="0">
+                      <stop offset="0%" stopColor={SECONDARY_COLOR} stopOpacity={0.6} />
+                      <stop offset="100%" stopColor="hsl(152, 55%, 55%)" stopOpacity={1} />
+                    </linearGradient>
+                    <filter id="humanGlow">
+                      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                      <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                      </feMerge>
+                    </filter>
+                  </defs>
+                  <CartesianGrid 
+                    strokeDasharray="3 3" 
+                    stroke="hsl(var(--border))"
+                    vertical={false}
+                    opacity={0.5}
+                  />
+                  <XAxis 
+                    dataKey="period" 
+                    stroke="hsl(var(--muted-foreground))" 
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                    dy={10}
+                  />
+                  <YAxis 
+                    stroke="hsl(var(--muted-foreground))" 
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                    dx={-10}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: 'none',
+                      borderRadius: '12px',
+                      boxShadow: '0 10px 40px -10px rgba(0,0,0,0.3)',
+                      padding: '12px 16px',
+                    }}
+                    labelStyle={{
+                      fontWeight: 600,
+                      marginBottom: '6px',
+                      color: 'hsl(var(--foreground))'
+                    }}
+                    cursor={{ fill: 'hsl(var(--primary) / 0.05)' }}
+                  />
+                  <Legend 
+                    wrapperStyle={{ paddingTop: '16px' }}
+                    iconType="circle"
+                    iconSize={8}
+                  />
+                  <Bar 
+                    dataKey="botellas" 
+                    name="Botellas" 
+                    fill="url(#botellasGradientV)" 
+                    radius={[6, 6, 0, 0]}
+                    filter="url(#humanGlow)"
+                    isAnimationActive={true}
+                    animationBegin={700}
+                    animationDuration={1500}
+                    animationEasing="ease-out"
+                  />
+                  <Bar 
+                    dataKey="bidones" 
+                    name="Bidones 20L" 
+                    fill="url(#bidonesGradientV)" 
+                    radius={[6, 6, 0, 0]}
+                    isAnimationActive={true}
+                    animationBegin={900}
+                    animationDuration={1500}
+                    animationEasing="ease-out"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </motion.div>
           </div>
         </motion.div>
       )}
