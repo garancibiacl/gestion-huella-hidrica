@@ -28,6 +28,7 @@ import {
 } from 'recharts';
 import { useRole } from '@/hooks/useRole';
 import { PageHeader } from '@/components/ui/page-header';
+import RiskPanel from '@/components/admin/RiskPanel';
 import {
   Select,
   SelectContent,
@@ -393,6 +394,10 @@ export default function AdminAnalytics() {
           />
         </div>
       )}
+
+      <div className="mb-6">
+        <RiskPanel />
+      </div>
 
       {/* Main Chart */}
       {loading ? (

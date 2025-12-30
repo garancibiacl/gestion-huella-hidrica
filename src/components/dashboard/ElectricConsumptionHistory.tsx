@@ -14,6 +14,7 @@ import {
 import { StatCard } from '@/components/ui/stat-card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useElectricMeters } from '@/hooks/useElectricMeters';
+import { useRiskSignals } from '@/hooks/useRiskSignals';
 
 interface PeriodSummary {
   period: string;
@@ -30,6 +31,15 @@ const formatPeriod = (period: string) => {
   const [year, month] = period.split('-');
   const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
   return `${months[parseInt(month, 10) - 1]} ${year}`;
+};
+
+const weightedForecast = (values: number[]) => {
+  if (values.length === 0) return 0;
+  const weights = [0.5, 0.3, 0.2];
+  const recent = values.slice(-3).reverse();
+  const weighted = recent.map((value, idx) => value * (weights[idx] ?? 0.2));
+  const totalWeight = weights.slice(0, recent.length).reduce((sum, w) => sum + w, 0);
+  return totalWeight > 0 ? weighted.reduce((sum, v) => sum + v, 0) / totalWeight : 0;
 };
 
 export default function ElectricConsumptionHistory() {
@@ -52,6 +62,39 @@ export default function ElectricConsumptionHistory() {
     const limit = Number(range);
     return summaries.slice(-limit);
   }, [summaries, range]);
+
+  const forecastKwh = weightedForecast(filteredSummaries.map((s) => s.kwh));
+  const forecastCost = weightedForecast(filteredSummaries.map((s) => s.cost));
+  const averageKwh = useMemo(() => {
+    const values = filteredSummaries.map((s) => s.kwh);
+    if (values.length === 0) return 0;
+    return values.reduce((sum, v) => sum + v, 0) / values.length;
+  }, [filteredSummaries]);
+  const isForecastRisk = forecastKwh > averageKwh;
+  const kwhStdDev = useMemo(() => {
+    const values = filteredSummaries.map((s) => s.kwh);
+    if (values.length < 2) return 0;
+    const mean = values.reduce((sum, v) => sum + v, 0) / values.length;
+    const variance = values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / values.length;
+    return Math.sqrt(variance);
+  }, [filteredSummaries]);
+  const costStdDev = useMemo(() => {
+    const values = filteredSummaries.map((s) => s.cost);
+    if (values.length < 2) return 0;
+    const mean = values.reduce((sum, v) => sum + v, 0) / values.length;
+    const variance = values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / values.length;
+    return Math.sqrt(variance);
+  }, [filteredSummaries]);
+  const { signals: riskSignals } = useRiskSignals(
+    data.map((row) => ({
+      period: row.period,
+      center: row.centro_trabajo,
+      liters: Number(row.consumo_kwh),
+      cost: Number(row.costo_total ?? 0),
+    })),
+  );
+
+  const filteredRiskSignals = riskSignals.filter((signal) => signal.level !== 'low');
 
   const latest = filteredSummaries[filteredSummaries.length - 1];
   const previous = filteredSummaries[filteredSummaries.length - 2];
@@ -133,6 +176,27 @@ export default function ElectricConsumptionHistory() {
           icon={<Activity className="w-5 h-5" />}
           subtitle={previous ? `vs. ${previous.label}` : 'Sin referencia'}
           delay={0.2}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <StatCard
+          title="Forecast 30d (kWh)"
+          value={Math.round(forecastKwh).toLocaleString()}
+          icon={<Zap className="w-5 h-5" />}
+          subtitle={`Rango ${Math.round(Math.max(0, forecastKwh - kwhStdDev)).toLocaleString()}–${Math.round(forecastKwh + kwhStdDev).toLocaleString()} kWh`}
+          badge={{
+            text: isForecastRisk ? 'Riesgo proyectado' : 'Riesgo estable',
+            variant: isForecastRisk ? 'warning' : 'success',
+          }}
+          delay={0}
+        />
+        <StatCard
+          title="Forecast 30d (Costo)"
+          value={`$${Math.round(forecastCost).toLocaleString()}`}
+          icon={<TrendingUp className="w-5 h-5" />}
+          subtitle={`Rango $${Math.round(Math.max(0, forecastCost - costStdDev)).toLocaleString()}–$${Math.round(forecastCost + costStdDev).toLocaleString()}`}
+          delay={0.1}
         />
       </div>
 
@@ -254,6 +318,50 @@ export default function ElectricConsumptionHistory() {
               <span>Revisar centros con variación mensual sostenida para acciones correctivas.</span>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="stat-card mt-6">
+        <h4 className="font-semibold mb-1">Señales de riesgo por centro</h4>
+        <p className="text-sm text-muted-foreground mb-4">
+          Detección temprana basada en tendencia de 3 períodos.
+        </p>
+        <div className="space-y-3 text-sm">
+          {filteredRiskSignals.length > 0 ? (
+            filteredRiskSignals.map((signal) => (
+              <div key={signal.center} className="rounded-lg border border-border p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-medium">{signal.center}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                    signal.level === 'high'
+                      ? 'bg-destructive/10 text-destructive'
+                      : 'bg-warning/10 text-warning'
+                  }`}>
+                    {signal.level === 'high' ? 'Riesgo alto' : 'Riesgo medio'}
+                  </span>
+                </div>
+                <div className="mt-2 text-muted-foreground">
+                  {signal.reasons.join(' · ')}
+                </div>
+                <div className="mt-2 text-xs text-muted-foreground">
+                  Forecast 30d: <span className="font-medium text-foreground">{Math.round(signal.forecast30d).toLocaleString()} L</span>
+                  <span className="text-muted-foreground"> ({Math.round(signal.forecastRange.min).toLocaleString()}–{Math.round(signal.forecastRange.max).toLocaleString()} L)</span>
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  Forecast costo: <span className="font-medium text-foreground">${Math.round(signal.forecastCost30d).toLocaleString()}</span>
+                  <span className="text-muted-foreground"> (${Math.round(signal.forecastCostRange.min).toLocaleString()}–${Math.round(signal.forecastCostRange.max).toLocaleString()})</span>
+                </div>
+                <div className="mt-2 text-xs text-muted-foreground">
+                  {signal.actions.join(' · ')}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3">
+              <Activity className="w-4 h-4 text-muted-foreground mt-0.5" />
+              <span>Sin señales de riesgo relevantes en el rango seleccionado.</span>
+            </div>
+          )}
         </div>
       </div>
     </>
