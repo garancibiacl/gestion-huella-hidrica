@@ -429,65 +429,6 @@ export type Database = {
           },
         ]
       }
-      water_meter_readings: {
-        Row: {
-          id: string
-          user_id: string
-          organization_id: string
-          period: string
-          centro_trabajo: string
-          direccion: string | null
-          medidor: string
-          lectura_m3: number
-          consumo_m3: number
-          sobre_consumo_m3: number
-          costo_total: number | null
-          observaciones: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          organization_id: string
-          period: string
-          centro_trabajo: string
-          direccion?: string | null
-          medidor: string
-          lectura_m3?: number
-          consumo_m3?: number
-          sobre_consumo_m3?: number
-          costo_total?: number | null
-          observaciones?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          organization_id?: string
-          period?: string
-          centro_trabajo?: string
-          direccion?: string | null
-          medidor?: string
-          lectura_m3?: number
-          consumo_m3?: number
-          sobre_consumo_m3?: number
-          costo_total?: number | null
-          observaciones?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "water_meter_readings_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
