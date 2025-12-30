@@ -131,8 +131,9 @@ serve(async (req) => {
       .eq("user_id", user.id)
       .maybeSingle();
 
-    if (!roleData || roleData.role !== "admin") {
-      return new Response(JSON.stringify({ error: "Forbidden: Admin role required" }), {
+    const userRole = roleData?.role;
+    if (!userRole || (userRole !== "admin" && userRole !== "prevencionista")) {
+      return new Response(JSON.stringify({ error: "Forbidden: Admin or Prevencionista role required" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
