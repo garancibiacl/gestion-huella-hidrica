@@ -16,6 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useRiskSignals } from '@/hooks/useRiskSignals';
+import { ExportPDFButton } from '@/components/export/ExportPDFButton';
+import { exportWaterReport } from '@/lib/pdf-export';
 
 interface PeriodSummary {
   period: string;
@@ -168,20 +170,35 @@ export default function WaterConsumptionHistory() {
             Visión consolidada de consumo hídrico.
           </p>
         </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor="water-history-range" className="text-xs font-medium text-muted-foreground">
-            Rango
-          </label>
-          <Select value={range} onValueChange={(value) => setRange(value as '6' | '12' | 'all')}>
-            <SelectTrigger id="water-history-range" className="w-full sm:w-48">
-              <SelectValue placeholder="Selecciona rango" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="6">Últimos 6 períodos</SelectItem>
-              <SelectItem value="12">Últimos 12 períodos</SelectItem>
-              <SelectItem value="all">Todo el histórico</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex items-end gap-3">
+          <ExportPDFButton
+            onExport={() => exportWaterReport({
+              summaries: filteredSummaries,
+              totalM3,
+              totalCost,
+              variation,
+              forecastM3,
+              forecastCost,
+              alerts,
+              dateRange: range === 'all' ? 'Todo el histórico' : `Últimos ${range} períodos`,
+            })}
+            label="Exportar PDF"
+          />
+          <div className="flex flex-col gap-1">
+            <label htmlFor="water-history-range" className="text-xs font-medium text-muted-foreground">
+              Rango
+            </label>
+            <Select value={range} onValueChange={(value) => setRange(value as '6' | '12' | 'all')}>
+              <SelectTrigger id="water-history-range" className="w-full sm:w-48">
+                <SelectValue placeholder="Selecciona rango" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="6">Últimos 6 períodos</SelectItem>
+                <SelectItem value="12">Últimos 12 períodos</SelectItem>
+                <SelectItem value="all">Todo el histórico</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
