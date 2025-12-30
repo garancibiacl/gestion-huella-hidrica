@@ -23,7 +23,8 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { icon: Droplets, label: 'Agua', path: '/dashboard/agua' },
+  { icon: Droplets, label: 'Agua Humano', path: '/dashboard/agua' },
+  { icon: Droplets, label: 'Agua Medidor', path: '/dashboard/agua-medidor' },
   { icon: Zap, label: 'Energía Eléctrica', path: '/dashboard/energia' },
   { icon: Upload, label: 'Importar Datos', path: '/importar' },
   { icon: Calendar, label: 'Períodos', path: '/periodos' },

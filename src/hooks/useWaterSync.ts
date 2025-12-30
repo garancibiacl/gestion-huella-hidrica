@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
-const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQvGcFyOkzFXr3OVWCLzS9b0hJG1V8mDoYHO4Pq3HWEq9J9BjHKCnGX3gL4jxM7Kg/pub?output=csv';
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/1yVo_zxvA-hSf04aUXABijRUeAuHq-huc/export?format=csv&gid=0';
 const LAST_SYNC_KEY = 'last_water_sync';
 const LAST_HASH_KEY = 'last_water_hash';
 const MIN_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
