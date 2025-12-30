@@ -23,12 +23,14 @@ export function useElectricMeters(): UseElectricMetersResult {
     setLoading(true);
     setError(null);
     try {
+      console.log('useElectricMeters: fetching data...');
       const { data: rows, error: queryError } = await supabase
         .from('electric_meter_readings')
         .select('*')
         .order('period', { ascending: true });
 
       if (queryError) throw queryError;
+      console.log('useElectricMeters: fetched', rows?.length || 0, 'rows');
       setData(rows || []);
     } catch (err: any) {
       console.error('Error loading electric meter readings', err);

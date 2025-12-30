@@ -159,7 +159,7 @@ export default function ElectricDashboard() {
           </TabsContent>
 
           <TabsContent value="historico" className="mt-6">
-            <ElectricConsumptionHistory />
+            <ElectricConsumptionHistory key={`history-${refreshKey}`} />
           </TabsContent>
         </Tabs>
       </motion.div>
