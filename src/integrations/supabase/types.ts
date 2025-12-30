@@ -382,6 +382,65 @@ export type Database = {
         }
         Relationships: []
       }
+      water_meter_readings: {
+        Row: {
+          centro_trabajo: string
+          consumo_m3: number
+          costo_total: number | null
+          created_at: string | null
+          direccion: string | null
+          id: string
+          lectura_m3: number | null
+          medidor: string
+          observaciones: string | null
+          organization_id: string
+          period: string
+          sobre_consumo_m3: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          centro_trabajo: string
+          consumo_m3?: number
+          costo_total?: number | null
+          created_at?: string | null
+          direccion?: string | null
+          id?: string
+          lectura_m3?: number | null
+          medidor: string
+          observaciones?: string | null
+          organization_id: string
+          period: string
+          sobre_consumo_m3?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          centro_trabajo?: string
+          consumo_m3?: number
+          costo_total?: number | null
+          created_at?: string | null
+          direccion?: string | null
+          id?: string
+          lectura_m3?: number | null
+          medidor?: string
+          observaciones?: string | null
+          organization_id?: string
+          period?: string
+          sobre_consumo_m3?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "water_meter_readings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       water_readings: {
         Row: {
           consumo_m3: number
