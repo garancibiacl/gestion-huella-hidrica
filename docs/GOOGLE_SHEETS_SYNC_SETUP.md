@@ -2,6 +2,13 @@
 
 Esta guía explica cómo configurar la sincronización automática desde Google Sheets a la aplicación.
 
+La aplicación tiene **dos módulos independientes**, cada uno con su propio Google Sheet y botón de sincronización:
+
+| Módulo | Ruta | Google Sheet | Edge Function |
+|--------|------|--------------|---------------|
+| **Agua** | `/dashboard/agua` | control-agua.xlsx | `sync-google-sheets` |
+| **Energía Eléctrica** | `/dashboard/energia` | control-luz.xlsx | `sync-electric-meters` |
+
 ## Requisitos previos
 
 - Acceso a la consola de Supabase del proyecto
@@ -35,25 +42,45 @@ https://docs.google.com/spreadsheets/d/1L78_TmjdE58596F9tqHFK7DTjovedFJI/edit?us
 
 **Importante**: La hoja debe tener permisos de "Ver" para cualquiera con el enlace. No necesita ser editable públicamente.
 
-## Paso 3: Configurar la Google Sheet
+## Paso 3: Configurar los Google Sheets
+
+### 3.1 Hoja de Agua (control-agua.xlsx)
 
 1. Abre tu Google Sheet: `https://docs.google.com/spreadsheets/d/1L78_TmjdE58596F9tqHFK7DTjovedFJI`
 2. Asegúrate de tener una hoja llamada **"Agua en Botella"** con las siguientes columnas:
-   - **Fecha**: Fecha del registro (formato: DD/MM/YYYY)
-   - **Mes**: Mes del periodo (formato: "Enero", "ene", "01/2025", etc.)
-   - **Orden de Compra**: Número de orden (opcional)
-   - **Centro de Trabajo**: Nombre del centro (requerido)
-   - **Faena**: Nombre de la faena (opcional)
-   - **Tipo**: "Botella" o "Bidón 20L"
-   - **Proveedor**: Nombre del proveedor (opcional)
-   - **Cantidad**: Número de unidades
-   - **Litros**: Litros totales (opcional)
-   - **Costo Total**: Costo en pesos chilenos (formato: $109.242)
-   - **Observaciones**: Notas adicionales (opcional)
 
-3. Configura permisos de la hoja:
-   - **Con API Key**: La hoja debe ser pública (Anyone with the link can view)
-   - **Con Service Account**: Comparte la hoja con el email de la service account
+| Columna | Requerido | Formato | Ejemplo |
+|---------|-----------|---------|---------|
+| **Fecha** | Sí | DD/MM/YYYY | 15/01/2025 |
+| **Mes** | Sí | Texto o fecha | "Enero 2025", "ene-25" |
+| **Centro de Trabajo** | Sí | Texto | Los Andes |
+| **Faena** | No | Texto | Mantenimiento |
+| **Tipo** | Sí | Texto | "Botella" o "Bidón 20L" |
+| **Proveedor** | No | Texto | Aguas del Valle |
+| **Cantidad** | Sí | Número | 50 |
+| **Costo Total** | No | Moneda CLP | $109.242 |
+
+### 3.2 Hoja de Energía Eléctrica (control-luz.xlsx)
+
+1. Abre tu Google Sheet: `https://docs.google.com/spreadsheets/d/18Chw9GKYlblBOljJ7ZGJ0aJBYQU7t1Ax`
+2. Asegúrate de tener las siguientes columnas:
+
+| Columna | Requerido | Formato | Ejemplo |
+|---------|-----------|---------|---------|
+| **Fecha** | Sí | DD-MM-YYYY | 24-01-2025 |
+| **Centro de Trabajo** | Sí | Texto | Los Andes |
+| **Dirección** | No | Texto | Av Oriente #134 |
+| **N° de Medidor** | Sí | Texto/Número | 1083 |
+| **Lectura en M3** | No | Número | 13.521 |
+| **M3 Consumidos por Periodo.** | Sí | Número | 722 |
+| **Sobre Consumo en M3** | No | Número | 349 |
+| **Total Pagar** | No | Moneda CLP | $2.728.350 |
+| **Observaciones** | No | Texto | Saldo Anterior |
+
+### 3.3 Permisos de las hojas
+
+Ambas hojas deben tener permisos de lectura pública:
+- Haz clic en **Compartir** → **Cualquier persona con el enlace** → **Ver**
 
 ## Paso 4: Configurar variables de entorno en Supabase
 
@@ -61,7 +88,7 @@ https://docs.google.com/spreadsheets/d/1L78_TmjdE58596F9tqHFK7DTjovedFJI/edit?us
 
 La Edge Function usa directamente la URL pública de la hoja, por lo que no necesitas configurar API Keys ni credenciales de Service Account.
 
-## Paso 5: Desplegar la Edge Function
+## Paso 5: Desplegar las Edge Functions
 
 Desde la raíz del proyecto, ejecuta:
 
@@ -72,8 +99,11 @@ npx supabase login
 # Link al proyecto
 npx supabase link --project-ref tu-project-ref
 
-# Deploy la función
+# Deploy función de Agua
 npx supabase functions deploy sync-google-sheets
+
+# Deploy función de Energía Eléctrica
+npx supabase functions deploy sync-electric-meters
 ```
 
 ## Paso 6: Configurar variables de entorno en el frontend
@@ -89,16 +119,32 @@ VITE_SUPABASE_ANON_KEY=tu_anon_key
 
 ### Para usuarios administradores
 
-1. Inicia sesión con una cuenta que tenga rol `admin`
-2. Ve al Dashboard
-3. Verás el botón **"Sincronizar ahora"** en la esquina superior derecha
-4. Haz clic para sincronizar los datos desde Google Sheets
-5. El dashboard se actualizará automáticamente al completar la sincronización
+La aplicación tiene **dos dashboards separados**, cada uno con su propio botón de sincronización:
+
+#### Dashboard Agua (`/dashboard/agua`)
+
+1. Inicia sesión con una cuenta que tenga rol `admin` o `prevencionista`
+2. Ve a **Agua** en el sidebar
+3. Verás el botón **"Sincronizar Agua"** en la esquina superior derecha
+4. Haz clic para sincronizar los datos de consumo hídrico
+5. Sub-pestañas disponibles:
+   - **Consumo por Medidor**: Lecturas de medidores de agua
+   - **Consumo Humano**: Agua embotellada y bidones
+
+#### Dashboard Energía Eléctrica (`/dashboard/energia`)
+
+1. Inicia sesión con una cuenta que tenga rol `admin` o `prevencionista`
+2. Ve a **Energía Eléctrica** en el sidebar
+3. Verás el botón **"Sincronizar Energía"** en la esquina superior derecha
+4. Haz clic para sincronizar los datos de consumo eléctrico
+5. Sub-pestañas disponibles:
+   - **Luz por Medidor**: Lecturas de medidores eléctricos
+   - **Eficiencia** (próximamente)
 
 ### Información mostrada
 
 - **Estado de sincronización**: Loading, Success, Error
-- **Última sincronización**: Tiempo transcurrido desde la última sync
+- **Última sincronización**: Tiempo transcurrido desde la última sync (independiente por módulo)
 - **Registros procesados**: Número de filas insertadas/actualizadas
 
 ## Solución de problemas
@@ -127,14 +173,20 @@ VITE_SUPABASE_ANON_KEY=tu_anon_key
 
 ## Mantenimiento
 
-### Actualizar el ID de la Google Sheet
+### Actualizar el ID de los Google Sheets
 
-Si cambias de Google Sheet, actualiza el ID y gid en:
-`supabase/functions/sync-google-sheets/index.ts`
-
+#### Para Agua
+Actualiza en `supabase/functions/sync-google-sheets/index.ts`:
 ```typescript
-const spreadsheetId = 'NUEVO_ID_AQUI'; // ID del spreadsheet
-const gid = 'NUEVO_GID_AQUI'; // ID de la hoja específica
+const spreadsheetId = 'NUEVO_ID_AQUI';
+const gid = 'NUEVO_GID_AQUI';
+```
+
+#### Para Energía Eléctrica
+Actualiza en `supabase/functions/sync-electric-meters/index.ts`:
+```typescript
+const spreadsheetId = 'NUEVO_ID_AQUI';
+const gid = 'NUEVO_GID_AQUI';
 ```
 
 Para obtener el `gid`:
@@ -142,9 +194,10 @@ Para obtener el `gid`:
 2. Mira la URL: `...#gid=680818774`
 3. El número después de `gid=` es el que necesitas
 
-Luego redeploya la función:
+Luego redeploya las funciones:
 ```bash
 npx supabase functions deploy sync-google-sheets
+npx supabase functions deploy sync-electric-meters
 ```
 
 ### Ver logs de sincronización

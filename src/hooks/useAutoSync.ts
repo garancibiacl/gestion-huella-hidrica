@@ -207,38 +207,6 @@ function parseCSV(csvText: string): string[][] {
   return rows;
 }
 
-async function syncElectricMeters(userId: string): Promise<{ success: boolean; rowsInserted: number; errors: string[] }> {
-  try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData?.session?.access_token;
-    
-    if (!accessToken) {
-      return { success: false, rowsInserted: 0, errors: ['No hay sesión activa'] };
-    }
-
-    const { data, error } = await supabase.functions.invoke('sync-electric-meters', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-
-    if (error) {
-      console.error('Error calling sync-electric-meters:', error);
-      return { success: false, rowsInserted: 0, errors: [error.message] };
-    }
-
-    console.log('sync-electric-meters response:', data);
-    return {
-      success: data?.success ?? false,
-      rowsInserted: data?.rows_inserted ?? 0,
-      errors: data?.errors ?? [],
-    };
-  } catch (err: any) {
-    console.error('Error syncing electric meters:', err);
-    return { success: false, rowsInserted: 0, errors: [err.message] };
-  }
-}
-
 async function performSync(userId: string, force: boolean = false): Promise<{ success: boolean; rowsProcessed: number }> {
   // Acquire lock to prevent simultaneous syncs
   if (!acquireSyncLock()) {
@@ -403,19 +371,10 @@ async function performSync(userId: string, force: boolean = false): Promise<{ su
       console.log('Google Sheet content unchanged, skipping human water sync.');
     }
 
-    // Also sync electric meters via edge function
-    console.log('Syncing electric meters...');
-    const electricResult = await syncElectricMeters(userId);
-    console.log('Electric meters sync result:', electricResult);
-    
-    if (electricResult.errors.length > 0) {
-      console.warn('Electric meters sync errors:', electricResult.errors);
-    }
-
     releaseSyncLock();
     return { 
       success: true, 
-      rowsProcessed: humanWaterRowsProcessed + electricResult.rowsInserted 
+      rowsProcessed: humanWaterRowsProcessed 
     };
   } catch (error) {
     console.error('Auto-sync error:', error);

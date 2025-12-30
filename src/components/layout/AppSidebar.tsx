@@ -1,13 +1,13 @@
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
-  LayoutDashboard, 
   Upload, 
   Calendar, 
   Leaf, 
   Settings, 
   LogOut,
   Droplets,
+  Zap,
   Users,
   BarChart3
 } from 'lucide-react';
@@ -16,14 +16,15 @@ import { useRole } from '@/hooks/useRole';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
-  icon: typeof LayoutDashboard;
+  icon: typeof Droplets;
   label: string;
   path: string;
   adminOnly?: boolean;
 }
 
 const navItems: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+  { icon: Droplets, label: 'Agua', path: '/dashboard/agua' },
+  { icon: Zap, label: 'Energía Eléctrica', path: '/dashboard/energia' },
   { icon: Upload, label: 'Importar Datos', path: '/importar' },
   { icon: Calendar, label: 'Períodos', path: '/periodos' },
   { icon: Leaf, label: 'Medidas Sustentables', path: '/medidas' },
@@ -92,7 +93,7 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
       {/* Navigation - Compact spacing */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto scrollbar-thin">
         {filteredNavItems.map((item) => {
-          const isActive = location.pathname === item.path;
+          const isActive = location.pathname === item.path || location.pathname.startsWith(item.path + '/');
           return (
             <Link
               key={item.path}

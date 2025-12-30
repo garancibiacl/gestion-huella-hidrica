@@ -6,7 +6,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
+import WaterDashboard from "./pages/WaterDashboard";
+import ElectricDashboard from "./pages/ElectricDashboard";
 import ImportData from "./pages/ImportData";
 import Periods from "./pages/Periods";
 import SustainabilityActions from "./pages/SustainabilityActions";
@@ -25,10 +26,12 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<Navigate to="/dashboard/agua" replace />} />
             <Route path="/auth" element={<Auth />} />
             <Route element={<AppLayout />}>
-              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Navigate to="/dashboard/agua" replace />} />
+              <Route path="/dashboard/agua" element={<WaterDashboard />} />
+              <Route path="/dashboard/energia" element={<ElectricDashboard />} />
               <Route path="/importar" element={<ImportData />} />
               <Route path="/periodos" element={<Periods />} />
               <Route path="/medidas" element={<SustainabilityActions />} />
