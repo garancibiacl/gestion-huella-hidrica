@@ -19,18 +19,8 @@ interface UseElectricSyncOptions {
 
 async function performElectricSync(): Promise<ElectricSyncResult> {
   try {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData?.session?.access_token;
-
-    if (!accessToken) {
-      return { success: false, rowsInserted: 0, errors: ['No hay sesión activa'] };
-    }
-
-    const { data, error } = await supabase.functions.invoke('sync-electric-meters', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
+    // supabase.functions.invoke automatically includes the user's JWT
+    const { data, error } = await supabase.functions.invoke('sync-electric-meters');
 
     if (error) {
       console.error('Error calling sync-electric-meters:', error);
