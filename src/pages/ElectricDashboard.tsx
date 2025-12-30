@@ -22,7 +22,7 @@ export default function ElectricDashboard() {
 
   const { syncElectric, isSyncing, lastSyncAt } = useElectricSync({
     enabled: true,
-    onSyncComplete: (success, rowsInserted, errors) => {
+    onSyncComplete: async (success, rowsInserted, errors) => {
       if (success) {
         if (rowsInserted > 0) {
           toast({
@@ -35,8 +35,9 @@ export default function ElectricDashboard() {
             description: 'No hubo cambios en los datos',
           });
         }
+        // Forzar refetch y luego incrementar key para remontar componentes
+        await refetch();
         setRefreshKey(prev => prev + 1);
-        refetch();
       } else {
         toast({
           variant: 'destructive',

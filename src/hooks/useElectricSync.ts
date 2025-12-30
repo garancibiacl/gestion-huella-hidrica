@@ -43,18 +43,27 @@ function parseChileanNumber(value: string | undefined): number | null {
   const raw = String(value).trim();
   if (!raw) return null;
 
+  // Si tiene coma, es formato chileno/europeo (1.234,56 o 1234,56)
   if (raw.includes(',')) {
     const normalized = raw.replace(/\./g, '').replace(/,/g, '.');
     const num = parseFloat(normalized);
     return isNaN(num) ? null : num;
   }
 
+  // Si tiene punto, determinar si es separador de miles o decimal
   if (raw.includes('.')) {
     const parts = raw.split('.');
-    const isThousands = parts.length === 2 && parts[1].length === 3 && parts[0].length >= 1;
-    if (isThousands) {
+    // Si hay exactamente 3 dígitos después del punto, es separador de miles (78.996 = 78996)
+    if (parts.length === 2 && parts[1].length === 3) {
       const normalized = raw.replace(/\./g, '');
-      const num = parseFloat(normalized);
+      const num = parseInt(normalized, 10);
+      console.log(`parseChileanNumber: "${raw}" → ${num} (miles)`);
+      return isNaN(num) ? null : num;
+    }
+    // Si hay múltiples puntos, son todos separadores de miles (1.234.567)
+    if (parts.length > 2) {
+      const normalized = raw.replace(/\./g, '');
+      const num = parseInt(normalized, 10);
       return isNaN(num) ? null : num;
     }
   }
@@ -248,10 +257,13 @@ async function performElectricSync(userId: string, force: boolean = false): Prom
         return;
       }
 
-      const consumoNum = parseChileanNumber(consumo);
-      if (!consumoNum || consumoNum <= 0) {
-        errors.push(`Fila ${i + 2}: Consumo inválido "${consumo}"`);
-        console.log(`Row ${i + 2}: Skipped - invalid consumo`);
+      const consumoNum = parseChileanNumber(consumo) ?? 0;
+      const costoNum = parseChileanCurrency(costoTotal);
+      
+      // Permitir consumo = 0 si hay costo (factura sin lectura de consumo)
+      if (consumoNum < 0 || (consumoNum === 0 && !costoNum)) {
+        errors.push(`Fila ${i + 2}: Consumo inválido "${consumo}" y sin costo`);
+        console.log(`Row ${i + 2}: Skipped - invalid consumo and no cost`);
         return;
       }
 
@@ -262,7 +274,7 @@ async function performElectricSync(userId: string, force: boolean = false): Prom
         centro_trabajo: centroTrabajo || 'Sin especificar',
         medidor: medidor || direccion || 'Sin medidor',
         consumo_kwh: consumoNum,
-        costo_total: parseChileanCurrency(costoTotal),
+        costo_total: costoNum,
         tipo_uso: tipoUso || null,
         proveedor: proveedor || null,
       });

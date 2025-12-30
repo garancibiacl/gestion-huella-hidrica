@@ -9,7 +9,7 @@ interface UseElectricMetersResult {
   data: ElectricMeterReading[];
   loading: boolean;
   error: string | null;
-  refetch: () => void;
+  refetch: () => Promise<void>;
 }
 
 export function useElectricMeters(): UseElectricMetersResult {
