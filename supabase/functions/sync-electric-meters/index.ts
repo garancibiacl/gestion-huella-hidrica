@@ -221,7 +221,7 @@ serve(async (req) => {
           return;
         }
 
-        const consumoNum = parseFloat(String(consumoPeriodo || "0").replace(/\./g, "").replace(/,/g, "."));
+        const consumoNum = parseFloat(String(consumoPeriodo || "0").replace(/\s/g, ""));
         if (isNaN(consumoNum) || consumoNum <= 0) {
           errors.push(`Row ${i + 2}: Invalid consumo value "${consumoPeriodo}"`);
           return;
