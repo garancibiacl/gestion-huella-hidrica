@@ -4,10 +4,12 @@ import { Gauge, Users, RefreshCw, CheckCircle2, Clock, LineChart } from 'lucide-
 import { PageHeader } from '@/components/ui/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import MeterConsumption from '@/components/dashboard/MeterConsumption';
+import WaterMeterConsumption from '@/components/dashboard/WaterMeterConsumption';
 import HumanWaterConsumption from '@/components/dashboard/HumanWaterConsumption';
 import WaterConsumptionHistory from '@/components/dashboard/WaterConsumptionHistory';
 import { useWaterSync } from '@/hooks/useWaterSync';
+import { useWaterMeterSync } from '@/hooks/useWaterMeterSync';
+import { useWaterMeters } from '@/hooks/useWaterMeters';
 import { useAuth } from '@/hooks/useAuth';
 import { useRole } from '@/hooks/useRole';
 import { useToast } from '@/hooks/use-toast';
@@ -20,22 +22,43 @@ export default function WaterDashboard() {
   const { isAdmin, isPrevencionista } = useRole();
   const { toast } = useToast();
 
-  const { sync, isSyncing, lastSyncAt } = useWaterSync({
+  const { refetch: refetchWaterMeter } = useWaterMeters();
+
+  // Sync para consumo humano (botellas/bidones)
+  const { sync: syncHuman, isSyncing: isSyncingHuman, lastSyncAt: lastSyncHuman } = useWaterSync({
     enabled: true,
     onSyncComplete: (success, rowsProcessed) => {
       setDataReady(true);
       if (success && rowsProcessed > 0) {
         setRefreshKey(prev => prev + 1);
-        toast({
-          title: 'Sincronización de agua completada',
-          description: `${rowsProcessed} registros procesados`,
-        });
       }
     },
   });
 
+  // Sync para consumo por medidor (m³)
+  const { syncWaterMeter, isSyncing: isSyncingMeter, lastSyncAt: lastSyncMeter } = useWaterMeterSync({
+    enabled: true,
+    onSyncComplete: async (success, rowsInserted) => {
+      if (success) {
+        await refetchWaterMeter();
+        setRefreshKey(prev => prev + 1);
+      }
+    },
+  });
+
+  const isSyncing = isSyncingHuman || isSyncingMeter;
+  const lastSyncAt = Math.max(lastSyncHuman || 0, lastSyncMeter || 0) || null;
+
   const handleSync = async () => {
-    await sync(true);
+    // Sincronizar ambos en paralelo
+    await Promise.all([
+      syncHuman(true),
+      syncWaterMeter(true),
+    ]);
+    toast({
+      title: 'Sincronización completada',
+      description: 'Datos de agua actualizados',
+    });
   };
 
   const formatLastSync = (timestamp: number) => {
@@ -131,7 +154,7 @@ export default function WaterDashboard() {
           </TabsList>
 
           <TabsContent value="medidor" className="mt-6">
-            <MeterConsumption key={`meter-${refreshKey}`} />
+            <WaterMeterConsumption key={`meter-${refreshKey}`} />
           </TabsContent>
 
           <TabsContent value="humano" className="mt-6">

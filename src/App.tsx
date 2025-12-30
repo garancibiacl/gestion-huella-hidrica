@@ -7,7 +7,6 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Auth from "./pages/Auth";
 import WaterDashboard from "./pages/WaterDashboard";
-import WaterMeterDashboard from "./pages/WaterMeterDashboard";
 import ElectricDashboard from "./pages/ElectricDashboard";
 import ImportData from "./pages/ImportData";
 import Periods from "./pages/Periods";
@@ -32,7 +31,6 @@ const App = () => (
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<Navigate to="/dashboard/agua" replace />} />
               <Route path="/dashboard/agua" element={<WaterDashboard />} />
-              <Route path="/dashboard/agua-medidor" element={<WaterMeterDashboard />} />
               <Route path="/dashboard/energia" element={<ElectricDashboard />} />
               <Route path="/importar" element={<ImportData />} />
               <Route path="/periodos" element={<Periods />} />
