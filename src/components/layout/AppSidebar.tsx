@@ -31,7 +31,6 @@ const navItems: NavItem[] = [
   { icon: Upload, label: "Importar Datos", path: "/importar" },
   { icon: Calendar, label: "Períodos", path: "/periodos" },
   { icon: Leaf, label: "Medidas Sustentables", path: "/medidas" },
-  { icon: Settings, label: "Configuración", path: "/configuracion" },
   { icon: Users, label: "Usuarios", path: "/admin/usuarios", adminOnly: true },
   {
     icon: BarChart3,
