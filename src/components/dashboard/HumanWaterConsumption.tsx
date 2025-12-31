@@ -32,6 +32,7 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { ExportPDFButton } from '@/components/export/ExportPDFButton';
 import { exportHumanWaterReport } from '@/lib/pdf-export';
+import RiskPanel from '@/components/admin/RiskPanel';
 
 interface HumanWaterData {
   id: string;
@@ -432,6 +433,10 @@ export default function HumanWaterConsumption() {
           subtitle="Con registros cargados"
           delay={0.4}
         />
+      </div>
+
+      <div className="mb-6">
+        <RiskPanel />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
