@@ -364,9 +364,28 @@ export function exportHumanWaterReport(data: {
   totalBidones: number;
   totalLitros: number;
   totalCosto: number;
+  recommendations?: {
+    center: string;
+    savingsFromCantimploras: number;
+    savingsFromShift: number;
+    monthlySavings: number;
+    savings3m: number;
+    savings6m: number;
+  };
   organization?: string;
   dateRange?: string;
 }) {
+  const alerts = data.recommendations
+    ? [
+        `Centro objetivo: ${data.recommendations.center}`,
+        `Cantimploras: ahorro mensual $${Math.round(data.recommendations.savingsFromCantimploras).toLocaleString('es-CL')}`,
+        `Migración a bidones: ahorro mensual $${Math.round(data.recommendations.savingsFromShift).toLocaleString('es-CL')}`,
+        `Ahorro total mensual estimado: $${Math.round(data.recommendations.monthlySavings).toLocaleString('es-CL')}`,
+        `Proyección 3 meses: $${Math.round(data.recommendations.savings3m).toLocaleString('es-CL')}`,
+        `Proyección 6 meses: $${Math.round(data.recommendations.savings6m).toLocaleString('es-CL')}`,
+      ]
+    : [];
+
   generatePDF({
     title: 'Reporte de Agua Consumo Humano',
     subtitle: 'Análisis de consumo de agua para consumo humano',
@@ -387,7 +406,7 @@ export function exportHumanWaterReport(data: {
       { header: 'Bidones', dataKey: 'bidones' },
       { header: 'Costo ($)', dataKey: 'costo' },
     ],
-    alerts: [],
+    alerts,
     footer: 'Reporte de Agua Consumo Humano - Sistema de Gestión Ambiental',
   });
 }

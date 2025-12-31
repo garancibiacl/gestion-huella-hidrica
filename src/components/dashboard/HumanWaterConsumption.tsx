@@ -379,6 +379,16 @@ export default function HumanWaterConsumption() {
               totalBidones,
               totalLitros,
               totalCosto,
+              recommendations: targetCenter
+                ? {
+                    center: targetCenter,
+                    savingsFromCantimploras,
+                    savingsFromShift,
+                    monthlySavings: estimatedMonthlySavings,
+                    savings3m: estimatedMonthlySavings * 3,
+                    savings6m: estimatedMonthlySavings * 6,
+                  }
+                : undefined,
               dateRange: selectedPeriod === 'all' ? 'Todos los períodos' : formatPeriod(selectedPeriod),
             });
           }}
