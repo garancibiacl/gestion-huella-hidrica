@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Activity, TrendingUp, TrendingDown, Leaf, Factory, Info } from 'lucide-react';
+import { Activity, TrendingUp, TrendingDown, Leaf, Factory, Info, Lightbulb, Target, Zap, Clock, CheckCircle2 } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -15,6 +15,7 @@ import { StatCard } from '@/components/ui/stat-card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useElectricMeters } from '@/hooks/useElectricMeters';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 
 type EmissionRow = {
   period: string;
@@ -315,6 +316,202 @@ export default function ElectricEmissions() {
           </table>
         </div>
       </motion.div>
+
+      {/* Panel de Oportunidades de Reducción */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="stat-card mt-6 border-emerald-500/30 bg-gradient-to-br from-emerald-500/5 to-transparent"
+      >
+        <div className="flex items-center gap-2 mb-4">
+          <div className="p-2 rounded-lg bg-emerald-500/20">
+            <Lightbulb className="w-5 h-5 text-emerald-500" />
+          </div>
+          <div>
+            <h4 className="font-semibold">Oportunidades de Reducción</h4>
+            <p className="text-sm text-muted-foreground">
+              Acciones priorizadas según huella de carbono por centro.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {emissionsByCentro.slice(0, 3).map((centro, idx) => {
+            const percentage = totalEmissions > 0 ? (centro.emissions / totalEmissions) * 100 : 0;
+            const potentialReduction = centro.emissions * 0.15; // 15% potential
+            const priority = idx === 0 ? 'alta' : idx === 1 ? 'media' : 'baja';
+            const priorityColor = idx === 0 ? 'bg-red-500/10 text-red-600 border-red-500/30' : 
+                                  idx === 1 ? 'bg-amber-500/10 text-amber-600 border-amber-500/30' : 
+                                  'bg-blue-500/10 text-blue-600 border-blue-500/30';
+            
+            // Generar sugerencias basadas en el ranking
+            const suggestions = getSuggestionsForRank(idx, centro.centro, centro.emissions);
+            
+            return (
+              <div 
+                key={centro.centro}
+                className="p-4 rounded-xl border border-border/50 bg-card/50 hover:bg-card/80 transition-colors"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-600 text-sm flex items-center justify-center font-bold">
+                      {idx + 1}
+                    </span>
+                    <div>
+                      <h5 className="font-medium">{centro.centro}</h5>
+                      <p className="text-xs text-muted-foreground">
+                        {Math.round(centro.emissions).toLocaleString('es-CL')} kgCO₂e ({percentage.toFixed(1)}% del total)
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className={priorityColor}>
+                    Prioridad {priority}
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {suggestions.map((suggestion, sIdx) => (
+                    <div 
+                      key={sIdx}
+                      className="flex items-start gap-2 p-3 rounded-lg bg-muted/30"
+                    >
+                      <suggestion.icon className={`w-4 h-4 mt-0.5 ${suggestion.iconColor}`} />
+                      <div>
+                        <p className="text-sm font-medium">{suggestion.title}</p>
+                        <p className="text-xs text-muted-foreground">{suggestion.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-3 pt-3 border-t border-border/50 flex flex-wrap items-center gap-4 text-xs">
+                  <div className="flex items-center gap-1.5 text-emerald-600">
+                    <Target className="w-3.5 h-3.5" />
+                    <span>Potencial reducción: <strong>{Math.round(potentialReduction).toLocaleString('es-CL')} kgCO₂e/año</strong></span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>Tiempo estimado: {idx === 0 ? '3-6 meses' : idx === 1 ? '6-12 meses' : '1-2 años'}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Resumen de potencial total */}
+        <div className="mt-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+              <div>
+                <p className="font-semibold text-emerald-700 dark:text-emerald-400">
+                  Potencial de reducción total estimado
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Implementando las acciones sugeridas en los 3 centros principales
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-bold text-emerald-600">
+                {Math.round(emissionsByCentro.slice(0, 3).reduce((sum, c) => sum + c.emissions * 0.15, 0)).toLocaleString('es-CL')}
+              </p>
+              <p className="text-xs text-muted-foreground">kgCO₂e/año</p>
+            </div>
+          </div>
+        </div>
+      </motion.div>
     </>
   );
+}
+
+// Función para generar sugerencias basadas en el ranking
+function getSuggestionsForRank(rank: number, centro: string, emissions: number) {
+  const allSuggestions = [
+    // Sugerencias de alta prioridad (rank 0)
+    [
+      {
+        icon: Zap,
+        iconColor: 'text-amber-500',
+        title: 'Auditoría energética inmediata',
+        description: 'Identificar equipos de alto consumo y patrones de uso ineficiente.'
+      },
+      {
+        icon: Lightbulb,
+        iconColor: 'text-yellow-500',
+        title: 'Migración a iluminación LED',
+        description: 'Reducción de hasta 70% en consumo de iluminación.'
+      },
+      {
+        icon: Clock,
+        iconColor: 'text-blue-500',
+        title: 'Optimizar horarios operativos',
+        description: 'Evaluar turnos y horarios de máximo consumo.'
+      },
+      {
+        icon: Target,
+        iconColor: 'text-emerald-500',
+        title: 'Metas de reducción mensuales',
+        description: 'Establecer KPIs de consumo por área.'
+      }
+    ],
+    // Sugerencias de prioridad media (rank 1)
+    [
+      {
+        icon: Zap,
+        iconColor: 'text-amber-500',
+        title: 'Mantenimiento preventivo',
+        description: 'Revisar eficiencia de equipos eléctricos principales.'
+      },
+      {
+        icon: Lightbulb,
+        iconColor: 'text-yellow-500',
+        title: 'Sensores de movimiento',
+        description: 'Automatizar iluminación en áreas de tránsito.'
+      },
+      {
+        icon: Activity,
+        iconColor: 'text-purple-500',
+        title: 'Monitoreo en tiempo real',
+        description: 'Instalar medidores inteligentes para seguimiento.'
+      },
+      {
+        icon: Target,
+        iconColor: 'text-emerald-500',
+        title: 'Capacitación del personal',
+        description: 'Concientización sobre uso eficiente de energía.'
+      }
+    ],
+    // Sugerencias de baja prioridad (rank 2+)
+    [
+      {
+        icon: Zap,
+        iconColor: 'text-amber-500',
+        title: 'Evaluación de equipos',
+        description: 'Considerar reemplazo por equipos eficientes.'
+      },
+      {
+        icon: Lightbulb,
+        iconColor: 'text-yellow-500',
+        title: 'Aprovechamiento luz natural',
+        description: 'Optimizar disposición de espacios de trabajo.'
+      },
+      {
+        icon: TrendingDown,
+        iconColor: 'text-emerald-500',
+        title: 'Seguimiento trimestral',
+        description: 'Revisar tendencias y ajustar acciones.'
+      },
+      {
+        icon: CheckCircle2,
+        iconColor: 'text-blue-500',
+        title: 'Documentar mejores prácticas',
+        description: 'Replicar éxitos en otros centros.'
+      }
+    ]
+  ];
+
+  return allSuggestions[Math.min(rank, 2)];
 }
