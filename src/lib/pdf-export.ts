@@ -31,6 +31,7 @@ interface PDFExportOptions {
   subtitle?: string;
   dateRange?: string;
   organization?: string;
+  logoDataUrl?: string;
   kpis?: KPIData[];
   tableData?: Record<string, any>[];
   tableColumns?: TableColumn[];
@@ -89,8 +90,26 @@ export function generatePDF(options: PDFExportOptions): void {
   drawRect(0, 0, pageWidth, 3, PRIMARY_COLOR);
 
   // Logo placeholder / Company name
-  addText('REPORTE', margin, 20, { fontSize: 24, fontStyle: 'bold', color: PRIMARY_COLOR });
-  addText(options.title.toUpperCase(), margin, 30, { fontSize: 12, fontStyle: 'bold', color: TEXT_COLOR });
+  let headerX = margin;
+  if (options.logoDataUrl) {
+    try {
+      const logoSize = 14;
+      doc.addImage(
+        options.logoDataUrl,
+        'PNG',
+        margin,
+        12,
+        logoSize,
+        logoSize
+      );
+      headerX = margin + logoSize + 6;
+    } catch (error) {
+      console.error('PDF logo load error:', error);
+    }
+  }
+
+  addText('REPORTE', headerX, 20, { fontSize: 24, fontStyle: 'bold', color: PRIMARY_COLOR });
+  addText(options.title.toUpperCase(), headerX, 30, { fontSize: 12, fontStyle: 'bold', color: TEXT_COLOR });
   
   // Date and organization
   const today = new Date().toLocaleDateString('es-CL', { 
@@ -364,6 +383,7 @@ export function exportHumanWaterReport(data: {
   totalBidones: number;
   totalLitros: number;
   totalCosto: number;
+  logoDataUrl?: string;
   recommendations?: {
     center: string;
     savingsFromCantimploras: number;
@@ -391,6 +411,7 @@ export function exportHumanWaterReport(data: {
     subtitle: 'Análisis de consumo de agua para consumo humano',
     organization: data.organization,
     dateRange: data.dateRange,
+    logoDataUrl: data.logoDataUrl,
     kpis: [
       { title: 'Botellas', value: data.totalBotellas.toLocaleString(), subtitle: `${(data.totalBotellas * 0.5).toLocaleString()} litros` },
       { title: 'Bidones 20L', value: data.totalBidones.toLocaleString(), subtitle: `${(data.totalBidones * 20).toLocaleString()} litros` },

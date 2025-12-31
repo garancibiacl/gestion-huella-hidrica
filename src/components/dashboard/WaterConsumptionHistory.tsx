@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useRiskSignals } from '@/hooks/useRiskSignals';
+import RiskPanel from '@/components/admin/RiskPanel';
 import { ExportPDFButton } from '@/components/export/ExportPDFButton';
 import { exportWaterReport } from '@/lib/pdf-export';
 
@@ -224,6 +225,10 @@ export default function WaterConsumptionHistory() {
           subtitle={previous ? `vs. ${previous.label}` : 'Sin referencia'}
           delay={0.2}
         />
+      </div>
+
+      <div className="mb-6">
+        <RiskPanel />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">

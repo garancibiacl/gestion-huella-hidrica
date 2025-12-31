@@ -364,7 +364,15 @@ export default function HumanWaterConsumption() {
           </span>
         </div>
         <ExportPDFButton
-          onExport={() => {
+          onExport={async () => {
+            const logoResponse = await fetch('/images/logo.png');
+            const logoBlob = await logoResponse.blob();
+            const logoDataUrl = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = () => reject(reader.error);
+              reader.readAsDataURL(logoBlob);
+            });
             const periodData = periods.slice(0, 12).reverse().map(period => {
               const pData = data.filter(d => d.period === period);
               return {
@@ -380,6 +388,7 @@ export default function HumanWaterConsumption() {
               totalBidones,
               totalLitros,
               totalCosto,
+              logoDataUrl,
               recommendations: targetCenter
                 ? {
                     center: targetCenter,

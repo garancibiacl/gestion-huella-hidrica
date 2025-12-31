@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface ExportPDFButtonProps {
-  onExport: () => void;
+  onExport: () => void | Promise<void>;
   label?: string;
   variant?: 'default' | 'outline' | 'ghost';
   size?: 'default' | 'sm' | 'lg' | 'icon';
@@ -29,7 +29,7 @@ export function ExportPDFButton({
     await new Promise(resolve => setTimeout(resolve, 500));
     
     try {
-      onExport();
+      await onExport();
       setIsSuccess(true);
       setTimeout(() => setIsSuccess(false), 2000);
     } catch (error) {
