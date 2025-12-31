@@ -6,7 +6,9 @@ import {
   Building2,
   DollarSign,
   TrendingUp,
-  Upload
+  Upload,
+  CalendarCheck,
+  Leaf
 } from 'lucide-react';
 import { 
   BarChart, 
@@ -113,6 +115,53 @@ export default function HumanWaterConsumption() {
     if (selectedFormato !== 'all' && d.formato !== selectedFormato) return false;
     return true;
   });
+
+  const topCenterByLiters = useMemo(() => {
+    if (centros.length === 0) return null;
+    const totals = centros.map((centro) => {
+      const centroRows = data.filter(d => d.centro_trabajo === centro);
+      const litros = centroRows.reduce((sum, row) => {
+        return sum + (row.formato === 'botella' ? Number(row.cantidad) * 0.5 : Number(row.cantidad) * 20);
+      }, 0);
+      return { centro, litros };
+    });
+    const sorted = totals.sort((a, b) => b.litros - a.litros);
+    return sorted[0]?.centro ?? null;
+  }, [centros, data]);
+
+  const targetCenter = selectedCentro !== 'all'
+    ? selectedCentro
+    : topCenterByLiters;
+
+  const targetCenterData = targetCenter
+    ? data.filter(d => d.centro_trabajo === targetCenter)
+    : [];
+
+  const bottleRows = targetCenterData.filter(d => d.formato === 'botella');
+  const bidonRows = targetCenterData.filter(d => d.formato === 'bidon_20l');
+  const totalBottleUnits = bottleRows.reduce((sum, d) => sum + Number(d.cantidad), 0);
+  const totalBidonUnits = bidonRows.reduce((sum, d) => sum + Number(d.cantidad), 0);
+  const bottleCostTotal = bottleRows.reduce((sum, d) => sum + (Number(d.total_costo) || 0), 0);
+  const bidonCostTotal = bidonRows.reduce((sum, d) => sum + (Number(d.total_costo) || 0), 0);
+  const bottleUnitCost = totalBottleUnits > 0 ? bottleCostTotal / totalBottleUnits : 0;
+  const bidonUnitCost = totalBidonUnits > 0 ? bidonCostTotal / totalBidonUnits : 0;
+  const bottleCostPerLiter = totalBottleUnits > 0 ? bottleCostTotal / (totalBottleUnits * 0.5) : 0;
+  const bidonCostPerLiter = totalBidonUnits > 0 ? bidonCostTotal / (totalBidonUnits * 20) : 0;
+  const totalCenterCost = bottleCostTotal + bidonCostTotal;
+
+  const replaceBottlePct = 0.3;
+  const cantimploraPct = 0.15;
+
+  const litersShifted = totalBottleUnits * 0.5 * replaceBottlePct;
+  const savingsFromShift = Math.max(0, litersShifted * (bottleCostPerLiter - bidonCostPerLiter));
+  const savingsFromCantimploras = totalBottleUnits * cantimploraPct * bottleUnitCost;
+  const estimatedMonthlySavings = savingsFromShift + savingsFromCantimploras;
+  const savings3mPct = totalCenterCost > 0
+    ? Math.min(100, (estimatedMonthlySavings * 3 / totalCenterCost) * 100)
+    : 0;
+  const savings6mPct = totalCenterCost > 0
+    ? Math.min(100, (estimatedMonthlySavings * 6 / totalCenterCost) * 100)
+    : 0;
 
   const centerMetrics = useMemo(() => {
     const grouped = filteredData.reduce<Record<string, { period: string; litros: number; cost: number }[]>>((acc, row) => {
@@ -411,6 +460,129 @@ export default function HumanWaterConsumption() {
               <p className="text-muted-foreground">Sin datos suficientes para comparar.</p>
             )}
           </div>
+        </div>
+      </div>
+
+      <div className="stat-card mb-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h4 className="font-semibold mb-1">Medidas recomendadas (consumo humano)</h4>
+            <p className="text-sm text-muted-foreground">
+              Propuesta para reducir botellas y aumentar bidones{targetCenter ? ` en ${targetCenter}` : ''}.
+            </p>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="human-water-target-center" className="text-xs font-medium text-muted-foreground">
+              Centro objetivo
+            </label>
+            <Select value={selectedCentro} onValueChange={setSelectedCentro}>
+              <SelectTrigger id="human-water-target-center" className="w-full sm:w-56">
+                <SelectValue placeholder="Selecciona centro" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Centro con mayor consumo</SelectItem>
+                {centros.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+          {targetCenter ? (
+            <>
+              <div className="rounded-xl border border-border bg-muted/20 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="h-9 w-9 rounded-lg bg-success/10 text-success flex items-center justify-center">
+                      <Leaf className="h-4 w-4" />
+                    </div>
+                    <p className="font-medium">Cantimploras (reducir botellas)</p>
+                  </div>
+                  <span className="rounded-full bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
+                    -{(cantimploraPct * 100).toFixed(0)}%
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Sustituye botellas por cantimploras reutilizables en el centro objetivo.
+                </p>
+                <div className="mt-4">
+                  <p className="text-xs text-muted-foreground">Ahorro mensual estimado</p>
+                  <p className="text-xl font-semibold">${Math.round(savingsFromCantimploras).toLocaleString()}</p>
+                </div>
+              </div>
+              <div className="rounded-xl border border-border bg-muted/20 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                      <Droplets className="h-4 w-4" />
+                    </div>
+                    <p className="font-medium">Migración a bidones 20L</p>
+                  </div>
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                    -{(replaceBottlePct * 100).toFixed(0)}% botellas
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Sustituye litros de botellas por bidones con menor costo por litro.
+                </p>
+                <div className="mt-4">
+                  <p className="text-xs text-muted-foreground">Ahorro mensual estimado</p>
+                  <p className="text-xl font-semibold">${Math.round(savingsFromShift).toLocaleString()}</p>
+                </div>
+              </div>
+              <div className="rounded-xl border border-border bg-muted/20 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="h-9 w-9 rounded-lg bg-warning/10 text-warning flex items-center justify-center">
+                      <CalendarCheck className="h-4 w-4" />
+                    </div>
+                    <p className="font-medium">Impacto proyectado</p>
+                  </div>
+                  <span className="rounded-full bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
+                    3-6 meses
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Proyección acumulada si se mantienen las medidas.
+                </p>
+                <div className="mt-4 space-y-2">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span className="rounded-full bg-muted px-2 py-0.5">Ahora</span>
+                    <span className="h-px flex-1 bg-muted" />
+                    <span className="rounded-full bg-warning/10 px-2 py-0.5 text-warning">3 meses</span>
+                    <span className="h-px flex-1 bg-muted" />
+                    <span className="rounded-full bg-warning/10 px-2 py-0.5 text-warning">6 meses</span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-muted">
+                    <div
+                      className="h-2 rounded-full bg-gradient-to-r from-warning/40 to-warning"
+                      style={{ width: `${savings3mPct.toFixed(0)}%` }}
+                    />
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-muted">
+                    <div
+                      className="h-2 rounded-full bg-gradient-to-r from-warning/40 to-warning"
+                      style={{ width: `${savings6mPct.toFixed(0)}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-sm font-semibold">
+                    <span>3 meses</span>
+                    <span>${Math.round(estimatedMonthlySavings * 3).toLocaleString()}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm font-semibold">
+                    <span>6 meses</span>
+                    <span>${Math.round(estimatedMonthlySavings * 6).toLocaleString()}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Ahorro mensual combinado: ${Math.round(estimatedMonthlySavings).toLocaleString()}</p>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+              Selecciona un centro para ver recomendaciones específicas.
+            </div>
+          )}
         </div>
       </div>
 
