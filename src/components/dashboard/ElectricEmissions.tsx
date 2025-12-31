@@ -329,6 +329,12 @@ export default function ElectricEmissions() {
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={filteredSummaries}>
+                <defs>
+                  <linearGradient id="emissionsGradient" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stopColor={PRIMARY_COLOR} stopOpacity={0.6} />
+                    <stop offset="100%" stopColor={PRIMARY_COLOR} stopOpacity={1} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                 <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
                 <YAxis fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${(v/1000).toFixed(0)}t`} />
@@ -343,7 +349,7 @@ export default function ElectricEmissions() {
                   labelFormatter={(label) => `Período: ${label}`}
                 />
                 <Legend />
-                <Bar dataKey="emissions" name="Emisiones CO₂" fill={PRIMARY_COLOR} radius={[6, 6, 0, 0]} />
+                <Bar dataKey="emissions" name="Emisiones CO₂" fill="url(#emissionsGradient)" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -362,6 +368,12 @@ export default function ElectricEmissions() {
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={emissionsByCentro.slice(0, 8)} layout="vertical">
+                <defs>
+                  <linearGradient id="emissionsCentroGradient" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor={SECONDARY_COLOR} stopOpacity={0.6} />
+                    <stop offset="100%" stopColor={SECONDARY_COLOR} stopOpacity={1} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
                 <XAxis type="number" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${(v/1000).toFixed(1)}t`} />
                 <YAxis 
@@ -382,7 +394,7 @@ export default function ElectricEmissions() {
                   }}
                   formatter={(value: number) => [`${Math.round(value).toLocaleString('es-CL')} kgCO₂e`, 'Emisiones']}
                 />
-                <Bar dataKey="emissions" name="Emisiones CO₂" fill={SECONDARY_COLOR} radius={[0, 6, 6, 0]} />
+                <Bar dataKey="emissions" name="Emisiones CO₂" fill="url(#emissionsCentroGradient)" radius={[0, 6, 6, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

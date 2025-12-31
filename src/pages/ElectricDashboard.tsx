@@ -118,10 +118,10 @@ export default function ElectricDashboard() {
         className="mb-6"
       >
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-xl grid-cols-3 bg-muted/60 rounded-xl p-1">
+          <TabsList className="flex w-full max-w-full gap-2 overflow-x-auto rounded-xl bg-muted/60 p-1">
             <TabsTrigger
               value="medidor"
-              className="gap-2 rounded-lg data-[state=active]:bg-amber-500/10 data-[state=active]:text-amber-600 data-[state=active]:shadow-sm"
+              className="gap-2 whitespace-nowrap rounded-lg data-[state=active]:bg-amber-500/10 data-[state=active]:text-amber-600 data-[state=active]:shadow-sm"
             >
               <Zap className="w-4 h-4" />
               <span className="hidden sm:inline">Luz por Medidor</span>
@@ -129,7 +129,7 @@ export default function ElectricDashboard() {
             </TabsTrigger>
             <TabsTrigger
               value="emisiones"
-              className="gap-2 rounded-lg data-[state=active]:bg-amber-500/10 data-[state=active]:text-amber-600 data-[state=active]:shadow-sm"
+              className="gap-2 whitespace-nowrap rounded-lg data-[state=active]:bg-amber-500/10 data-[state=active]:text-amber-600 data-[state=active]:shadow-sm"
             >
               <Leaf className="w-4 h-4" />
               <span className="hidden sm:inline">Emisiones Totales (kgCO₂e/kWh)</span>
@@ -137,7 +137,7 @@ export default function ElectricDashboard() {
             </TabsTrigger>
             <TabsTrigger
               value="historico"
-              className="gap-2 rounded-lg data-[state=active]:bg-amber-500/10 data-[state=active]:text-amber-600 data-[state=active]:shadow-sm"
+              className="gap-2 whitespace-nowrap rounded-lg data-[state=active]:bg-amber-500/10 data-[state=active]:text-amber-600 data-[state=active]:shadow-sm"
             >
               <LineChart className="w-4 h-4" />
               <span className="hidden sm:inline">Histórico</span>

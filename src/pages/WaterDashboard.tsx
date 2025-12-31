@@ -126,10 +126,10 @@ export default function WaterDashboard() {
         className="mb-6"
       >
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-xl grid-cols-3 bg-muted/60 rounded-xl p-1">
+          <TabsList className="flex w-full max-w-full gap-2 overflow-x-auto rounded-xl bg-muted/60 p-1">
             <TabsTrigger
               value="medidor"
-              className="gap-2 rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm"
+              className="gap-2 whitespace-nowrap rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm"
             >
               <Gauge className="w-4 h-4" />
               <span className="hidden sm:inline">Consumo por Medidor</span>
@@ -137,7 +137,7 @@ export default function WaterDashboard() {
             </TabsTrigger>
             <TabsTrigger
               value="humano"
-              className="gap-2 rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm"
+              className="gap-2 whitespace-nowrap rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm"
             >
               <Users className="w-4 h-4" />
               <span className="hidden sm:inline">Consumo Humano</span>
@@ -145,7 +145,7 @@ export default function WaterDashboard() {
             </TabsTrigger>
             <TabsTrigger
               value="historico"
-              className="gap-2 rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm"
+              className="gap-2 whitespace-nowrap rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-sm"
             >
               <LineChart className="w-4 h-4" />
               <span className="hidden sm:inline">Histórico</span>
