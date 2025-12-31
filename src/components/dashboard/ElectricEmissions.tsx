@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Activity, TrendingUp, TrendingDown, Leaf, Factory, Info, Lightbulb, Target, Zap, Clock, CheckCircle2 } from 'lucide-react';
+import { Activity, TrendingUp, TrendingDown, Leaf, Factory, Info, Lightbulb, Target, Zap, Clock, CheckCircle2, FileDown } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -13,9 +13,12 @@ import {
 } from 'recharts';
 import { StatCard } from '@/components/ui/stat-card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import { useElectricMeters } from '@/hooks/useElectricMeters';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { exportCarbonFootprintReport } from '@/lib/pdf-export';
+import { useToast } from '@/hooks/use-toast';
 
 type EmissionRow = {
   period: string;
@@ -116,6 +119,44 @@ export default function ElectricEmissions() {
     (row.factor_emision && Number(row.factor_emision) > 0)
   );
 
+  const { toast } = useToast();
+
+  const handleExportPDF = () => {
+    const emissionsByCentroWithPercentage = emissionsByCentro.map(c => ({
+      ...c,
+      percentage: totalEmissions > 0 ? (c.emissions / totalEmissions) * 100 : 0
+    }));
+
+    const opportunities = emissionsByCentro.slice(0, 3).map((centro, idx) => ({
+      centro: centro.centro,
+      priority: (idx === 0 ? 'alta' : idx === 1 ? 'media' : 'baja') as 'alta' | 'media' | 'baja',
+      potentialReduction: centro.emissions * 0.15,
+      actions: getSuggestionsForRank(idx, centro.centro, centro.emissions).map(s => s.title)
+    }));
+
+    const dateRange = filteredSummaries.length > 0 
+      ? `${filteredSummaries[0].label} - ${filteredSummaries[filteredSummaries.length - 1].label}`
+      : undefined;
+
+    exportCarbonFootprintReport({
+      periodSummaries: filteredSummaries,
+      emissionsByCentro: emissionsByCentroWithPercentage,
+      opportunities,
+      totalEmissions,
+      totalKwh,
+      emissionsPerKwh,
+      variation,
+      usesDefaultFactor,
+      organization: 'Sistema de Gestión Ambiental',
+      dateRange,
+    });
+
+    toast({
+      title: 'Reporte exportado',
+      description: 'El reporte de huella de carbono se ha descargado correctamente.',
+    });
+  };
+
   if (loading) {
     return (
       <div className="stat-card flex items-center justify-center py-12">
@@ -158,20 +199,31 @@ export default function ElectricEmissions() {
             Huella de carbono asociada al consumo eléctrico — base para decisiones de reducción.
           </p>
         </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor="electric-emissions-range" className="text-xs font-medium text-muted-foreground">
-            Rango
-          </label>
-          <Select value={range} onValueChange={(value) => setRange(value as '6' | '12' | 'all')}>
-            <SelectTrigger id="electric-emissions-range" className="w-full sm:w-48">
-              <SelectValue placeholder="Selecciona rango" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="6">Últimos 6 períodos</SelectItem>
-              <SelectItem value="12">Últimos 12 períodos</SelectItem>
-              <SelectItem value="all">Todo el histórico</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex flex-col gap-1">
+            <label htmlFor="electric-emissions-range" className="text-xs font-medium text-muted-foreground">
+              Rango
+            </label>
+            <Select value={range} onValueChange={(value) => setRange(value as '6' | '12' | 'all')}>
+              <SelectTrigger id="electric-emissions-range" className="w-full sm:w-48">
+                <SelectValue placeholder="Selecciona rango" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="6">Últimos 6 períodos</SelectItem>
+                <SelectItem value="12">Últimos 12 períodos</SelectItem>
+                <SelectItem value="all">Todo el histórico</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleExportPDF}
+            className="gap-2 border-emerald-500/50 text-emerald-600 hover:bg-emerald-500/10"
+          >
+            <FileDown className="w-4 h-4" />
+            Exportar PDF
+          </Button>
         </div>
       </div>
 

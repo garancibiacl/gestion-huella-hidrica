@@ -391,3 +391,85 @@ export function exportHumanWaterReport(data: {
     footer: 'Reporte de Agua Consumo Humano - Sistema de Gestión Ambiental',
   });
 }
+
+export interface EmissionsCentro {
+  centro: string;
+  emissions: number;
+  percentage: number;
+}
+
+export interface ReductionOpportunity {
+  centro: string;
+  priority: 'alta' | 'media' | 'baja';
+  potentialReduction: number;
+  actions: string[];
+}
+
+export function exportCarbonFootprintReport(data: {
+  periodSummaries: { period: string; label: string; emissions: number; kwh: number }[];
+  emissionsByCentro: EmissionsCentro[];
+  opportunities: ReductionOpportunity[];
+  totalEmissions: number;
+  totalKwh: number;
+  emissionsPerKwh: number;
+  variation: number;
+  usesDefaultFactor: boolean;
+  organization?: string;
+  dateRange?: string;
+}) {
+  const EMERALD: [number, number, number] = [16, 185, 129]; // #10b981
+  
+  generatePDF({
+    title: 'Reporte de Huella de Carbono',
+    subtitle: `Emisiones de CO₂ equivalente asociadas al consumo eléctrico${data.usesDefaultFactor ? ' (Factor estándar Chile: 0.4 kgCO₂e/kWh)' : ''}`,
+    organization: data.organization,
+    dateRange: data.dateRange,
+    kpis: [
+      { 
+        title: 'Emisiones Totales', 
+        value: `${Math.round(data.totalEmissions).toLocaleString('es-CL')} kgCO₂e`, 
+        subtitle: 'Huella de carbono acumulada' 
+      },
+      { 
+        title: 'Consumo Total', 
+        value: `${Math.round(data.totalKwh).toLocaleString('es-CL')} kWh`, 
+        subtitle: 'Energía consumida' 
+      },
+      { 
+        title: 'Factor Promedio', 
+        value: `${data.emissionsPerKwh.toFixed(3)} kgCO₂e/kWh`, 
+        subtitle: 'Intensidad de emisiones' 
+      },
+      { 
+        title: 'Variación', 
+        value: `${data.variation >= 0 ? '+' : ''}${(data.variation * 100).toFixed(1)}%`, 
+        subtitle: 'vs período anterior' 
+      },
+    ],
+    chartData: data.periodSummaries.map(s => ({ 
+      label: s.label, 
+      value: s.emissions
+    })),
+    chartTitle: 'Evolución de Emisiones por Período (kgCO₂e)',
+    tableData: data.emissionsByCentro.map(c => ({
+      centro: c.centro,
+      emissions: Math.round(c.emissions),
+      percentage: `${c.percentage.toFixed(1)}%`,
+    })),
+    tableColumns: [
+      { header: 'Centro de Trabajo', dataKey: 'centro' },
+      { header: 'Emisiones (kgCO₂e)', dataKey: 'emissions' },
+      { header: '% del Total', dataKey: 'percentage' },
+    ],
+    alerts: [
+      ...data.opportunities.slice(0, 3).map((opp, idx) => 
+        `[Prioridad ${opp.priority.toUpperCase()}] ${opp.centro}: Potencial reducción de ${Math.round(opp.potentialReduction).toLocaleString('es-CL')} kgCO₂e/año. Acciones: ${opp.actions.slice(0, 2).join(', ')}.`
+      ),
+      data.usesDefaultFactor 
+        ? 'Se utiliza factor de emisión estándar de Chile (0.4 kgCO₂e/kWh). Para mayor precisión, incluir columna "CO₂ Producido" en los datos.'
+        : '',
+      `Potencial de reducción total estimado: ${Math.round(data.opportunities.reduce((sum, o) => sum + o.potentialReduction, 0)).toLocaleString('es-CL')} kgCO₂e/año implementando las acciones sugeridas.`,
+    ].filter(Boolean),
+    footer: 'Reporte de Huella de Carbono - Sistema de Gestión Ambiental y Prevención de Riesgos',
+  });
+}
