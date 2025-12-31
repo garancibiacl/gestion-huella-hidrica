@@ -110,6 +110,68 @@ export default function ElectricEmissions() {
       .sort((a, b) => b.emissions - a.emissions);
   }, [rows]);
 
+  // Comparativa año vs año
+  const yearComparison = useMemo(() => {
+    const byYear = rows.reduce<Record<string, { emissions: number; kwh: number; months: Set<string> }>>((acc, row) => {
+      const year = row.period.split('-')[0];
+      if (!acc[year]) {
+        acc[year] = { emissions: 0, kwh: 0, months: new Set() };
+      }
+      acc[year].emissions += getEmissions(row);
+      acc[year].kwh += Number(row.consumo_kwh || 0);
+      acc[year].months.add(row.period);
+      return acc;
+    }, {});
+
+    const years = Object.keys(byYear).sort();
+    const yearData = years.map(year => ({
+      year,
+      emissions: byYear[year].emissions,
+      kwh: byYear[year].kwh,
+      monthCount: byYear[year].months.size,
+    }));
+
+    // Calcular variación año a año
+    return yearData.map((current, idx) => {
+      const prev = yearData[idx - 1];
+      const yoyChange = prev && prev.emissions > 0 
+        ? ((current.emissions - prev.emissions) / prev.emissions) * 100 
+        : null;
+      const avgMonthlyEmissions = current.monthCount > 0 ? current.emissions / current.monthCount : 0;
+      return {
+        ...current,
+        yoyChange,
+        avgMonthlyEmissions,
+        prevYear: prev?.year ?? null,
+        prevEmissions: prev?.emissions ?? null,
+      };
+    });
+  }, [rows]);
+
+  // Datos para gráfico de barras agrupadas por año
+  const monthlyByYear = useMemo(() => {
+    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const years = [...new Set(rows.map(r => r.period.split('-')[0]))].sort();
+    
+    return months.map((month, monthIdx) => {
+      const monthNum = String(monthIdx + 1).padStart(2, '0');
+      const entry: Record<string, string | number> = { month };
+      
+      years.forEach(year => {
+        const period = `${year}-${monthNum}`;
+        const periodRows = rows.filter(r => r.period === period);
+        const emissions = periodRows.reduce((sum, r) => sum + getEmissions(r), 0);
+        entry[year] = emissions;
+      });
+      
+      return entry;
+    });
+  }, [rows]);
+
+  const availableYears = useMemo(() => 
+    [...new Set(rows.map(r => r.period.split('-')[0]))].sort(),
+  [rows]);
+
   // Detectar si estamos usando factor por defecto
   const usesDefaultFactor = !rows.some((row) => 
     (row.co2_producido && Number(row.co2_producido) > 0) ||
@@ -326,6 +388,136 @@ export default function ElectricEmissions() {
           </div>
         </motion.div>
       </div>
+
+      {/* Comparativa Año vs Año */}
+      {availableYears.length >= 2 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="stat-card mb-6"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+            <div>
+              <h4 className="font-semibold flex items-center gap-2">
+                <Activity className="w-4 h-4 text-blue-500" />
+                Comparativa Año vs Año
+              </h4>
+              <p className="text-sm text-muted-foreground">
+                Evolución interanual de emisiones para medir el progreso en reducción de huella de carbono.
+              </p>
+            </div>
+          </div>
+
+          {/* Resumen por año */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+            {yearComparison.map((year) => (
+              <div 
+                key={year.year}
+                className="p-4 rounded-xl border border-border/50 bg-muted/20"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-lg font-bold">{year.year}</span>
+                  {year.yoyChange !== null && (
+                    <Badge 
+                      variant="outline" 
+                      className={year.yoyChange <= 0 
+                        ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30' 
+                        : 'bg-red-500/10 text-red-600 border-red-500/30'
+                      }
+                    >
+                      {year.yoyChange <= 0 ? <TrendingDown className="w-3 h-3 mr-1" /> : <TrendingUp className="w-3 h-3 mr-1" />}
+                      {year.yoyChange >= 0 ? '+' : ''}{year.yoyChange.toFixed(1)}%
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xl font-semibold text-foreground">
+                  {Math.round(year.emissions).toLocaleString('es-CL')}
+                  <span className="text-xs font-normal text-muted-foreground ml-1">kgCO₂e</span>
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {year.monthCount} {year.monthCount === 1 ? 'mes' : 'meses'} · 
+                  Prom: {Math.round(year.avgMonthlyEmissions).toLocaleString('es-CL')} kgCO₂e/mes
+                </p>
+                {year.prevYear && year.prevEmissions && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    vs {year.prevYear}: {year.emissions < year.prevEmissions 
+                      ? <span className="text-emerald-600">↓ {Math.round(year.prevEmissions - year.emissions).toLocaleString('es-CL')} kgCO₂e menos</span>
+                      : <span className="text-red-600">↑ {Math.round(year.emissions - year.prevEmissions).toLocaleString('es-CL')} kgCO₂e más</span>
+                    }
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Gráfico comparativo mensual por año */}
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={monthlyByYear} barCategoryGap="15%">
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <XAxis dataKey="month" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${(v/1000).toFixed(0)}t`} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '12px',
+                    padding: '10px 12px',
+                  }}
+                  formatter={(value: number, name: string) => [`${Math.round(value).toLocaleString('es-CL')} kgCO₂e`, name]}
+                  labelFormatter={(label) => `Mes: ${label}`}
+                />
+                <Legend />
+                {availableYears.map((year, idx) => (
+                  <Bar 
+                    key={year}
+                    dataKey={year} 
+                    name={year}
+                    fill={idx === availableYears.length - 1 ? PRIMARY_COLOR : `hsl(${200 + idx * 30}, 60%, ${50 + idx * 10}%)`}
+                    radius={[4, 4, 0, 0]}
+                  />
+                ))}
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Insight de progreso */}
+          {yearComparison.length >= 2 && (
+            <div className={`mt-4 p-4 rounded-xl border ${
+              yearComparison[yearComparison.length - 1].yoyChange !== null && 
+              yearComparison[yearComparison.length - 1].yoyChange! <= 0
+                ? 'bg-emerald-500/10 border-emerald-500/30'
+                : 'bg-amber-500/10 border-amber-500/30'
+            }`}>
+              <div className="flex items-start gap-3">
+                {yearComparison[yearComparison.length - 1].yoyChange !== null && 
+                 yearComparison[yearComparison.length - 1].yoyChange! <= 0 ? (
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 mt-0.5" />
+                ) : (
+                  <Info className="w-5 h-5 text-amber-600 mt-0.5" />
+                )}
+                <div>
+                  <p className="font-medium">
+                    {yearComparison[yearComparison.length - 1].yoyChange !== null && 
+                     yearComparison[yearComparison.length - 1].yoyChange! <= 0
+                      ? '¡Progreso en reducción de emisiones!'
+                      : 'Oportunidad de mejora identificada'
+                    }
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {yearComparison[yearComparison.length - 1].yoyChange !== null && 
+                     yearComparison[yearComparison.length - 1].yoyChange! <= 0
+                      ? `Las emisiones en ${yearComparison[yearComparison.length - 1].year} son ${Math.abs(yearComparison[yearComparison.length - 1].yoyChange!).toFixed(1)}% menores que en ${yearComparison[yearComparison.length - 2].year}. Continúa implementando las acciones de reducción.`
+                      : `Las emisiones en ${yearComparison[yearComparison.length - 1].year} aumentaron ${yearComparison[yearComparison.length - 1].yoyChange?.toFixed(1)}% respecto a ${yearComparison[yearComparison.length - 2].year}. Revisa las oportunidades de reducción en los centros principales.`
+                    }
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </motion.div>
+      )}
 
       {/* Tabla resumen por centro */}
       <motion.div
