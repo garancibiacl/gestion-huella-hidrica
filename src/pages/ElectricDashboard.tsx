@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Activity, RefreshCw, CheckCircle2, Clock, LineChart } from 'lucide-react';
+import { Zap, Activity, RefreshCw, CheckCircle2, Clock, LineChart, Leaf } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import ElectricMeterConsumption from '@/components/dashboard/ElectricMeterConsumption';
 import ElectricConsumptionHistory from '@/components/dashboard/ElectricConsumptionHistory';
+import ElectricEmissions from '@/components/dashboard/ElectricEmissions';
 import { useElectricSync } from '@/hooks/useElectricSync';
 import { useElectricMeters } from '@/hooks/useElectricMeters';
 import { useAuth } from '@/hooks/useAuth';
@@ -127,13 +128,12 @@ export default function ElectricDashboard() {
               <span className="sm:hidden">Medidor</span>
             </TabsTrigger>
             <TabsTrigger
-              value="eficiencia"
+              value="emisiones"
               className="gap-2 rounded-lg data-[state=active]:bg-amber-500/10 data-[state=active]:text-amber-600 data-[state=active]:shadow-sm"
-              disabled
             >
-              <Activity className="w-4 h-4" />
-              <span className="hidden sm:inline">Eficiencia</span>
-              <span className="sm:hidden">Eficiencia</span>
+              <Leaf className="w-4 h-4" />
+              <span className="hidden sm:inline">Emisiones Totales (kgCO₂e/kWh)</span>
+              <span className="sm:hidden">Emisiones</span>
             </TabsTrigger>
             <TabsTrigger
               value="historico"
@@ -149,14 +149,8 @@ export default function ElectricDashboard() {
             <ElectricMeterConsumption key={`electric-${refreshKey}`} />
           </TabsContent>
 
-          <TabsContent value="eficiencia" className="mt-6">
-            <div className="stat-card flex flex-col items-center justify-center py-12">
-              <Activity className="w-16 h-16 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Próximamente</h3>
-              <p className="text-muted-foreground text-center max-w-md">
-                Panel de eficiencia energética y alertas de consumo anómalo.
-              </p>
-            </div>
+          <TabsContent value="emisiones" className="mt-6">
+            <ElectricEmissions />
           </TabsContent>
 
           <TabsContent value="historico" className="mt-6">
