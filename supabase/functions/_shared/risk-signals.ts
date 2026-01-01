@@ -44,6 +44,13 @@ export interface RiskSignal {
   latestValue: number;
   score: number;
   scoreRaw: number;
+  // Explanatory fields
+  baselineValue: number;
+  prevValue: number | null;
+  deltaPct: number | null;
+  seasonalityFactor: number;
+  confidence: number;
+  dataPoints: number;
 }
 
 export interface RiskSignalsResult {
@@ -367,6 +374,13 @@ export const computeRiskSignals = (
       ? Number(reasons.find((reason) => reason.includes('Cambio de mix'))?.match(/[\d.]+/)?.[0] ?? 0)
       : null;
 
+    const dataPoints = valueSeries.length;
+    const confidence = Math.min(1, dataPoints / 12);
+    const prevValueNum = valueSeries.length >= 2 ? valueSeries[valueSeries.length - 2] : null;
+    const deltaPct = prevValueNum !== null && prevValueNum > 0
+      ? ((latestValue - prevValueNum) / prevValueNum) * 100
+      : null;
+
     return {
       center,
       metric,
@@ -387,6 +401,13 @@ export const computeRiskSignals = (
       latestValue,
       score,
       scoreRaw,
+      // Explanatory fields
+      baselineValue: median,
+      prevValue: prevValueNum,
+      deltaPct,
+      seasonalityFactor,
+      confidence,
+      dataPoints,
     };
   });
 
