@@ -393,6 +393,50 @@ export type Database = {
           },
         ]
       }
+      risk_runs: {
+        Row: {
+          alerts_created: number | null
+          alerts_skipped: number | null
+          alerts_updated: number | null
+          created_at: string
+          errors: Json | null
+          finished_at: string | null
+          id: string
+          organization_id: string
+          started_at: string
+        }
+        Insert: {
+          alerts_created?: number | null
+          alerts_skipped?: number | null
+          alerts_updated?: number | null
+          created_at?: string
+          errors?: Json | null
+          finished_at?: string | null
+          id?: string
+          organization_id: string
+          started_at?: string
+        }
+        Update: {
+          alerts_created?: number | null
+          alerts_skipped?: number | null
+          alerts_updated?: number | null
+          created_at?: string
+          errors?: Json | null
+          finished_at?: string | null
+          id?: string
+          organization_id?: string
+          started_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "risk_runs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sustainability_actions: {
         Row: {
           categoria: string | null
