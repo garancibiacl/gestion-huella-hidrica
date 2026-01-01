@@ -47,7 +47,7 @@ interface RiskAlertRow {
   mix_current_pct: number | null;
   mix_avg_pct: number | null;
   mix_shift_pct: number | null;
-  status: 'open' | 'ack' | 'acknowledged' | 'closed';
+  status: 'open' | 'acknowledged' | 'resolved';
   created_at: string;
 }
 
@@ -465,7 +465,7 @@ export default function RiskPanel() {
                       </span>
                     ))}
                   </div>
-                  {item.id && item.status !== 'closed' && (
+                  {item.id && item.status !== 'resolved' && (
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Button
                         type="button"
@@ -481,9 +481,9 @@ export default function RiskPanel() {
                         size="sm"
                         variant="secondary"
                         disabled={updatingAlertId === item.id}
-                        onClick={() => handleStatusUpdate(item.id as string, 'closed')}
+                        onClick={() => handleStatusUpdate(item.id as string, 'resolved')}
                       >
-                        Cerrar
+                        Resolver
                       </Button>
                     </div>
                   )}
