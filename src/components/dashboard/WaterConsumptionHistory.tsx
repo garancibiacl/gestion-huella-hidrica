@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Activity, AlertTriangle, TrendingUp, Droplets } from 'lucide-react';
+import { hatch } from 'ldrs';
 import {
   BarChart,
   Bar,
@@ -19,6 +20,8 @@ import { useRiskSignals, type RiskRecord } from '@/hooks/useRiskSignals';
 import RiskPanel from '@/components/admin/RiskPanel';
 import { ExportPDFButton } from '@/components/export/ExportPDFButton';
 import { exportWaterReport } from '@/lib/pdf-export';
+
+hatch.register();
 
 interface PeriodSummary {
   period: string;
@@ -156,9 +159,9 @@ export default function WaterConsumptionHistory() {
 
   if (loading) {
     return (
-      <div className="stat-card flex items-center justify-center py-12">
-        <Activity className="w-6 h-6 text-muted-foreground mr-2" />
-        <span className="text-muted-foreground">Cargando histórico...</span>
+      <div className="flex items-center justify-center py-12">
+        <l-hatch size="28" stroke="4" speed="3.5" color="hsl(var(--destructive))" />
+        <span className="ml-2 text-muted-foreground">Cargando histórico...</span>
       </div>
     );
   }

@@ -61,11 +61,22 @@ interface RiskAlertRow {
   created_at: string;
 }
 
+interface RiskRunRow {
+  id: string;
+  started_at: string;
+  finished_at: string | null;
+  status: string;
+  alerts_upserted: number;
+  errors: string[] | null;
+}
+
 const METRIC_LABELS: Record<RiskAlertRow['metric'], { label: string; unit: string }> = {
   water_human: { label: 'Agua humana', unit: 'L' },
   water_meter: { label: 'Agua medidor', unit: 'm³' },
   energy: { label: 'Energia', unit: 'kWh' },
 };
+
+const ALLOWED_ALERT_STATUSES: RiskAlertRow['status'][] = ['open', 'acknowledged', 'resolved'];
 
 export default function RiskPanel() {
   const { toast } = useToast();
@@ -73,8 +84,10 @@ export default function RiskPanel() {
   const [electricRows, setElectricRows] = useState<ElectricRow[]>([]);
   const [waterMeterRows, setWaterMeterRows] = useState<WaterMeterRow[]>([]);
   const [alertRows, setAlertRows] = useState<RiskAlertRow[]>([]);
+  const [riskRuns, setRiskRuns] = useState<RiskRunRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingAlerts, setLoadingAlerts] = useState(true);
+  const [loadingRuns, setLoadingRuns] = useState(true);
   const [updatingAlertId, setUpdatingAlertId] = useState<string | null>(null);
   const [historyStatusFilter, setHistoryStatusFilter] = useState<'all' | RiskAlertRow['status']>('all');
   const [historyMetricFilter, setHistoryMetricFilter] = useState<'all' | RiskAlertRow['metric']>('all');
@@ -146,6 +159,30 @@ export default function RiskPanel() {
       setLoadingAlerts(false);
     };
     loadAlerts();
+  }, []);
+
+  useEffect(() => {
+    const loadRuns = async () => {
+      setLoadingRuns(true);
+      const { data, error } = await supabase
+        .from('risk_runs')
+        .select('id, started_at, finished_at, status, alerts_upserted, errors')
+        .order('started_at', { ascending: false })
+        .limit(10);
+
+      if (!error && data) {
+        setRiskRuns(data.map((row) => ({
+          id: row.id,
+          started_at: row.started_at,
+          finished_at: row.finished_at,
+          status: row.status,
+          alerts_upserted: row.alerts_upserted ?? 0,
+          errors: row.errors as string[] | null,
+        })));
+      }
+      setLoadingRuns(false);
+    };
+    loadRuns();
   }, []);
 
   const riskData = useMemo<RiskRecord[]>(() => {
@@ -291,6 +328,10 @@ export default function RiskPanel() {
     setUpdatingAlertId(null);
   };
 
+  const invalidStatusCount = useMemo(() => {
+    return alertRows.filter((row) => !ALLOWED_ALERT_STATUSES.includes(row.status)).length;
+  }, [alertRows]);
+
   const filteredHistoryRows = useMemo(() => {
     return alertRows.filter((row) => {
       if (historyStatusFilter !== 'all' && row.status !== historyStatusFilter) return false;
@@ -313,7 +354,7 @@ export default function RiskPanel() {
     setHistoryPage(1);
   }, [historyCenterFilter, historyMetricFilter, historyStatusFilter]);
 
-  if (loading || loadingAlerts) {
+  if (loading || loadingAlerts || loadingRuns) {
     return (
       <div className="stat-card flex items-center justify-center py-8">
         <Activity className="w-4 h-4 text-muted-foreground mr-2" />
@@ -338,6 +379,13 @@ export default function RiskPanel() {
               : 'bg-muted text-muted-foreground'
           }`}>
             {alertSignals.length > 0 ? 'Risk alerts: activo' : 'Risk alerts: local'}
+          </span>
+          <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+            invalidStatusCount > 0
+              ? 'bg-destructive/10 text-destructive'
+              : 'bg-success/10 text-success'
+          }`}>
+            Estados válidos: {invalidStatusCount === 0 ? 'OK' : `${invalidStatusCount} con error`}
           </span>
           <span>
             Centros con riesgo: <span className="font-medium text-foreground">{activeRisks.length}</span>
@@ -681,6 +729,58 @@ export default function RiskPanel() {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      <div className="mt-6 rounded-lg border border-border p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="font-semibold">Monitoreo de runs</h4>
+            <p className="text-xs text-muted-foreground">Últimas ejecuciones del cron.</p>
+          </div>
+          <span className="text-[11px] text-muted-foreground">
+            {riskRuns.length} runs
+          </span>
+        </div>
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="text-muted-foreground">
+              <tr className="border-b border-border">
+                <th className="text-left py-2 pr-3 font-medium">Inicio</th>
+                <th className="text-left py-2 px-3 font-medium">Estado</th>
+                <th className="text-right py-2 px-3 font-medium">Alertas</th>
+                <th className="text-left py-2 px-3 font-medium">Errores</th>
+              </tr>
+            </thead>
+            <tbody>
+              {riskRuns.length > 0 ? (
+                riskRuns.map((run) => (
+                  <tr key={run.id} className="border-b border-border/60 last:border-b-0">
+                    <td className="py-2 pr-3">
+                      {new Date(run.started_at).toLocaleString('es-CL', {
+                        timeZone: 'America/Santiago',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        day: '2-digit',
+                        month: 'short',
+                      })}
+                    </td>
+                    <td className="py-2 px-3">{run.status}</td>
+                    <td className="py-2 px-3 text-right">{run.alerts_upserted}</td>
+                    <td className="py-2 px-3 text-left text-muted-foreground">
+                      {(run.errors ?? []).length > 0 ? 'Con errores' : 'OK'}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className="py-6 text-center text-muted-foreground">
+                    Sin runs registrados.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
