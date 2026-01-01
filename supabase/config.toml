@@ -9,3 +9,4 @@ verify_jwt = false
 [functions.generate-risk-alerts]
 verify_jwt = false
 schedule = "0 4 * * *"
+schedule = "0 4 * * *"
