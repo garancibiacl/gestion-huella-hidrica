@@ -4,6 +4,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { useRiskSignals, type RiskRecord } from '@/hooks/useRiskSignals';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 
 interface WaterRow {
   period: string;
@@ -66,6 +76,11 @@ export default function RiskPanel() {
   const [loading, setLoading] = useState(true);
   const [loadingAlerts, setLoadingAlerts] = useState(true);
   const [updatingAlertId, setUpdatingAlertId] = useState<string | null>(null);
+  const [historyStatusFilter, setHistoryStatusFilter] = useState<'all' | RiskAlertRow['status']>('all');
+  const [historyMetricFilter, setHistoryMetricFilter] = useState<'all' | RiskAlertRow['metric']>('all');
+  const [historyCenterFilter, setHistoryCenterFilter] = useState('');
+  const [historyPage, setHistoryPage] = useState(1);
+  const pageSize = 10;
 
   useEffect(() => {
     const load = async () => {
@@ -276,6 +291,28 @@ export default function RiskPanel() {
     setUpdatingAlertId(null);
   };
 
+  const filteredHistoryRows = useMemo(() => {
+    return alertRows.filter((row) => {
+      if (historyStatusFilter !== 'all' && row.status !== historyStatusFilter) return false;
+      if (historyMetricFilter !== 'all' && row.metric !== historyMetricFilter) return false;
+      if (historyCenterFilter.trim().length > 0) {
+        const query = historyCenterFilter.toLowerCase();
+        if (!row.center.toLowerCase().includes(query)) return false;
+      }
+      return true;
+    });
+  }, [alertRows, historyCenterFilter, historyMetricFilter, historyStatusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredHistoryRows.length / pageSize));
+  const pagedHistoryRows = useMemo(() => {
+    const start = (historyPage - 1) * pageSize;
+    return filteredHistoryRows.slice(start, start + pageSize);
+  }, [filteredHistoryRows, historyPage, pageSize]);
+
+  useEffect(() => {
+    setHistoryPage(1);
+  }, [historyCenterFilter, historyMetricFilter, historyStatusFilter]);
+
   if (loading || loadingAlerts) {
     return (
       <div className="stat-card flex items-center justify-center py-8">
@@ -428,6 +465,154 @@ export default function RiskPanel() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          <div className="mt-6">
+            <div className="flex items-center justify-between">
+              <h5 className="font-semibold">Historial reciente</h5>
+              <span className="text-[11px] text-muted-foreground">
+                {filteredHistoryRows.length} alertas · Página {historyPage} de {totalPages}
+              </span>
+            </div>
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="flex-1">
+                <label htmlFor="alert-center-filter" className="text-[11px] font-medium text-muted-foreground">
+                  Centro
+                </label>
+                <Input
+                  id="alert-center-filter"
+                  value={historyCenterFilter}
+                  onChange={(event) => setHistoryCenterFilter(event.target.value)}
+                  placeholder="Buscar centro..."
+                  className="mt-1 h-8 text-xs"
+                />
+              </div>
+              <div className="w-full sm:w-44">
+                <label htmlFor="alert-metric-filter" className="text-[11px] font-medium text-muted-foreground">
+                  Metrica
+                </label>
+                <Select
+                  value={historyMetricFilter}
+                  onValueChange={(value) => setHistoryMetricFilter(value as typeof historyMetricFilter)}
+                >
+                  <SelectTrigger id="alert-metric-filter" className="mt-1 h-8 text-xs">
+                    <SelectValue placeholder="Todas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    <SelectItem value="water_human">Agua humana</SelectItem>
+                    <SelectItem value="water_meter">Agua medidor</SelectItem>
+                    <SelectItem value="energy">Energia</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="w-full sm:w-40">
+                <label htmlFor="alert-status-filter" className="text-[11px] font-medium text-muted-foreground">
+                  Estado
+                </label>
+                <Select
+                  value={historyStatusFilter}
+                  onValueChange={(value) => setHistoryStatusFilter(value as typeof historyStatusFilter)}
+                >
+                  <SelectTrigger id="alert-status-filter" className="mt-1 h-8 text-xs">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="open">open</SelectItem>
+                    <SelectItem value="acknowledged">ack</SelectItem>
+                    <SelectItem value="resolved">resolved</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="text-muted-foreground">
+                  <tr className="border-b border-border">
+                    <th className="text-left py-2 pr-3 font-medium">Centro</th>
+                    <th className="text-left py-2 px-3 font-medium">Metrica</th>
+                    <th className="text-right py-2 px-3 font-medium">Score</th>
+                    <th className="text-left py-2 px-3 font-medium">Estado</th>
+                    <th className="text-right py-2 pl-3 font-medium">Generado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pagedHistoryRows.length > 0 ? (
+                    pagedHistoryRows.map((row) => (
+                      <tr key={row.id} className="border-b border-border/60 last:border-b-0">
+                        <td className="py-2 pr-3 text-left font-medium">{row.center}</td>
+                        <td className="py-2 px-3 text-left">{METRIC_LABELS[row.metric].label}</td>
+                        <td className="py-2 px-3 text-right">{row.score}/10</td>
+                        <td className="py-2 px-3 text-left">{formatStatus(row.status)}</td>
+                        <td className="py-2 pl-3 text-right">
+                          {new Date(row.created_at).toLocaleString('es-CL', {
+                            timeZone: 'America/Santiago',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            day: '2-digit',
+                            month: 'short',
+                          })}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="py-6 text-center text-muted-foreground">
+                        Sin historial de alertas.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {totalPages > 1 && (
+              <div className="mt-4">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        href="#"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          setHistoryPage((prev) => Math.max(1, prev - 1));
+                        }}
+                        aria-disabled={historyPage === 1}
+                        className={historyPage === 1 ? 'pointer-events-none opacity-50' : undefined}
+                      />
+                    </PaginationItem>
+                    {Array.from({ length: totalPages }, (_, idx) => {
+                      const page = idx + 1;
+                      return (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            href="#"
+                            isActive={page === historyPage}
+                            onClick={(event) => {
+                              event.preventDefault();
+                              setHistoryPage(page);
+                            }}
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    })}
+                    <PaginationItem>
+                      <PaginationNext
+                        href="#"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          setHistoryPage((prev) => Math.min(totalPages, prev + 1));
+                        }}
+                        aria-disabled={historyPage === totalPages}
+                        className={historyPage === totalPages ? 'pointer-events-none opacity-50' : undefined}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
           </div>
         </div>
 
