@@ -93,34 +93,34 @@ export default function RiskPanel() {
       setLoadingAlerts(true);
       const { data, error } = await supabase
         .from('risk_alerts')
-        .select([
-          'id',
-          'center',
-          'metric',
-          'period',
-          'latest_value',
-          'forecast_value',
-          'forecast_cost',
-          'range_min',
-          'range_max',
-          'range_cost_min',
-          'range_cost_max',
-          'score',
-          'level',
-          'reasons',
-          'actions',
-          'change_detected',
-          'outlier',
-          'mix_current_pct',
-          'mix_avg_pct',
-          'mix_shift_pct',
-          'created_at',
-        ].join(', '))
+        .select('id, center, metric, period, latest_value, forecast_value, forecast_cost, range_min, range_max, range_cost_min, range_cost_max, score, level, reasons, actions, change_detected, outlier, mix_current_pct, mix_avg_pct, mix_shift_pct, created_at')
         .order('created_at', { ascending: false })
         .limit(250);
 
-      if (!error) {
-        setAlertRows((data || []) as RiskAlertRow[]);
+      if (!error && data) {
+        setAlertRows(data.map((row) => ({
+          id: row.id,
+          center: row.center,
+          metric: row.metric as RiskAlertRow['metric'],
+          period: row.period,
+          latest_value: row.latest_value,
+          forecast_value: row.forecast_value,
+          forecast_cost: row.forecast_cost,
+          range_min: row.range_min,
+          range_max: row.range_max,
+          range_cost_min: row.range_cost_min,
+          range_cost_max: row.range_cost_max,
+          score: row.score,
+          level: row.level as RiskAlertRow['level'],
+          reasons: row.reasons as string[] | null,
+          actions: row.actions as string[] | null,
+          change_detected: row.change_detected,
+          outlier: row.outlier,
+          mix_current_pct: row.mix_current_pct,
+          mix_avg_pct: row.mix_avg_pct,
+          mix_shift_pct: row.mix_shift_pct,
+          created_at: row.created_at,
+        })));
       }
       setLoadingAlerts(false);
     };
