@@ -15,7 +15,7 @@ import { StatCard } from '@/components/ui/stat-card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useRiskSignals } from '@/hooks/useRiskSignals';
+import { useRiskSignals, type RiskRecord } from '@/hooks/useRiskSignals';
 import RiskPanel from '@/components/admin/RiskPanel';
 import { ExportPDFButton } from '@/components/export/ExportPDFButton';
 import { exportWaterReport } from '@/lib/pdf-export';
@@ -126,9 +126,10 @@ export default function WaterConsumptionHistory() {
     rows.map((row) => ({
       period: row.period,
       center: 'General',
-      consumo_m3: row.consumo_m3,
+      metric: 'water_meter',
+      value: Number(row.consumo_m3),
       cost: Number(row.costo ?? 0),
-    })),
+    })) satisfies RiskRecord[],
   );
 
   const filteredRiskSignals = riskSignals.filter((signal) => signal.level !== 'low');
@@ -549,8 +550,10 @@ export default function WaterConsumptionHistory() {
                   {signal.reasons.join(' · ')}
                 </div>
                 <div className="mt-2 text-xs text-muted-foreground">
-                  Forecast 30d: <span className="font-medium text-foreground">{Math.round(signal.forecast30d).toLocaleString()} L</span>
-                  <span className="text-muted-foreground"> ({Math.round(signal.forecastRange.min).toLocaleString()}–{Math.round(signal.forecastRange.max).toLocaleString()} L)</span>
+                  Forecast 30d: <span className="font-medium text-foreground">
+                    {Math.round(signal.forecast30d).toLocaleString()} {signal.unit}
+                  </span>
+                  <span className="text-muted-foreground"> ({Math.round(signal.forecastRange.min).toLocaleString()}–{Math.round(signal.forecastRange.max).toLocaleString()} {signal.unit})</span>
                 </div>
                 <div className="mt-1 text-xs text-muted-foreground">
                   Forecast costo: <span className="font-medium text-foreground">${Math.round(signal.forecastCost30d).toLocaleString()}</span>
