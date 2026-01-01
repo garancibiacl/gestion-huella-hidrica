@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Activity, TrendingUp, Grid2X2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useRiskSignals, type RiskRecord } from '@/hooks/useRiskSignals';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
 
 interface WaterRow {
   period: string;
@@ -45,6 +47,7 @@ interface RiskAlertRow {
   mix_current_pct: number | null;
   mix_avg_pct: number | null;
   mix_shift_pct: number | null;
+  status: 'open' | 'ack' | 'acknowledged' | 'closed';
   created_at: string;
 }
 
@@ -55,12 +58,14 @@ const METRIC_LABELS: Record<RiskAlertRow['metric'], { label: string; unit: strin
 };
 
 export default function RiskPanel() {
+  const { toast } = useToast();
   const [rows, setRows] = useState<WaterRow[]>([]);
   const [electricRows, setElectricRows] = useState<ElectricRow[]>([]);
   const [waterMeterRows, setWaterMeterRows] = useState<WaterMeterRow[]>([]);
   const [alertRows, setAlertRows] = useState<RiskAlertRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingAlerts, setLoadingAlerts] = useState(true);
+  const [updatingAlertId, setUpdatingAlertId] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -93,7 +98,7 @@ export default function RiskPanel() {
       setLoadingAlerts(true);
       const { data, error } = await supabase
         .from('risk_alerts')
-        .select('id, center, metric, period, latest_value, forecast_value, forecast_cost, range_min, range_max, range_cost_min, range_cost_max, score, level, reasons, actions, change_detected, outlier, mix_current_pct, mix_avg_pct, mix_shift_pct, created_at')
+        .select('id, center, metric, period, latest_value, forecast_value, forecast_cost, range_min, range_max, range_cost_min, range_cost_max, score, level, reasons, actions, change_detected, outlier, mix_current_pct, mix_avg_pct, mix_shift_pct, status, created_at')
         .order('created_at', { ascending: false })
         .limit(250);
 
@@ -119,6 +124,7 @@ export default function RiskPanel() {
           mix_current_pct: row.mix_current_pct,
           mix_avg_pct: row.mix_avg_pct,
           mix_shift_pct: row.mix_shift_pct,
+          status: row.status as RiskAlertRow['status'],
           created_at: row.created_at,
         })));
       }
@@ -210,17 +216,65 @@ export default function RiskPanel() {
   }, [activeSignals]);
 
   const actionItems = useMemo(() => {
+    if (alertRows.length > 0) {
+      return [...alertRows]
+        .filter((row) => row.level !== 'low')
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 6)
+        .map((row) => ({
+          id: row.id,
+          center: row.center,
+          metricLabel: METRIC_LABELS[row.metric].label,
+          level: row.level,
+          actions: row.actions ?? [],
+          reasons: row.reasons ?? [],
+          status: row.status,
+        }));
+    }
+
     return [...activeRisks]
       .sort((a, b) => b.score - a.score)
       .slice(0, 6)
       .map((signal) => ({
+        id: null,
         center: signal.center,
         metricLabel: signal.label,
         level: signal.level,
         actions: signal.actions,
         reasons: signal.reasons,
+        status: null,
       }));
-  }, [activeRisks]);
+  }, [activeRisks, alertRows]);
+
+  const formatStatus = (status: RiskAlertRow['status']) => {
+    if (status === 'acknowledged') return 'ack';
+    return status;
+  };
+
+  const handleStatusUpdate = async (alertId: string, status: RiskAlertRow['status']) => {
+    setUpdatingAlertId(alertId);
+    const { error } = await supabase
+      .from('risk_alerts')
+      .update({ status })
+      .eq('id', alertId);
+
+    if (error) {
+      toast({
+        title: 'No se pudo actualizar la alerta',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } else {
+      setAlertRows((prev) => prev.map((row) => (
+        row.id === alertId ? { ...row, status } : row
+      )));
+      toast({
+        title: 'Alerta actualizada',
+        description: `Estado marcado como ${formatStatus(status)}.`,
+      });
+    }
+    setUpdatingAlertId(null);
+  };
 
   if (loading || loadingAlerts) {
     return (
@@ -240,8 +294,17 @@ export default function RiskPanel() {
             Tendencias, forecast 30 días y anomalías por centro.
           </p>
         </div>
-        <div className="text-xs text-muted-foreground">
-          Centros con riesgo: <span className="font-medium text-foreground">{activeRisks.length}</span>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+            alertSignals.length > 0
+              ? 'bg-success/10 text-success'
+              : 'bg-muted text-muted-foreground'
+          }`}>
+            {alertSignals.length > 0 ? 'Risk alerts: activo' : 'Risk alerts: local'}
+          </span>
+          <span>
+            Centros con riesgo: <span className="font-medium text-foreground">{activeRisks.length}</span>
+          </span>
         </div>
       </div>
 
@@ -387,6 +450,11 @@ export default function RiskPanel() {
                       {item.metricLabel}
                     </span>
                   </div>
+                  {item.status && (
+                    <div className="mt-1 text-[11px] text-muted-foreground">
+                      Estado: <span className="font-medium text-foreground">{formatStatus(item.status)}</span>
+                    </div>
+                  )}
                   <div className="mt-2 text-xs text-muted-foreground">
                     {item.reasons.slice(0, 2).join(' · ')}
                   </div>
@@ -397,6 +465,28 @@ export default function RiskPanel() {
                       </span>
                     ))}
                   </div>
+                  {item.id && item.status !== 'closed' && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={updatingAlertId === item.id || item.status === 'acknowledged'}
+                        onClick={() => handleStatusUpdate(item.id as string, 'acknowledged')}
+                      >
+                        {updatingAlertId === item.id ? 'Actualizando...' : 'Marcar ack'}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        disabled={updatingAlertId === item.id}
+                        onClick={() => handleStatusUpdate(item.id as string, 'closed')}
+                      >
+                        Cerrar
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ))
             ) : (
