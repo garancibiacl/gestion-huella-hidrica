@@ -289,9 +289,13 @@ export type Database = {
       risk_alerts: {
         Row: {
           actions: Json
+          baseline_value: number | null
           center: string
           change_detected: boolean
+          confidence: number | null
           created_at: string
+          data_points: number | null
+          delta_pct: number | null
           forecast_cost: number
           forecast_value: number
           id: string
@@ -304,20 +308,26 @@ export type Database = {
           organization_id: string
           outlier: boolean
           period: string
+          prev_value: number | null
           range_cost_max: number
           range_cost_min: number
           range_max: number
           range_min: number
           reasons: Json
           score: number
+          seasonality_factor: number | null
           status: string
           updated_at: string
         }
         Insert: {
           actions?: Json
+          baseline_value?: number | null
           center: string
           change_detected?: boolean
+          confidence?: number | null
           created_at?: string
+          data_points?: number | null
+          delta_pct?: number | null
           forecast_cost?: number
           forecast_value?: number
           id?: string
@@ -330,20 +340,26 @@ export type Database = {
           organization_id: string
           outlier?: boolean
           period: string
+          prev_value?: number | null
           range_cost_max?: number
           range_cost_min?: number
           range_max?: number
           range_min?: number
           reasons?: Json
           score?: number
+          seasonality_factor?: number | null
           status?: string
           updated_at?: string
         }
         Update: {
           actions?: Json
+          baseline_value?: number | null
           center?: string
           change_detected?: boolean
+          confidence?: number | null
           created_at?: string
+          data_points?: number | null
+          delta_pct?: number | null
           forecast_cost?: number
           forecast_value?: number
           id?: string
@@ -356,12 +372,14 @@ export type Database = {
           organization_id?: string
           outlier?: boolean
           period?: string
+          prev_value?: number | null
           range_cost_max?: number
           range_cost_min?: number
           range_max?: number
           range_min?: number
           reasons?: Json
           score?: number
+          seasonality_factor?: number | null
           status?: string
           updated_at?: string
         }
