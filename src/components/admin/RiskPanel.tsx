@@ -24,11 +24,43 @@ interface WaterMeterRow {
   costo: number | null;
 }
 
+interface RiskAlertRow {
+  id: string;
+  center: string;
+  metric: 'water_human' | 'water_meter' | 'energy';
+  period: string;
+  latest_value: number;
+  forecast_value: number;
+  forecast_cost: number;
+  range_min: number;
+  range_max: number;
+  range_cost_min: number;
+  range_cost_max: number;
+  score: number;
+  level: 'low' | 'medium' | 'high';
+  reasons: string[] | null;
+  actions: string[] | null;
+  change_detected: boolean;
+  outlier: boolean;
+  mix_current_pct: number | null;
+  mix_avg_pct: number | null;
+  mix_shift_pct: number | null;
+  created_at: string;
+}
+
+const METRIC_LABELS: Record<RiskAlertRow['metric'], { label: string; unit: string }> = {
+  water_human: { label: 'Agua humana', unit: 'L' },
+  water_meter: { label: 'Agua medidor', unit: 'm³' },
+  energy: { label: 'Energia', unit: 'kWh' },
+};
+
 export default function RiskPanel() {
   const [rows, setRows] = useState<WaterRow[]>([]);
   const [electricRows, setElectricRows] = useState<ElectricRow[]>([]);
   const [waterMeterRows, setWaterMeterRows] = useState<WaterMeterRow[]>([]);
+  const [alertRows, setAlertRows] = useState<RiskAlertRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingAlerts, setLoadingAlerts] = useState(true);
 
   useEffect(() => {
     const load = async () => {
@@ -54,6 +86,45 @@ export default function RiskPanel() {
       setLoading(false);
     };
     load();
+  }, []);
+
+  useEffect(() => {
+    const loadAlerts = async () => {
+      setLoadingAlerts(true);
+      const { data, error } = await supabase
+        .from('risk_alerts')
+        .select([
+          'id',
+          'center',
+          'metric',
+          'period',
+          'latest_value',
+          'forecast_value',
+          'forecast_cost',
+          'range_min',
+          'range_max',
+          'range_cost_min',
+          'range_cost_max',
+          'score',
+          'level',
+          'reasons',
+          'actions',
+          'change_detected',
+          'outlier',
+          'mix_current_pct',
+          'mix_avg_pct',
+          'mix_shift_pct',
+          'created_at',
+        ].join(', '))
+        .order('created_at', { ascending: false })
+        .limit(250);
+
+      if (!error) {
+        setAlertRows((data || []) as RiskAlertRow[]);
+      }
+      setLoadingAlerts(false);
+    };
+    loadAlerts();
   }, []);
 
   const riskData = useMemo<RiskRecord[]>(() => {
@@ -92,22 +163,51 @@ export default function RiskPanel() {
   }, [rows, electricRows, waterMeterRows]);
 
   const { signals, topRisks } = useRiskSignals(riskData);
-  const activeRisks = signals.filter((signal) => signal.level !== 'low');
+  const alertSignals = useMemo(() => {
+    if (alertRows.length === 0) return [];
+    return alertRows.map((row) => ({
+      center: row.center,
+      metric: row.metric,
+      label: METRIC_LABELS[row.metric].label,
+      unit: METRIC_LABELS[row.metric].unit,
+      level: row.level,
+      reasons: row.reasons ?? [],
+      actions: row.actions ?? [],
+      forecast30d: Number(row.forecast_value ?? 0),
+      forecastCost30d: Number(row.forecast_cost ?? 0),
+      forecastRange: { min: Number(row.range_min ?? 0), max: Number(row.range_max ?? 0) },
+      forecastCostRange: { min: Number(row.range_cost_min ?? 0), max: Number(row.range_cost_max ?? 0) },
+      outlier: row.outlier,
+      changeDetected: row.change_detected,
+      mixShiftPct: row.mix_shift_pct,
+      mixCurrentPct: row.mix_current_pct,
+      mixAvgPct: row.mix_avg_pct,
+      latestValue: Number(row.latest_value ?? 0),
+      score: Number(row.score ?? 0),
+      scoreRaw: Number(row.score ?? 0),
+    }));
+  }, [alertRows]);
+
+  const activeSignals = alertSignals.length > 0 ? alertSignals : signals;
+  const activeRisks = activeSignals.filter((signal) => signal.level !== 'low');
+  const topRiskSignals = alertSignals.length > 0
+    ? [...activeSignals].filter((signal) => signal.level !== 'low').slice(0, 3)
+    : topRisks;
 
   const heatmapRows = useMemo(() => {
-    const grouped = signals.reduce<Record<string, typeof signals>>((acc, signal) => {
+    const grouped = activeSignals.reduce<Record<string, typeof activeSignals>>((acc, signal) => {
       if (!acc[signal.center]) acc[signal.center] = [];
       acc[signal.center].push(signal);
       return acc;
     }, {});
     return Object.entries(grouped).map(([center, centerSignals]) => ({
       center,
-      metrics: centerSignals.reduce<Record<string, (typeof signals)[number]>>((acc, signal) => {
+      metrics: centerSignals.reduce<Record<string, (typeof activeSignals)[number]>>((acc, signal) => {
         acc[signal.metric] = signal;
         return acc;
       }, {}),
     }));
-  }, [signals]);
+  }, [activeSignals]);
 
   const actionItems = useMemo(() => {
     return [...activeRisks]
@@ -122,7 +222,7 @@ export default function RiskPanel() {
       }));
   }, [activeRisks]);
 
-  if (loading) {
+  if (loading || loadingAlerts) {
     return (
       <div className="stat-card flex items-center justify-center py-8">
         <Activity className="w-4 h-4 text-muted-foreground mr-2" />
@@ -146,8 +246,8 @@ export default function RiskPanel() {
       </div>
 
       <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {topRisks.length > 0 ? (
-          topRisks.map((risk, index) => (
+        {topRiskSignals.length > 0 ? (
+          topRiskSignals.map((risk, index) => (
             <div key={risk.center} className="rounded-lg border border-border p-4">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-medium">{risk.center}</span>
