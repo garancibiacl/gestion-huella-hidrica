@@ -286,6 +286,95 @@ export type Database = {
           },
         ]
       }
+      risk_alerts: {
+        Row: {
+          actions: Json
+          center: string
+          change_detected: boolean
+          created_at: string
+          forecast_cost: number
+          forecast_value: number
+          id: string
+          latest_value: number
+          level: string
+          metric: string
+          mix_avg_pct: number | null
+          mix_current_pct: number | null
+          mix_shift_pct: number | null
+          organization_id: string
+          outlier: boolean
+          period: string
+          range_cost_max: number
+          range_cost_min: number
+          range_max: number
+          range_min: number
+          reasons: Json
+          score: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          actions?: Json
+          center: string
+          change_detected?: boolean
+          created_at?: string
+          forecast_cost?: number
+          forecast_value?: number
+          id?: string
+          latest_value?: number
+          level?: string
+          metric: string
+          mix_avg_pct?: number | null
+          mix_current_pct?: number | null
+          mix_shift_pct?: number | null
+          organization_id: string
+          outlier?: boolean
+          period: string
+          range_cost_max?: number
+          range_cost_min?: number
+          range_max?: number
+          range_min?: number
+          reasons?: Json
+          score?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          actions?: Json
+          center?: string
+          change_detected?: boolean
+          created_at?: string
+          forecast_cost?: number
+          forecast_value?: number
+          id?: string
+          latest_value?: number
+          level?: string
+          metric?: string
+          mix_avg_pct?: number | null
+          mix_current_pct?: number | null
+          mix_shift_pct?: number | null
+          organization_id?: string
+          outlier?: boolean
+          period?: string
+          range_cost_max?: number
+          range_cost_min?: number
+          range_max?: number
+          range_min?: number
+          reasons?: Json
+          score?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "risk_alerts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sustainability_actions: {
         Row: {
           categoria: string | null
