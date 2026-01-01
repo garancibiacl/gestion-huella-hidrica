@@ -8,6 +8,32 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+const buildLatestPeriodMap = (records: RiskRecord[]): Record<string, string> => {
+  return records.reduce<Record<string, string>>((acc, record) => {
+    const key = `${record.metric}::${record.center}`;
+    const current = acc[key];
+    if (!current || periodToIndex(record.period) > periodToIndex(current)) {
+      acc[key] = record.period;
+    }
+    return acc;
+  }, {});
+};
+
+const calcMedian = (values: number[]): number => {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 0) {
+    return (sorted[mid - 1] + sorted[mid]) / 2;
+  }
+  return sorted[mid];
+};
+
+const calcConfidence = (dataPoints: number): number => {
+  if (dataPoints <= 0) return 0;
+  return Math.min(1, dataPoints / 12);
+};
+
 const periodToIndex = (period: string): number => {
   const [yearStr, monthStr] = period.split("-");
   const year = Number(yearStr);
@@ -16,13 +42,11 @@ const periodToIndex = (period: string): number => {
   return year * 12 + month;
 };
 
-const buildLatestPeriodMap = (records: RiskRecord[]): Record<string, string> => {
-  return records.reduce<Record<string, string>>((acc, record) => {
+const buildSeriesByKey = (records: RiskRecord[]) => {
+  return records.reduce<Record<string, { period: string; value: number }[]>>((acc, record) => {
     const key = `${record.metric}::${record.center}`;
-    const current = acc[key];
-    if (!current || periodToIndex(record.period) > periodToIndex(current)) {
-      acc[key] = record.period;
-    }
+    if (!acc[key]) acc[key] = [];
+    acc[key].push({ period: record.period, value: Number(record.value ?? 0) });
     return acc;
   }, {});
 };
@@ -111,12 +135,27 @@ serve(async (req) => {
       });
 
       const latestPeriodBySignal = buildLatestPeriodMap(riskRecords);
+      const seriesBySignal = buildSeriesByKey(riskRecords);
       const { signals } = computeRiskSignals(riskRecords);
 
       const alerts = signals
         .filter((signal) => signal.level !== "low")
         .map((signal) => {
           const key = `${signal.metric}::${signal.center}`;
+          const series = (seriesBySignal[key] ?? [])
+            .sort((a, b) => periodToIndex(a.period) - periodToIndex(b.period));
+          const values = series.map((item) => item.value);
+          const dataPoints = values.length;
+          const latestValue = values[values.length - 1] ?? 0;
+          const prevValue = values[values.length - 2];
+          const baselineValue = calcMedian(values);
+          const deltaPct = prevValue && prevValue > 0
+            ? ((latestValue - prevValue) / prevValue) * 100
+            : null;
+          const seasonalityFactor = signal.forecast30d > 0
+            ? Number((signal.forecast30d / Math.max(signal.latestValue || 1, 1)).toFixed(4))
+            : null;
+          const confidence = calcConfidence(dataPoints);
           return {
             organization_id: organizationId,
             center: signal.center,
@@ -138,6 +177,12 @@ serve(async (req) => {
             mix_current_pct: signal.mixCurrentPct,
             mix_avg_pct: signal.mixAvgPct,
             mix_shift_pct: signal.mixShiftPct,
+            baseline_value: baselineValue,
+            prev_value: prevValue ?? null,
+            delta_pct: deltaPct,
+            seasonality_factor: seasonalityFactor,
+            confidence,
+            data_points: dataPoints,
           };
         });
 

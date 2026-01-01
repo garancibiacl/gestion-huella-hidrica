@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { useAutoSync } from '@/hooks/useAutoSync';
 
 interface SyncButtonProps {
   onSyncComplete?: () => void;
@@ -26,35 +25,6 @@ export function SyncButton({ onSyncComplete }: SyncButtonProps) {
   const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
-
-  // Use the auto-sync hook for manual sync
-  const { sync } = useAutoSync({
-    enabled: false, // Don't auto-sync in this component
-    userId: user?.id,
-    onSyncStart: () => setSyncing(true),
-    onSyncComplete: (success, rowsProcessed) => {
-      setSyncing(false);
-      
-      if (success) {
-        toast({
-          title: 'Sincronización completada',
-          description: `${rowsProcessed} registros procesados`,
-        });
-        
-        fetchLastSync();
-        
-        if (onSyncComplete) {
-          onSyncComplete();
-        }
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Error al sincronizar',
-          description: 'No se pudo completar la sincronización',
-        });
-      }
-    },
-  });
 
   useEffect(() => {
     if (user) {
@@ -81,16 +51,29 @@ export function SyncButton({ onSyncComplete }: SyncButtonProps) {
     if (!user) return;
 
     try {
-      const lastSyncTimestamp = localStorage.getItem('last_google_sheets_sync');
-      if (lastSyncTimestamp) {
+      const { data, error } = await supabase
+        .from('sync_runs')
+        .select('id, started_at, finished_at, rows_inserted, rows_updated, errors')
+        .order('started_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
         setLastSync({
-          id: 'local',
-          started_at: new Date(parseInt(lastSyncTimestamp)).toISOString(),
-          finished_at: new Date(parseInt(lastSyncTimestamp)).toISOString(),
-          rows_inserted: 0,
-          rows_updated: 0,
-          errors: [],
+          id: data.id,
+          started_at: data.started_at,
+          finished_at: data.finished_at,
+          rows_inserted: data.rows_inserted ?? 0,
+          rows_updated: data.rows_updated ?? 0,
+          errors: (data.errors as string[] | null) ?? [],
         });
+      }
+      if (!data) {
+        setLastSync(null);
       }
     } catch (error) {
       console.error('Error fetching last sync:', error);
@@ -98,8 +81,29 @@ export function SyncButton({ onSyncComplete }: SyncButtonProps) {
   };
 
   const handleSync = async () => {
-    // Force sync regardless of time interval
-    await sync(true);
+    setSyncing(true);
+    const { error } = await supabase.functions.invoke('sync-google-sheets');
+
+    if (error) {
+      setSyncing(false);
+      toast({
+        variant: 'destructive',
+        title: 'Error al sincronizar',
+        description: error.message,
+      });
+      return;
+    }
+
+    await fetchLastSync();
+    setSyncing(false);
+    toast({
+      title: 'Sincronización iniciada',
+      description: 'Se ejecutó la sincronización en el servidor.',
+    });
+
+    if (onSyncComplete) {
+      onSyncComplete();
+    }
   };
 
   const formatLastSync = (dateStr: string) => {
