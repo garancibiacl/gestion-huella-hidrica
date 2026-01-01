@@ -52,6 +52,23 @@ serve(async (req) => {
 
     for (const org of orgs ?? []) {
       const organizationId = org.id as string;
+      const runStart = new Date().toISOString();
+      let runId: string | null = null;
+      let runErrors: string[] = [];
+      let alertsUpserted = 0;
+
+      const { data: runData, error: runStartError } = await supabase
+        .from("risk_runs")
+        .insert({ organization_id: organizationId, started_at: runStart })
+        .select("id")
+        .maybeSingle();
+
+      if (runStartError || !runData?.id) {
+        console.error("Risk run start error", runStartError);
+        runErrors.push("No se pudo registrar el inicio del run.");
+      } else {
+        runId = runData.id;
+      }
 
       const [humanRes, electricRes, waterRes] = await Promise.all([
         supabase
@@ -70,6 +87,13 @@ serve(async (req) => {
 
       if (humanRes.error || electricRes.error || waterRes.error) {
         console.error("Fetch error", { humanRes: humanRes.error, electricRes: electricRes.error, waterRes: waterRes.error });
+        runErrors.push("Error al cargar fuentes de datos.");
+        if (runId) {
+          await supabase
+            .from("risk_runs")
+            .update({ finished_at: new Date().toISOString(), status: "failed", errors: runErrors })
+            .eq("id", runId);
+        }
         continue;
       }
 
@@ -113,6 +137,22 @@ serve(async (req) => {
       const latestPeriodBySignal = buildLatestPeriodMap(riskRecords);
       const { signals } = computeRiskSignals(riskRecords);
 
+      const { data: existingAlerts, error: existingError } = await supabase
+        .from("risk_alerts")
+        .select("center, metric, period, status")
+        .eq("organization_id", organizationId);
+
+      if (existingError) {
+        console.error("Risk alerts fetch error", existingError);
+        runErrors.push("Error al cargar alertas existentes.");
+      }
+
+      const existingStatusByKey = new Map<string, string>();
+      (existingAlerts ?? []).forEach((row) => {
+        const key = `${row.metric}::${row.center}::${row.period}`;
+        existingStatusByKey.set(key, row.status);
+      });
+
       const alerts = signals
         .filter((signal) => signal.level !== "low")
         .map((signal) => {
@@ -148,18 +188,57 @@ serve(async (req) => {
           };
         });
 
-      if (alerts.length === 0) continue;
+      const upsertableAlerts = alerts.filter((alert) => {
+        const key = `${alert.metric}::${alert.center}::${alert.period}`;
+        const status = existingStatusByKey.get(key);
+        return status !== "acknowledged" && status !== "resolved";
+      });
 
-      const { error: upsertError } = await supabase
-        .from("risk_alerts")
-        .upsert(alerts, { onConflict: "organization_id,center,metric,period" });
-
-      if (upsertError) {
-        console.error("Upsert risk alerts error", upsertError);
+      if (upsertableAlerts.length === 0) {
+        if (runId) {
+          await supabase
+            .from("risk_runs")
+            .update({
+              finished_at: new Date().toISOString(),
+              status: runErrors.length > 0 ? "completed_with_errors" : "completed",
+              errors: runErrors,
+              alerts_upserted: alertsUpserted,
+            })
+            .eq("id", runId);
+        }
         continue;
       }
 
-      totalAlerts += alerts.length;
+      const { error: upsertError } = await supabase
+        .from("risk_alerts")
+        .upsert(upsertableAlerts, { onConflict: "organization_id,center,metric,period" });
+
+      if (upsertError) {
+        console.error("Upsert risk alerts error", upsertError);
+        runErrors.push("Error al escribir alertas.");
+        if (runId) {
+          await supabase
+            .from("risk_runs")
+            .update({ finished_at: new Date().toISOString(), status: "failed", errors: runErrors })
+            .eq("id", runId);
+        }
+        continue;
+      }
+
+      alertsUpserted += upsertableAlerts.length;
+      totalAlerts += upsertableAlerts.length;
+
+      if (runId) {
+        await supabase
+          .from("risk_runs")
+          .update({
+            finished_at: new Date().toISOString(),
+            status: runErrors.length > 0 ? "completed_with_errors" : "completed",
+            errors: runErrors,
+            alerts_upserted: alertsUpserted,
+          })
+          .eq("id", runId);
+      }
     }
 
     return new Response(JSON.stringify({ ok: true, totalAlerts }), {
