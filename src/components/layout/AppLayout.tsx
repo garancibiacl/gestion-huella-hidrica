@@ -1,16 +1,18 @@
 import { useState } from 'react';
 import { Outlet, Navigate } from 'react-router-dom';
-import { Menu } from 'lucide-react';
+import { Menu, PanelLeft, PanelRightOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { AppSidebar } from './AppSidebar';
 import { Button } from '@/components/ui/button';
 import { usePageTracking } from '@/hooks/usePageTracking';
 import { FullPageLoader } from '@/components/ui/full-page-loader';
+import { cn } from '@/lib/utils';
 
 export function AppLayout() {
   const { user, loading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
   // Track page views
   usePageTracking();
@@ -26,8 +28,16 @@ export function AppLayout() {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:block w-64 fixed inset-y-0 left-0 z-50">
-        <AppSidebar />
+      <aside
+        className={cn(
+          'hidden lg:block fixed inset-y-0 left-0 z-50 transition-[width] duration-300 ease-out',
+          sidebarCollapsed ? 'w-16' : 'w-64'
+        )}
+      >
+        <AppSidebar
+          isCollapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
+        />
       </aside>
 
       {/* Mobile Sidebar Overlay */}
@@ -68,7 +78,12 @@ export function AppLayout() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 lg:ml-64 pt-16 lg:pt-0">
+      <main
+        className={cn(
+          'flex-1 pt-16 lg:pt-0',
+          sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'
+        )}
+      >
         <Outlet />
       </main>
     </div>
