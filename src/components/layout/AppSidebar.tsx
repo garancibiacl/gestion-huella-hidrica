@@ -13,6 +13,7 @@ import {
   Users,
   BarChart3,
   HelpCircle,
+  Activity,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
@@ -37,6 +38,11 @@ const navItems: NavItem[] = [
     label: "Analytics",
     path: "/admin/analytics",
     adminOnly: true,
+  },
+  {
+    icon: Activity,
+    label: "Capa predictiva",
+    path: "/admin/riesgos",
   },
 ];
 
@@ -150,7 +156,7 @@ function UserMenuPortal({
 export function AppSidebar({ onClose }: AppSidebarProps) {
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const { isAdmin, isPrevencionista } = useRole();
+  const { isAdmin, isPrevencionista, loading } = useRole();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -179,12 +185,17 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
   };
 
   const filteredNavItems = navItems.filter((item) => {
+    // Ítems solo admin
     if (item.adminOnly && !isAdmin) {
       return false;
     }
-    if (isPrevencionista && item.path === "/importar") {
+
+    // Mientras el rol se está cargando o si es prevencionista,
+    // ocultamos "Importar Datos" para evitar parpadeos
+    if ((loading || isPrevencionista) && item.path === "/importar") {
       return false;
     }
+
     return true;
   });
 

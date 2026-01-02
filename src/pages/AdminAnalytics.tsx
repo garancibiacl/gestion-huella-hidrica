@@ -395,10 +395,6 @@ export default function AdminAnalytics() {
         </div>
       )}
 
-      <div className="mb-6">
-        <RiskPanel />
-      </div>
-
       {/* Main Chart */}
       {loading ? (
         <SkeletonChart />
