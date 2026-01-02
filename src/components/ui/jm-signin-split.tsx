@@ -19,10 +19,10 @@ export function JmSigninSplit({
   children,
 }: JmSigninSplitProps) {
   return (
-    <div className="min-h-screen w-full bg-[#F6F7F9] px-4 py-6 sm:px-6 lg:px-8">
+    <div className="min-h-screen w-full bg-gradient-to-br from-[#F6F7F9] via-[#EEF1F6] to-[#E5E9F1] px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-[840px] items-center justify-center">
-        <div className="grid w-full overflow-hidden rounded-3xl bg-white shadow-[0_14px_40px_rgba(15,23,42,0.08)] lg:grid-cols-2">
-          <section className="relative hidden flex-col justify-between overflow-hidden bg-[#ba4a3f] px-9 py-9 text-white lg:flex">
+        <div className="grid w-full overflow-hidden rounded-3xl bg-white shadow-[0_22px_60px_rgba(15,23,42,0.16)] lg:grid-cols-2">
+          <section className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-[#ba4a3f] to-[#9f3328] px-9 py-9 text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)] lg:flex">
             <div className="relative z-10">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/90 shadow-sm">
@@ -85,7 +85,7 @@ export function JmSigninSplit({
                 <p className="mt-3 text-sm text-[#4B5563]">{subtitle}</p>
               </div>
 
-              <div className="rounded-2xl border border-[#ECEFF3] bg-white p-5 shadow-[0_16px_36px_rgba(15,23,42,0.08)] sm:p-6">
+              <div className="rounded-2xl bg-white p-5 shadow-[0_18px_30px_rgba(15,23,42,0.14)] sm:p-6">
                 {children}
               </div>
             </div>

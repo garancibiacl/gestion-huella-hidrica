@@ -305,7 +305,7 @@ export default function AuthPage() {
 
           <Button
             type="submit"
-            className="h-10 w-full rounded-xl bg-[#ba4a3f] text-sm font-medium text-white hover:bg-[#a13f36] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ba4a3f]/40 disabled:opacity-70"
+            className="h-10 w-full rounded-xl bg-[#ba4a3f] text-sm font-medium text-white shadow-[0_10px_24px_rgba(186,74,63,0.45)] hover:bg-[#a13f36] hover:shadow-[0_14px_30px_rgba(186,74,63,0.55)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ba4a3f]/40 disabled:opacity-70 transition-shadow"
             disabled={loading}
           >
             {loading ? (
