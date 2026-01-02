@@ -10,7 +10,7 @@ import {
   Smartphone,
   FileText,
   ArrowUpRight,
-  Loader2,
+  Hourglass,
   TrendingUp,
   TrendingDown,
   Percent,
@@ -280,7 +280,10 @@ export default function AdminAnalytics() {
   if (roleLoading) {
     return (
       <div className="page-container flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <div className="flex flex-col items-center gap-3">
+          <Hourglass className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Conectando con tus datos ambientales</p>
+        </div>
       </div>
     );
   }

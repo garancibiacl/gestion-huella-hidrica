@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { LoaderHourglass } from '@/components/ui/loader-hourglass';
 import {
   Pagination,
   PaginationContent,
@@ -358,9 +359,8 @@ export default function RiskPanel() {
 
   if (loading || loadingAlerts || loadingRuns) {
     return (
-      <div className="stat-card flex items-center justify-center py-8">
-        <Activity className="w-4 h-4 text-muted-foreground mr-2" />
-        <span className="text-muted-foreground">Cargando señales de riesgo...</span>
+      <div className="flex items-center justify-center py-8">
+        <LoaderHourglass label="Cargando señales de riesgo..." />
       </div>
     );
   }

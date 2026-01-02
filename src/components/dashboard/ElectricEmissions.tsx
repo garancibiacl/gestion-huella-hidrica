@@ -19,6 +19,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { exportCarbonFootprintReport } from '@/lib/pdf-export';
 import { useToast } from '@/hooks/use-toast';
+import { LoaderHourglass } from '@/components/ui/loader-hourglass';
 
 type EmissionRow = {
   period: string;
@@ -221,9 +222,8 @@ export default function ElectricEmissions() {
 
   if (loading) {
     return (
-      <div className="stat-card flex items-center justify-center py-12">
-        <Leaf className="w-4 h-4 text-muted-foreground mr-2 animate-pulse" />
-        <span className="text-muted-foreground">Cargando emisiones...</span>
+      <div className="flex items-center justify-center py-12">
+        <LoaderHourglass label="Cargando emisiones..." />
       </div>
     );
   }

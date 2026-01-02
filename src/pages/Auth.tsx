@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { FullPageLoader } from "@/components/ui/full-page-loader";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,8 +32,13 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   const navigate = useNavigate();
-  const { user, signIn, signUp, signInWithGoogle } = useAuth();
+  const { user, loading: authLoading, signIn, signUp, signInWithGoogle } = useAuth();
   const { toast } = useToast();
+
+  // Loader global mientras se inicializa la sesión de Supabase
+  if (authLoading) {
+    return <FullPageLoader />;
+  }
 
   if (user) {
     return <Navigate to="/dashboard" replace />;

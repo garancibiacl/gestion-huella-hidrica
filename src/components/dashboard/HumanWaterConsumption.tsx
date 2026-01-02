@@ -38,6 +38,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ExportPDFButton } from "@/components/export/ExportPDFButton";
 import { exportHumanWaterReport } from "@/lib/pdf-export";
+import { LoaderHourglass } from "@/components/ui/loader-hourglass";
 
 interface HumanWaterData {
   id: string;
@@ -333,6 +334,9 @@ export default function HumanWaterConsumption() {
   if (loading) {
     return (
       <>
+        <div className="flex items-center justify-center py-6">
+          <LoaderHourglass label="Cargando consumo humano" />
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <SkeletonCard />
           <SkeletonCard />

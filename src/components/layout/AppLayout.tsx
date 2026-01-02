@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Outlet, Navigate } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { AppSidebar } from './AppSidebar';
 import { Button } from '@/components/ui/button';
 import { usePageTracking } from '@/hooks/usePageTracking';
+import { FullPageLoader } from '@/components/ui/full-page-loader';
 
 export function AppLayout() {
   const { user, loading } = useAuth();
@@ -15,14 +16,7 @@ export function AppLayout() {
   usePageTracking();
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-primary/10 animate-pulse" />
-          <p className="text-muted-foreground">Cargando...</p>
-        </div>
-      </div>
-    );
+    return <FullPageLoader />;
   }
 
   if (!user) {

@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Activity, AlertTriangle, TrendingUp, Zap } from 'lucide-react';
-import { hatch } from 'ldrs';
+import { LoaderHourglass } from '@/components/ui/loader-hourglass';
 import {
   BarChart,
   Bar,
@@ -18,8 +18,6 @@ import { useElectricMeters } from '@/hooks/useElectricMeters';
 import { useRiskSignals, type RiskRecord } from '@/hooks/useRiskSignals';
 import { ExportPDFButton } from '@/components/export/ExportPDFButton';
 import { exportElectricReport } from '@/lib/pdf-export';
-
-hatch.register();
 
 interface PeriodSummary {
   period: string;
@@ -171,8 +169,7 @@ export default function ElectricConsumptionHistory() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <l-hatch size="28" stroke="4" speed="3.5" color="hsl(var(--destructive))" />
-        <span className="ml-2 text-muted-foreground">Cargando histórico...</span>
+        <LoaderHourglass label="Cargando histórico de energía" />
       </div>
     );
   }

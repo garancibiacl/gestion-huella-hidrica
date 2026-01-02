@@ -13,6 +13,7 @@ import {
 } from 'recharts';
 import { StatCard } from '@/components/ui/stat-card';
 import { SkeletonCard, SkeletonChart } from '@/components/ui/skeleton-card';
+import { LoaderHourglass } from '@/components/ui/loader-hourglass';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useElectricMeters } from '@/hooks/useElectricMeters';
 
@@ -112,6 +113,9 @@ export default function ElectricMeterConsumption() {
   if (loading) {
     return (
       <>
+        <div className="flex items-center justify-center py-6">
+          <LoaderHourglass label="Cargando consumo eléctrico por medidor" />
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <SkeletonCard />
           <SkeletonCard />
