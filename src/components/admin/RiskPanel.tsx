@@ -65,8 +65,9 @@ interface RiskRunRow {
   id: string;
   started_at: string;
   finished_at: string | null;
-  status: string;
-  alerts_upserted: number;
+  alerts_created: number;
+  alerts_updated: number;
+  alerts_skipped: number;
   errors: string[] | null;
 }
 
@@ -166,7 +167,7 @@ export default function RiskPanel() {
       setLoadingRuns(true);
       const { data, error } = await supabase
         .from('risk_runs')
-        .select('id, started_at, finished_at, status, alerts_upserted, errors')
+        .select('id, started_at, finished_at, alerts_created, alerts_updated, alerts_skipped, errors')
         .order('started_at', { ascending: false })
         .limit(10);
 
@@ -174,9 +175,10 @@ export default function RiskPanel() {
         setRiskRuns(data.map((row) => ({
           id: row.id,
           started_at: row.started_at,
-          finished_at: row.finished_at,
-          status: row.status,
-          alerts_upserted: row.alerts_upserted ?? 0,
+          finished_at: row.finished_at ?? null,
+          alerts_created: row.alerts_created ?? 0,
+          alerts_updated: row.alerts_updated ?? 0,
+          alerts_skipped: row.alerts_skipped ?? 0,
           errors: row.errors as string[] | null,
         })));
       }
@@ -747,8 +749,9 @@ export default function RiskPanel() {
             <thead className="text-muted-foreground">
               <tr className="border-b border-border">
                 <th className="text-left py-2 pr-3 font-medium">Inicio</th>
-                <th className="text-left py-2 px-3 font-medium">Estado</th>
-                <th className="text-right py-2 px-3 font-medium">Alertas</th>
+                <th className="text-right py-2 px-3 font-medium">Creadas</th>
+                <th className="text-right py-2 px-3 font-medium">Actualizadas</th>
+                <th className="text-right py-2 px-3 font-medium">Omitidas</th>
                 <th className="text-left py-2 px-3 font-medium">Errores</th>
               </tr>
             </thead>
@@ -765,8 +768,9 @@ export default function RiskPanel() {
                         month: 'short',
                       })}
                     </td>
-                    <td className="py-2 px-3">{run.status}</td>
-                    <td className="py-2 px-3 text-right">{run.alerts_upserted}</td>
+                    <td className="py-2 px-3 text-right">{run.alerts_created}</td>
+                    <td className="py-2 px-3 text-right">{run.alerts_updated}</td>
+                    <td className="py-2 px-3 text-right">{run.alerts_skipped}</td>
                     <td className="py-2 px-3 text-left text-muted-foreground">
                       {(run.errors ?? []).length > 0 ? 'Con errores' : 'OK'}
                     </td>
@@ -774,7 +778,7 @@ export default function RiskPanel() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="py-6 text-center text-muted-foreground">
+                  <td colSpan={5} className="py-6 text-center text-muted-foreground">
                     Sin runs registrados.
                   </td>
                 </tr>
