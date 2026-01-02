@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -322,6 +322,7 @@ export function useWaterMeterSync(options: UseWaterMeterSyncOptions = {}) {
   const { enabled = true, onSyncStart, onSyncComplete } = options;
   const { user } = useAuth();
   const syncInProgress = useRef(false);
+  const hasInitialSynced = useRef(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncAt, setLastSyncAt] = useState<number | null>(() => {
     const stored = localStorage.getItem(LAST_SYNC_KEY);
@@ -358,6 +359,14 @@ export function useWaterMeterSync(options: UseWaterMeterSyncOptions = {}) {
 
     return result;
   }, [user?.id, shouldSync, onSyncStart, onSyncComplete]);
+
+  // Auto-sync on mount
+  useEffect(() => {
+    if (enabled && user?.id && !hasInitialSynced.current) {
+      hasInitialSynced.current = true;
+      syncWaterMeter(true);
+    }
+  }, [enabled, user?.id, syncWaterMeter]);
 
   return { syncWaterMeter, isSyncing, lastSyncAt };
 }
