@@ -22,7 +22,7 @@ export function JmSigninSplit({
     <div className="min-h-screen w-full bg-[#F6F7F9] px-4 py-6 sm:px-6 lg:px-8">
       <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-[840px] items-center justify-center">
         <div className="grid w-full overflow-hidden rounded-3xl bg-white shadow-[0_14px_40px_rgba(15,23,42,0.08)] lg:grid-cols-2">
-          <section className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-[#8D1116] via-[#C3161D] to-[#5B0B0F] px-9 py-9 text-white lg:flex">
+          <section className="relative hidden flex-col justify-between overflow-hidden bg-[#ba4a3f] px-9 py-9 text-white lg:flex">
             <div className="relative z-10">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/90 shadow-sm">
@@ -74,7 +74,7 @@ export function JmSigninSplit({
                     />
                   </div>
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#C3161D]">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#ba4a3f]">
                       Plataforma JM
                     </p>
                     <p className="text-base font-semibold text-[#0A0D12]">

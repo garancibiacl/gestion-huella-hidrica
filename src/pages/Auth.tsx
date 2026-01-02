@@ -181,7 +181,7 @@ export default function AuthPage() {
                   aria-describedby={
                     errors.firstName ? "firstName-error" : undefined
                   }
-                  className="border-[#E6E9ED] bg-[#F9FAFB] focus-visible:ring-2 focus-visible:ring-[#C3161D]/40 focus-visible:border-[#C3161D]"
+                  className="border-[#E6E9ED] bg-[#F9FAFB] focus-visible:ring-2 focus-visible:ring-[#ba4a3f]/40 focus-visible:border-[#ba4a3f]"
                 />
                 {errors.firstName && (
                   <p
@@ -260,12 +260,12 @@ export default function AuthPage() {
                 aria-label="Contraseña"
                 aria-invalid={!!errors.password}
                 aria-describedby={errors.password ? "password-error" : undefined}
-                className="border-[#E6E9ED] bg-[#F9FAFB] pr-10 focus-visible:ring-2 focus-visible:ring-[#C3161D]/40 focus-visible:border-[#C3161D]"
+                className="border-[#E6E9ED] bg-[#F9FAFB] pr-10 focus-visible:ring-2 focus-visible:ring-[#ba4a3f]/40 focus-visible:border-[#ba4a3f]"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-[#6B7280] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C3161D]/40"
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-[#6B7280] hover:text-[#111827] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ba4a3f]/40"
                 aria-label={
                   showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
                 }
@@ -290,7 +290,7 @@ export default function AuthPage() {
               <button
                 type="button"
                 onClick={handleForgotPassword}
-                className="text-xs text-[#8D1116] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C3161D]/40 rounded"
+                className="text-xs text-[#ba4a3f] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ba4a3f]/30 rounded"
               >
                 ¿Olvidaste tu contraseña?
               </button>
@@ -299,7 +299,7 @@ export default function AuthPage() {
 
           <Button
             type="submit"
-            className="h-10 w-full rounded-xl bg-[#C3161D] text-sm font-medium text-white hover:bg-[#A31217] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C3161D]/40 disabled:opacity-70"
+            className="h-10 w-full rounded-xl bg-[#ba4a3f] text-sm font-medium text-white hover:bg-[#a13f36] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ba4a3f]/40 disabled:opacity-70"
             disabled={loading}
           >
             {loading ? (
@@ -319,7 +319,7 @@ export default function AuthPage() {
             <button
               type="button"
               onClick={() => setIsLogin(!isLogin)}
-              className="font-medium text-[#8D1116] hover:underline"
+              className="font-medium text-[#ba4a3f] hover:underline"
             >
               {isLogin ? "Regístrate" : "Inicia sesión"}
             </button>
