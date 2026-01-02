@@ -133,7 +133,7 @@ function UserMenuPortal({
   return (
     <div
       ref={menuRef}
-      className="fixed z-[60] w-72 rounded-xl bg-white text-[#0A0D12] shadow-lg ring-1 ring-black/5 overflow-y-auto"
+      className="fixed z-[60] w-80 rounded-xl bg-white text-[#0A0D12] shadow-lg ring-1 ring-black/5 overflow-y-auto"
       style={{
         top: pos.top,
         left: pos.left,
@@ -179,6 +179,8 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
       .slice(0, 2)
       .map((part) => part.charAt(0).toUpperCase())
       .join("") || "BJ";
+
+  const roleLabel = isAdmin ? "Admin" : isPrevencionista ? "Prevencionista" : null;
 
   const handleSignOut = async () => {
     await signOut();
@@ -289,7 +291,7 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
               triggerRef={userMenuButtonRef}
               onRequestClose={() => setUserMenuOpen(false)}
             >
-              <div className="px-4 py-3 border-b border-black/5">
+              <div className="px-5 py-5 border-b border-black/5">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-[#b3382a]/10 flex items-center justify-center text-[#b3382a] text-xs font-semibold">
                     {initials}
@@ -298,37 +300,40 @@ export function AppSidebar({ onClose }: AppSidebarProps) {
                     <p className="text-sm font-medium truncate max-w-[160px]">
                       {fullName}
                     </p>
+                    <p className="text-[11px] text-[#9AA2AB]">
+                      Cuenta JM{roleLabel ? ` · ${roleLabel}` : ""}
+                    </p>
                     <p className="text-xs text-[#5B6770] truncate">
                       {user?.email}
                     </p>
                   </div>
                 </div>
               </div>
-              <div className="py-2">
+              <div className="py-4">
                 <Link
                   to="/configuracion"
                   onClick={onClose}
-                  className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-[#F7F9FA]"
+                  className="flex items-center gap-3 px-5 py-3 text-sm hover:bg-[#f1f3f5]"
                 >
-                  <Settings className="w-4 h-4 text-[#0A0D12]/70" />
+                  <Settings className="w-4 h-4 text-[#ba4a3f]" />
                   <span>Configuración de cuenta</span>
                 </Link>
                 <Link
                   to="/ayuda"
                   onClick={onClose}
-                  className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-[#F7F9FA]"
+                  className="flex items-center gap-3 px-5 py-2.5 text-sm hover:bg-[#f1f3f5]"
                 >
-                  <HelpCircle className="w-4 h-4 text-[#0A0D12]/70" />
+                  <HelpCircle className="w-4 h-4 text-[#ba4a3f]" />
                   <span>Centro de ayuda</span>
                 </Link>
               </div>
               <button
                 type="button"
                 onClick={handleSignOut}
-                className="w-full flex items-center gap-3 text-left text-sm text-[#0A0D12] hover:bg-[#F7F9FA] px-4 py-2 rounded-b-xl border-t border-black/5"
+                className="w-full flex items-center gap-3 text-left text-sm text-[#0A0D12] hover:bg-[#f1f3f5] px-5 py-3 rounded-b-xl border-t border-black/5"
               >
-                <LogOut className="w-4 h-4 text-[#0A0D12]/70" />
-                <span>Cerrar sesión</span>
+                <LogOut className="w-4 h-4 text-[#ba4a3f]" />
+                <span className="text-[#5B6770]">Cerrar sesión</span>
               </button>
             </UserMenuPortal>,
             document.body
