@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import type { Tables } from '@/integrations/supabase/types';
 import {
   PetroleumPeriodAggregate,
   PetroleumDashboardMetrics,
@@ -12,8 +11,26 @@ import {
   calculatePetroleumDashboardMetrics,
   buildPetroleumRecommendations,
 } from '@/lib/petroleum/utils';
-
-export type PetroleumConsumptionRow = Tables<'petroleum_consumption'>;
+ 
+// Tipo local para filas de la tabla petroleum_consumption.
+// Esto evita depender de la regeneración automática de tipos de Supabase.
+export interface PetroleumConsumptionRow {
+  id: string | number;
+  user_id: string;
+  organization_id: string;
+  period: string;
+  period_label: string | null;
+  date_emission: string | null;
+  date_payment: string | null;
+  created_at?: string | null;
+  center: string | null;
+  company: string | null;
+  supplier: string | null;
+  liters: number | null;
+  total_cost: number | null;
+  mining_use_raw: string | null;
+  is_mining_use: boolean | null;
+}
 
 interface UsePetroleumDataResult {
   loading: boolean;
@@ -22,6 +39,7 @@ interface UsePetroleumDataResult {
   aggregates: PetroleumPeriodAggregate[];
   metrics: PetroleumDashboardMetrics | null;
   recommendations: PetroleumRecommendationsSummary | null;
+  lastUpdated: number | null;
   refetch: () => Promise<void>;
 }
 
@@ -60,13 +78,14 @@ export function usePetroleumData(): UsePetroleumDataResult {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  const { aggregates, metrics, recommendations } = useMemo(() => {
+  const { aggregates, metrics, recommendations, lastUpdated } = useMemo(() => {
     if (rows.length === 0) {
       return {
         aggregates: [] as PetroleumPeriodAggregate[],
         metrics: null as PetroleumDashboardMetrics | null,
         recommendations: null as PetroleumRecommendationsSummary | null,
-      };
+        lastUpdated: null,
+      } as any;
     }
 
     const mappedRows = rows.map((row) => ({
@@ -79,7 +98,7 @@ export function usePetroleumData(): UsePetroleumDataResult {
       company: row.company ?? '',
       supplier: row.supplier ?? '',
       liters: Number(row.liters ?? 0),
-      unit: 'L',
+      unit: 'L' as const,
       totalCost: Number(row.total_cost ?? 0),
       miningUseRaw: row.mining_use_raw ?? '',
       isMiningUse: Boolean(row.is_mining_use),
@@ -97,10 +116,19 @@ export function usePetroleumData(): UsePetroleumDataResult {
 
     const recommendationsResult = buildPetroleumRecommendations(aggregatesResult);
 
+    const lastUpdatedTs = rows.reduce<number>((max, row) => {
+      const dateStr = row.date_emission || row.date_payment || row.created_at || null;
+      if (!dateStr) return max;
+      const ts = new Date(dateStr).getTime();
+      if (Number.isNaN(ts)) return max;
+      return Math.max(max, ts);
+    }, 0);
+
     return {
       aggregates: aggregatesResult,
       metrics: metricsResult,
       recommendations: recommendationsResult,
+      lastUpdated: lastUpdatedTs || null,
     };
   }, [rows]);
 
@@ -111,6 +139,7 @@ export function usePetroleumData(): UsePetroleumDataResult {
     aggregates,
     metrics,
     recommendations,
+    lastUpdated,
     refetch: load,
   };
 }
