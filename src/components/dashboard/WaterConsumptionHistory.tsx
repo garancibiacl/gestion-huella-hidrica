@@ -177,16 +177,27 @@ export default function WaterConsumptionHistory() {
         </div>
         <div className="flex items-end gap-3">
           <ExportPDFButton
-            onExport={() => exportWaterReport({
-              summaries: filteredSummaries,
-              totalM3,
-              totalCost,
-              variation,
-              forecastM3,
-              forecastCost,
-              alerts,
-              dateRange: range === 'all' ? 'Todo el histórico' : `Últimos ${range} períodos`,
-            })}
+            onExport={async () => {
+              const logoResponse = await fetch("/images/logo.png");
+              const logoBlob = await logoResponse.blob();
+              const logoDataUrl = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = () => reject(reader.error);
+                reader.readAsDataURL(logoBlob);
+              });
+              exportWaterReport({
+                summaries: filteredSummaries,
+                totalM3,
+                totalCost,
+                variation,
+                forecastM3,
+                forecastCost,
+                alerts,
+                dateRange: range === 'all' ? 'Todo el histórico' : `Últimos ${range} períodos`,
+                logoDataUrl,
+              });
+            }}
             label="Exportar PDF"
           />
           <div className="flex flex-col gap-1">

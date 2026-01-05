@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { calculateImpactFromLiters, calculateImpactFromM3, type ImpactMetrics } from '@/lib/impact';
 
 // Corporate colors
 const PRIMARY_COLOR: [number, number, number] = [179, 56, 42]; // #b3382a
@@ -33,6 +34,7 @@ interface PDFExportOptions {
   organization?: string;
   logoDataUrl?: string;
   kpis?: KPIData[];
+  impact?: ImpactMetrics;
   tableData?: Record<string, any>[];
   tableColumns?: TableColumn[];
   chartData?: ChartDataPoint[];
@@ -85,9 +87,9 @@ export function generatePDF(options: PDFExportOptions): void {
     }
   };
 
-  // Header with gradient-like effect
-  drawRect(0, 0, pageWidth, 45, [250, 250, 250]);
-  drawRect(0, 0, pageWidth, 3, PRIMARY_COLOR);
+  // Header
+  drawRect(0, 0, pageWidth, 38, [248, 248, 248]);
+  drawRect(0, 0, pageWidth, 4, PRIMARY_COLOR);
 
   // Logo placeholder / Company name
   let headerX = margin;
@@ -108,8 +110,8 @@ export function generatePDF(options: PDFExportOptions): void {
     }
   }
 
-  addText('REPORTE', headerX, 20, { fontSize: 24, fontStyle: 'bold', color: PRIMARY_COLOR });
-  addText(options.title.toUpperCase(), headerX, 30, { fontSize: 12, fontStyle: 'bold', color: TEXT_COLOR });
+  addText('REPORTE MENSUAL', headerX, 18, { fontSize: 16, fontStyle: 'bold', color: PRIMARY_COLOR });
+  addText(options.title, headerX, 27, { fontSize: 11, fontStyle: 'bold', color: TEXT_COLOR });
   
   // Date and organization
   const today = new Date().toLocaleDateString('es-CL', { 
@@ -124,10 +126,10 @@ export function generatePDF(options: PDFExportOptions): void {
   }
   
   if (options.dateRange) {
-    addText(`Período: ${options.dateRange}`, pageWidth - margin, 32, { fontSize: 8, color: MUTED_COLOR, align: 'right' });
+    addText(`Período: ${options.dateRange}`, pageWidth - margin, 30, { fontSize: 8, color: MUTED_COLOR, align: 'right' });
   }
 
-  yPos = 55;
+  yPos = 48;
 
   // Subtitle
   if (options.subtitle) {
@@ -138,28 +140,57 @@ export function generatePDF(options: PDFExportOptions): void {
   // KPIs Section
   if (options.kpis && options.kpis.length > 0) {
     const kpiWidth = (pageWidth - margin * 2 - (options.kpis.length - 1) * 5) / Math.min(options.kpis.length, 4);
-    const kpiHeight = 30;
+    const kpiHeight = 28;
     
     options.kpis.slice(0, 4).forEach((kpi, index) => {
       const x = margin + index * (kpiWidth + 5);
       
       // KPI Card background
-      drawRect(x, yPos, kpiWidth, kpiHeight, [252, 252, 252]);
-      drawRect(x, yPos, kpiWidth, 2, index === 0 ? PRIMARY_COLOR : SECONDARY_COLOR);
+      drawRect(x, yPos, kpiWidth, kpiHeight, [255, 255, 255]);
+      drawRect(x, yPos, kpiWidth, 1.5, index === 0 ? PRIMARY_COLOR : SECONDARY_COLOR);
+      drawRect(x, yPos, kpiWidth, kpiHeight, [230, 230, 230], false);
       
       // KPI Title
-      addText(kpi.title, x + 5, yPos + 10, { fontSize: 7, color: MUTED_COLOR });
+      addText(kpi.title, x + 5, yPos + 9, { fontSize: 7, color: MUTED_COLOR });
       
       // KPI Value
-      addText(kpi.value, x + 5, yPos + 20, { fontSize: 14, fontStyle: 'bold', color: TEXT_COLOR });
+      addText(kpi.value, x + 5, yPos + 19, { fontSize: 13, fontStyle: 'bold', color: TEXT_COLOR });
       
       // KPI Subtitle
       if (kpi.subtitle) {
-        addText(kpi.subtitle, x + 5, yPos + 26, { fontSize: 6, color: MUTED_COLOR });
+        addText(kpi.subtitle, x + 5, yPos + 25, { fontSize: 6, color: MUTED_COLOR });
       }
     });
     
-    yPos += kpiHeight + 15;
+    yPos += kpiHeight + 10;
+  }
+
+  // Impact Section
+  if (options.impact) {
+    addText('Impacto Ambiental', margin, yPos, { fontSize: 11, fontStyle: 'bold', color: TEXT_COLOR });
+    addText('Tus acciones están generando este impacto positivo', margin, yPos + 6, { fontSize: 8, color: MUTED_COLOR });
+    yPos += 12;
+
+    const impactCardWidth = (pageWidth - margin * 2 - 10) / 3;
+    const impactCardHeight = 24;
+    const impactLabels = [
+      { title: 'Litros ahorrados', value: `${Math.round(options.impact.litersSaved).toLocaleString('es-CL')} L`, color: PRIMARY_COLOR },
+      { title: 'Energía asociada', value: `${Math.round(options.impact.energySavedKwh).toLocaleString('es-CL')} kWh`, color: [30, 102, 163] as [number, number, number] },
+      { title: 'Emisiones evitadas', value: `${options.impact.emissionsAvoidedKg.toFixed(1)} kg CO₂e`, color: SECONDARY_COLOR },
+    ];
+
+    impactLabels.forEach((item, index) => {
+      const x = margin + index * (impactCardWidth + 5);
+      drawRect(x, yPos, impactCardWidth, impactCardHeight, [255, 255, 255]);
+      drawRect(x, yPos, impactCardWidth, impactCardHeight, [230, 230, 230], false);
+      drawRect(x, yPos, impactCardWidth, 1.5, item.color);
+      doc.setFillColor(...item.color);
+      doc.circle(x + 6, yPos + 8, 3, 'F');
+      addText(item.title, x + 12, yPos + 9, { fontSize: 7, color: MUTED_COLOR });
+      addText(item.value, x + 12, yPos + 18, { fontSize: 10, fontStyle: 'bold', color: TEXT_COLOR });
+    });
+
+    yPos += impactCardHeight + 12;
   }
 
   // Chart visualization (simple bar representation)
@@ -167,7 +198,7 @@ export function generatePDF(options: PDFExportOptions): void {
     addText(options.chartTitle, margin, yPos, { fontSize: 11, fontStyle: 'bold', color: TEXT_COLOR });
     yPos += 8;
     
-    const chartHeight = 50;
+    const chartHeight = 38;
     const chartWidth = pageWidth - margin * 2;
     const barWidth = Math.min((chartWidth - 10) / options.chartData.length - 2, 15);
     const maxValue = Math.max(...options.chartData.map(d => Math.max(d.value, d.value2 || 0)));
@@ -199,7 +230,7 @@ export function generatePDF(options: PDFExportOptions): void {
       }
     });
     
-    yPos += chartHeight + 15;
+    yPos += chartHeight + 10;
   }
 
   // Table Section
@@ -287,7 +318,7 @@ export function generatePDF(options: PDFExportOptions): void {
   drawLine(footerY - 5, [220, 220, 220]);
   
   addText(
-    options.footer || 'Documento generado automáticamente - Sistema de Gestión de Recursos',
+    options.footer || 'Agradecemos su compromiso con las prácticas sostenibles y el cuidado del medio ambiente para las futuras generaciones.',
     pageWidth / 2,
     footerY,
     { fontSize: 7, color: MUTED_COLOR, align: 'center' }
@@ -352,12 +383,18 @@ export function exportWaterReport(data: {
   alerts: string[];
   organization?: string;
   dateRange?: string;
+  logoDataUrl?: string;
 }) {
   generatePDF({
-    title: 'Reporte de Consumo Hídrico',
-    subtitle: 'Análisis de consumo de agua por período',
-    organization: data.organization,
+    // Alineado con la plantilla HTML: "Reporte Mensual – Consumo de Agua"
+    title: 'Reporte Mensual – Consumo de Agua',
+    // Subtítulo corporativo bajo el título principal
+    subtitle: 'Buses JM · Gestión Medioambiental',
+    // Si no se pasa organización explícita, usamos una por defecto coherente
+    organization: data.organization ?? 'Buses JM',
     dateRange: data.dateRange,
+    logoDataUrl: data.logoDataUrl,
+    impact: calculateImpactFromM3(data.totalM3),
     kpis: [
       { title: 'm³ Total', value: data.totalM3.toLocaleString(), subtitle: 'Consumo acumulado' },
       { title: 'Costo Total', value: `$${data.totalCost.toLocaleString()}`, subtitle: 'Gasto acumulado' },
@@ -412,6 +449,7 @@ export function exportHumanWaterReport(data: {
     organization: data.organization,
     dateRange: data.dateRange,
     logoDataUrl: data.logoDataUrl,
+    impact: calculateImpactFromLiters(data.totalLitros),
     kpis: [
       { title: 'Botellas', value: data.totalBotellas.toLocaleString(), subtitle: `${(data.totalBotellas * 0.5).toLocaleString()} litros` },
       { title: 'Bidones 20L', value: data.totalBidones.toLocaleString(), subtitle: `${(data.totalBidones * 20).toLocaleString()} litros` },
