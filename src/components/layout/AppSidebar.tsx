@@ -16,6 +16,7 @@ import {
   Activity,
   PanelLeft,
   PanelRightOpen,
+  Flame,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
@@ -32,6 +33,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { icon: Droplets, label: "Agua", path: "/dashboard/agua" },
   { icon: Zap, label: "Energía Eléctrica", path: "/dashboard/energia" },
+  { icon: Flame, label: "Petróleo", path: "/dashboard/petroleo" },
   { icon: Upload, label: "Importar Datos", path: "/importar" },
   { icon: Calendar, label: "Períodos", path: "/periodos" },
   { icon: Leaf, label: "Medidas Sustentables", path: "/medidas" },

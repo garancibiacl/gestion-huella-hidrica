@@ -9,7 +9,9 @@ import Auth from "./pages/Auth";
 import WaterDashboard from "./pages/WaterDashboard";
 import WaterReportPreview from "./pages/WaterReportPreview";
 import ElectricDashboard from "./pages/ElectricDashboard";
+import PetroleumDashboard from "./pages/PetroleumDashboard";
 import ImportData from "./pages/ImportData";
+import ImportPetroleum from "./pages/ImportPetroleum";
 import Periods from "./pages/Periods";
 import SustainabilityActions from "./pages/SustainabilityActions";
 import Settings from "./pages/Settings";
@@ -34,7 +36,9 @@ const App = () => (
               <Route path="/dashboard" element={<Navigate to="/dashboard/agua" replace />} />
               <Route path="/dashboard/agua" element={<WaterDashboard />} />
               <Route path="/dashboard/energia" element={<ElectricDashboard />} />
+              <Route path="/dashboard/petroleo" element={<PetroleumDashboard />} />
               <Route path="/importar" element={<ImportData />} />
+              <Route path="/importar/petroleo" element={<ImportPetroleum />} />
               <Route path="/periodos" element={<Periods />} />
               <Route path="/medidas" element={<SustainabilityActions />} />
               <Route path="/configuracion" element={<Settings />} />
