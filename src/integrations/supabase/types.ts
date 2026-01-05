@@ -245,6 +245,71 @@ export type Database = {
         }
         Relationships: []
       }
+      petroleum_consumption: {
+        Row: {
+          center: string | null
+          company: string | null
+          created_at: string | null
+          date_emission: string | null
+          date_payment: string | null
+          id: string
+          is_mining_use: boolean | null
+          liters: number | null
+          mining_use_raw: string | null
+          organization_id: string
+          period: string
+          period_label: string | null
+          supplier: string | null
+          total_cost: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          center?: string | null
+          company?: string | null
+          created_at?: string | null
+          date_emission?: string | null
+          date_payment?: string | null
+          id?: string
+          is_mining_use?: boolean | null
+          liters?: number | null
+          mining_use_raw?: string | null
+          organization_id: string
+          period: string
+          period_label?: string | null
+          supplier?: string | null
+          total_cost?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          center?: string | null
+          company?: string | null
+          created_at?: string | null
+          date_emission?: string | null
+          date_payment?: string | null
+          id?: string
+          is_mining_use?: boolean | null
+          liters?: number | null
+          mining_use_raw?: string | null
+          organization_id?: string
+          period?: string
+          period_label?: string | null
+          supplier?: string | null
+          total_cost?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "petroleum_consumption_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
