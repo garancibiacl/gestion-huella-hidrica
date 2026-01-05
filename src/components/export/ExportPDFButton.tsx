@@ -15,7 +15,7 @@ interface ExportPDFButtonProps {
 export function ExportPDFButton({ 
   onExport, 
   label = 'Exportar PDF',
-  variant = 'outline',
+  variant = 'default',
   size = 'sm',
   className
 }: ExportPDFButtonProps) {
@@ -46,8 +46,8 @@ export function ExportPDFButton({
       variant={variant}
       size={size}
       className={cn(
-        'gap-2 relative overflow-hidden transition-all duration-300',
-        isSuccess && 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/15',
+        'gap-2 relative overflow-hidden transition-all duration-300 bg-[#ba4a3f] text-white hover:bg-[#a13f36] disabled:opacity-70',
+        isSuccess && 'bg-[#14532d] border-0 text-white hover:bg-[#166534]',
         className
       )}
     >

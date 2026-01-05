@@ -492,13 +492,17 @@ export default function HumanWaterConsumption() {
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <span className="rounded-full border border-border bg-background px-3 py-1">
-            Litros botellas:{" "}
-            <span className="font-medium text-foreground">
+          <span className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-[11px] font-medium text-sky-800">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-[11px] text-sky-500">
+              🧴
+            </span>
+            <span className="uppercase tracking-[0.08em] text-[10px] text-sky-600">
+              Litros botellas
+            </span>
+            <span className="text-sky-900">
               {(totalBotellas * 0.5).toLocaleString()} L
             </span>
-            <span className="text-muted-foreground">
-              {" "}
+            <span className="text-sky-700/80">
               (
               {totalLitros > 0
                 ? (((totalBotellas * 0.5) / totalLitros) * 100).toFixed(0)
@@ -506,13 +510,17 @@ export default function HumanWaterConsumption() {
               %)
             </span>
           </span>
-          <span className="rounded-full border border-border bg-background px-3 py-1">
-            Litros bidones:{" "}
-            <span className="font-medium text-foreground">
+          <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] font-medium text-emerald-800">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-[11px] text-emerald-500">
+              💧
+            </span>
+            <span className="uppercase tracking-[0.08em] text-[10px] text-emerald-600">
+              Litros bidones
+            </span>
+            <span className="text-emerald-900">
               {(totalBidones * 20).toLocaleString()} L
             </span>
-            <span className="text-muted-foreground">
-              {" "}
+            <span className="text-emerald-700/80">
               (
               {totalLitros > 0
                 ? (((totalBidones * 20) / totalLitros) * 100).toFixed(0)

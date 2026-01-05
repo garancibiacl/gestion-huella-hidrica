@@ -278,10 +278,10 @@ export default function ElectricEmissions() {
             </Select>
           </div>
           <Button 
-            variant="outline" 
+            variant="default" 
             size="sm" 
             onClick={handleExportPDF}
-            className="gap-2 border-emerald-500/50 text-emerald-600 hover:bg-emerald-500/10"
+            className="gap-2 bg-[#ba4a3f] text-white hover:bg-[#a13f36] disabled:opacity-70"
           >
             <FileDown className="w-4 h-4" />
             Exportar PDF
@@ -293,12 +293,12 @@ export default function ElectricEmissions() {
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-[11px]">
-              🌍
+              🌱
             </span>
-            <span>Emisiones · Impacto Ambiental Eléctrico</span>
+            <span>Impacto Ambiental</span>
           </div>
           <p className="text-xs sm:text-sm text-muted-foreground max-w-xl">
-            Resumen de emisiones totales, factor promedio y variación del período para el rango seleccionado.
+            Tus acciones están generando este impacto positivo en la huella de carbono eléctrica.
           </p>
         </div>
 
@@ -328,6 +328,9 @@ export default function ElectricEmissions() {
             delay={0.2}
           />
         </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Cálculos de impacto basados en el consumo eléctrico gestionado en el período seleccionado.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
