@@ -57,16 +57,34 @@ export function usePetroleumData(): UsePetroleumDataResult {
     setLoading(true);
     setError(null);
     try {
+      // Primero obtener organization_id del perfil
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const organizationId = profile?.organization_id;
+      if (!organizationId) {
+        throw new Error('No se pudo determinar la organización del usuario.');
+      }
+
+      console.log('usePetroleumData: fetching for user', user.id, 'org', organizationId);
+
       const { data, error: queryError } = await supabase
         .from('petroleum_consumption')
         .select('*')
+        .eq('user_id', user.id)
+        .eq('organization_id', organizationId)
         .order('period', { ascending: true });
 
       if (queryError) throw queryError;
+      
+      console.log('usePetroleumData: fetched', data?.length || 0, 'rows');
       setRows(data || []);
     } catch (err: any) {
       console.error('Error loading petroleum consumption', err);
-      setError('No se pudieron cargar los datos de petróleo. Intenta importar nuevamente.');
+      setError(err.message || 'No se pudieron cargar los datos de petróleo. Intenta sincronizar nuevamente.');
     } finally {
       setLoading(false);
     }

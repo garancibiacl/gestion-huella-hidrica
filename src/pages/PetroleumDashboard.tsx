@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Flame, Fuel, Factory, CheckCircle2, Clock } from 'lucide-react';
+import { Flame, Fuel, Factory, CheckCircle2, Clock, RefreshCw } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -112,7 +112,7 @@ export default function PetroleumDashboard() {
             size="sm"
             className="gap-2"
           >
-            <Flame className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
             {isSyncing ? 'Sincronizando...' : 'Sincronizar Petróleo'}
           </Button>
 

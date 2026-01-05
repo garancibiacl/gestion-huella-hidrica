@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { derivePeriodKeyFromDate, formatPeriodLabel } from '@/lib/petroleum/utils';
 
-const CSV_URL = 'https://docs.google.com/spreadsheets/d/13tl9j5XIUwIzXJjcEHMU8cceizFMIWHY/export?format=csv&gid=0';
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSulIUx_mfD52-RGGAaiurttquT3pw9vQhZrI-WcLHozUyeovvIzGam23LnygJ2Wg/pub?gid=827941193&single=true&output=csv';
 const LAST_SYNC_KEY = 'last_petroleum_sync';
 const LAST_HASH_KEY = 'last_petroleum_hash';
 const MIN_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
