@@ -289,31 +289,45 @@ export default function ElectricEmissions() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-        <StatCard
-          title="Emisiones totales"
-          value={`${Math.round(totalEmissions).toLocaleString('es-CL')} kgCO₂e`}
-          icon={<Leaf className="w-5 h-5 text-emerald-500" />}
-          subtitle="Huella de carbono del rango"
-          delay={0}
-        />
-        <StatCard
-          title="Factor promedio"
-          value={`${emissionsPerKwh.toFixed(3)} kgCO₂e/kWh`}
-          icon={<Activity className="w-5 h-5 text-blue-500" />}
-          subtitle="Intensidad de emisiones"
-          delay={0.1}
-        />
-        <StatCard
-          title="Variación período"
-          value={`${isPositiveVariation ? '+' : ''}${(variation * 100).toFixed(1)}%`}
-          icon={isPositiveVariation 
-            ? <TrendingUp className="w-5 h-5 text-red-500" /> 
-            : <TrendingDown className="w-5 h-5 text-emerald-500" />
-          }
-          subtitle={previous ? `vs. ${previous.label}` : 'Sin período anterior'}
-          delay={0.2}
-        />
+      <div className="stat-card mb-6">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-[11px]">
+              🌍
+            </span>
+            <span>Emisiones · Impacto Ambiental Eléctrico</span>
+          </div>
+          <p className="text-xs sm:text-sm text-muted-foreground max-w-xl">
+            Resumen de emisiones totales, factor promedio y variación del período para el rango seleccionado.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <StatCard
+            title="Emisiones totales"
+            value={`${Math.round(totalEmissions).toLocaleString('es-CL')} kgCO₂e`}
+            icon={<Leaf className="w-5 h-5 text-emerald-500" />}
+            subtitle="Huella de carbono del rango"
+            delay={0}
+          />
+          <StatCard
+            title="Factor promedio"
+            value={`${emissionsPerKwh.toFixed(3)} kgCO₂e/kWh`}
+            icon={<Activity className="w-5 h-5 text-blue-500" />}
+            subtitle="Intensidad de emisiones"
+            delay={0.1}
+          />
+          <StatCard
+            title="Variación período"
+            value={`${isPositiveVariation ? '+' : ''}${(variation * 100).toFixed(1)}%`}
+            icon={isPositiveVariation 
+              ? <TrendingUp className="w-5 h-5 text-red-500" /> 
+              : <TrendingDown className="w-5 h-5 text-emerald-500" />
+            }
+            subtitle={previous ? `vs. ${previous.label}` : 'Sin período anterior'}
+            delay={0.2}
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">

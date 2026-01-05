@@ -7,6 +7,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Auth from "./pages/Auth";
 import WaterDashboard from "./pages/WaterDashboard";
+import WaterReportPreview from "./pages/WaterReportPreview";
 import ElectricDashboard from "./pages/ElectricDashboard";
 import ImportData from "./pages/ImportData";
 import Periods from "./pages/Periods";
@@ -41,6 +42,7 @@ const App = () => (
               <Route path="/admin/usuarios" element={<AdminUsers />} />
               <Route path="/admin/analytics" element={<AdminAnalytics />} />
               <Route path="/admin/riesgos" element={<AdminRisk />} />
+              <Route path="/reportes/agua/preview" element={<WaterReportPreview />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

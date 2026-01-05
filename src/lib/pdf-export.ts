@@ -165,27 +165,47 @@ export function generatePDF(options: PDFExportOptions): void {
     yPos += kpiHeight + 10;
   }
 
-  // Impact Section
+  // Impact Section (Ecoequivalencia)
   if (options.impact) {
-    addText('Impacto Ambiental', margin, yPos, { fontSize: 11, fontStyle: 'bold', color: TEXT_COLOR });
-    addText('Tus acciones están generando este impacto positivo', margin, yPos + 6, { fontSize: 8, color: MUTED_COLOR });
-    yPos += 12;
+    // Chip / badge verde de sección
+    const chipHeight = 7;
+    const chipWidth = 60;
+    const chipY = yPos - 4;
+    drawRect(margin, chipY, chipWidth, chipHeight, [214, 247, 223]); // verde muy suave
+    doc.setDrawColor(SECONDARY_COLOR[0], SECONDARY_COLOR[1], SECONDARY_COLOR[2]);
+    doc.rect(margin, chipY, chipWidth, chipHeight, 'S');
+
+    addText('Ecoequivalencia · Impacto Ambiental', margin + 2, yPos + 1, {
+      fontSize: 9,
+      fontStyle: 'bold',
+      color: SECONDARY_COLOR,
+    });
+    addText('Beneficios ambientales estimados del período seleccionado.', margin, yPos + 9, {
+      fontSize: 8,
+      color: MUTED_COLOR,
+    });
+    yPos += 15;
 
     const impactCardWidth = (pageWidth - margin * 2 - 10) / 3;
     const impactCardHeight = 24;
     const impactLabels = [
-      { title: 'Litros ahorrados', value: `${Math.round(options.impact.litersSaved).toLocaleString('es-CL')} L`, color: PRIMARY_COLOR },
-      { title: 'Energía asociada', value: `${Math.round(options.impact.energySavedKwh).toLocaleString('es-CL')} kWh`, color: [30, 102, 163] as [number, number, number] },
-      { title: 'Emisiones evitadas', value: `${options.impact.emissionsAvoidedKg.toFixed(1)} kg CO₂e`, color: SECONDARY_COLOR },
+      { title: 'Ahorra agua', value: `${Math.round(options.impact.litersSaved).toLocaleString('es-CL')} L`, color: PRIMARY_COLOR },
+      { title: 'Ahorra energía', value: `${Math.round(options.impact.energySavedKwh).toLocaleString('es-CL')} kWh`, color: [30, 102, 163] as [number, number, number] },
+      { title: 'Evita emisiones', value: `${options.impact.emissionsAvoidedKg.toFixed(1)} kg CO₂e`, color: SECONDARY_COLOR },
     ];
 
     impactLabels.forEach((item, index) => {
       const x = margin + index * (impactCardWidth + 5);
+
+      // Tarjeta blanca con borde suave (estilo card)
       drawRect(x, yPos, impactCardWidth, impactCardHeight, [255, 255, 255]);
       drawRect(x, yPos, impactCardWidth, impactCardHeight, [230, 230, 230], false);
+
+      // Línea superior de color y pequeño icono circular
       drawRect(x, yPos, impactCardWidth, 1.5, item.color);
       doc.setFillColor(...item.color);
       doc.circle(x + 6, yPos + 8, 3, 'F');
+
       addText(item.title, x + 12, yPos + 9, { fontSize: 7, color: MUTED_COLOR });
       addText(item.value, x + 12, yPos + 18, { fontSize: 10, fontStyle: 'bold', color: TEXT_COLOR });
     });
@@ -315,20 +335,21 @@ export function generatePDF(options: PDFExportOptions): void {
 
   // Footer
   const footerY = pageHeight - 15;
-  drawLine(footerY - 5, [220, 220, 220]);
+  // Banda inferior estilo barra corporativa
+  drawRect(0, footerY - 7, pageWidth, 10, PRIMARY_COLOR);
   
   addText(
-    options.footer || 'Agradecemos su compromiso con las prácticas sostenibles y el cuidado del medio ambiente para las futuras generaciones.',
+    options.footer || 'Agradecemos su valioso compromiso con las prácticas sostenibles y el cuidado del medio ambiente para las futuras generaciones.',
     pageWidth / 2,
     footerY,
-    { fontSize: 7, color: MUTED_COLOR, align: 'center' }
+    { fontSize: 7, color: [255, 255, 255], align: 'center' }
   );
   
   addText(
     `Página 1 de 1`,
     pageWidth - margin,
     footerY,
-    { fontSize: 7, color: MUTED_COLOR, align: 'right' }
+    { fontSize: 7, color: [255, 255, 255], align: 'right' }
   );
 
   // Save the PDF
@@ -410,7 +431,8 @@ export function exportWaterReport(data: {
       { header: 'Costo ($)', dataKey: 'cost' },
     ],
     alerts: data.alerts,
-    footer: 'Reporte de Consumo Hídrico - Sistema de Gestión Ambiental',
+    footer:
+      'https://www.pasajesjm.cl · Agradecemos su valioso compromiso con las prácticas sostenibles y el cuidado del medio ambiente para las futuras generaciones.',
   });
 }
 

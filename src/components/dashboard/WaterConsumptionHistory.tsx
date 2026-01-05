@@ -20,8 +20,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRiskSignals, type RiskRecord } from '@/hooks/useRiskSignals';
 import RiskPanel from '@/components/admin/RiskPanel';
 import { ExportPDFButton } from '@/components/export/ExportPDFButton';
-import { exportWaterReport } from '@/lib/pdf-export';
 import { calculateImpactFromM3 } from '@/lib/impact';
+import { buildWaterReportHtml } from '@/lib/templates/water-report-html';
+import { exportWaterReport } from '@/lib/pdf-export';
 
 interface PeriodSummary {
   period: string;
@@ -178,25 +179,70 @@ export default function WaterConsumptionHistory() {
         <div className="flex items-end gap-3">
           <ExportPDFButton
             onExport={async () => {
-              const logoResponse = await fetch("/images/logo.png");
-              const logoBlob = await logoResponse.blob();
-              const logoDataUrl = await new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result as string);
-                reader.onerror = () => reject(reader.error);
-                reader.readAsDataURL(logoBlob);
-              });
-              exportWaterReport({
-                summaries: filteredSummaries,
+              const latestPeriod = filteredSummaries[filteredSummaries.length - 1]?.label ?? 'Sin datos';
+
+              const apiUrl = import.meta.env.VITE_PDF_API_URL as string | undefined;
+              const apiKey = import.meta.env.VITE_PDF_API_KEY as string | undefined;
+
+              if (!apiUrl) {
+                // Fallback: usar flujo jsPDF existente mientras no haya backend HTML→PDF
+                const logoResponse = await fetch('/images/logo.png');
+                const logoBlob = await logoResponse.blob();
+                const logoDataUrl = await new Promise<string>((resolve, reject) => {
+                  const reader = new FileReader();
+                  reader.onload = () => resolve(reader.result as string);
+                  reader.onerror = () => reject(reader.error);
+                  reader.readAsDataURL(logoBlob);
+                });
+
+                exportWaterReport({
+                  summaries: filteredSummaries,
+                  totalM3,
+                  totalCost,
+                  variation,
+                  forecastM3,
+                  forecastCost,
+                  alerts,
+                  dateRange:
+                    range === 'all' ? 'Todo el histórico' : `Últimos ${range} períodos`,
+                  logoDataUrl,
+                });
+                return;
+              }
+
+              const html = buildWaterReportHtml({
+                periodLabel: latestPeriod,
+                monthLabel: latestPeriod.split(' ')[0] ?? latestPeriod,
+                yearLabel: latestPeriod.split(' ')[1] ?? '',
                 totalM3,
                 totalCost,
-                variation,
-                forecastM3,
-                forecastCost,
-                alerts,
-                dateRange: range === 'all' ? 'Todo el histórico' : `Últimos ${range} períodos`,
-                logoDataUrl,
+                variation: variation * 100,
+                impact: impactMetrics,
               });
+
+              const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+                },
+                body: JSON.stringify({ html }),
+              });
+
+              if (!response.ok) {
+                console.error('Error al generar PDF', await response.text());
+                return;
+              }
+
+              const blob = await response.blob();
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'reporte-agua.pdf';
+              document.body.appendChild(a);
+              a.click();
+              a.remove();
+              URL.revokeObjectURL(url);
             }}
             label="Exportar PDF"
           />
