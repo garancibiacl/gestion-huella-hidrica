@@ -12,6 +12,8 @@ import {
   Legend,
 } from 'recharts';
 import { StatCard } from '@/components/ui/stat-card';
+import { ImpactSummary } from '@/components/ui/impact-summary';
+import { calculateImpactFromM3 } from '@/lib/impact';
 import { SkeletonCard, SkeletonChart } from '@/components/ui/skeleton-card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useWaterMeters } from '@/hooks/useWaterMeters';
@@ -74,6 +76,7 @@ export default function WaterMeterConsumption() {
     0
   );
   const totalMedidores = new Set(filtered.map((d) => d.medidor)).size;
+  const impactMetrics = useMemo(() => calculateImpactFromM3(totalM3), [totalM3]);
 
   const chartByCentro: CentroChartData[] = centros.map((centro) => {
     const centroData = filtered.filter((d) => d.centro_trabajo === centro);
@@ -230,6 +233,8 @@ export default function WaterMeterConsumption() {
           delay={0.2}
         />
       </div>
+
+      <ImpactSummary metrics={impactMetrics} />
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">

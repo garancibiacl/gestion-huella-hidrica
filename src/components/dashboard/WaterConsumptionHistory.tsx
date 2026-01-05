@@ -13,6 +13,7 @@ import {
   Legend,
 } from 'recharts';
 import { StatCard } from '@/components/ui/stat-card';
+import { ImpactSummary } from '@/components/ui/impact-summary';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,6 +21,7 @@ import { useRiskSignals, type RiskRecord } from '@/hooks/useRiskSignals';
 import RiskPanel from '@/components/admin/RiskPanel';
 import { ExportPDFButton } from '@/components/export/ExportPDFButton';
 import { exportWaterReport } from '@/lib/pdf-export';
+import { calculateImpactFromM3 } from '@/lib/impact';
 
 interface PeriodSummary {
   period: string;
@@ -143,6 +145,7 @@ export default function WaterConsumptionHistory() {
 
   const totalM3 = filteredSummaries.reduce((sum, s) => sum + s.m3, 0);
   const totalCost = filteredSummaries.reduce((sum, s) => sum + s.cost, 0);
+  const impactMetrics = useMemo(() => calculateImpactFromM3(totalM3), [totalM3]);
 
   const alerts = useMemo(() => {
     const items: string[] = [];
@@ -227,6 +230,8 @@ export default function WaterConsumptionHistory() {
           delay={0.2}
         />
       </div>
+
+      <ImpactSummary metrics={impactMetrics} />
 
       <div className="mb-6">
         <RiskPanel />

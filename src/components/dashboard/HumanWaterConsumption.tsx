@@ -26,6 +26,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { StatCard } from "@/components/ui/stat-card";
+import { ImpactSummary } from "@/components/ui/impact-summary";
 import { SkeletonCard, SkeletonChart } from "@/components/ui/skeleton-card";
 import {
   Select,
@@ -39,6 +40,7 @@ import { Link } from "react-router-dom";
 import { ExportPDFButton } from "@/components/export/ExportPDFButton";
 import { exportHumanWaterReport } from "@/lib/pdf-export";
 import { LoaderHourglass } from "@/components/ui/loader-hourglass";
+import { calculateImpactFromLiters } from "@/lib/impact";
 
 interface HumanWaterData {
   id: string;
@@ -283,6 +285,11 @@ export default function HumanWaterConsumption() {
 
   // Total liters (assuming 500ml bottles and 20L jugs)
   const totalLitros = totalBotellas * 0.5 + totalBidones * 20;
+
+  const impactMetrics = useMemo(
+    () => calculateImpactFromLiters(totalLitros),
+    [totalLitros]
+  );
 
   // Chart data by centro
   const chartByCentro: ChartData[] = centros
@@ -607,6 +614,8 @@ export default function HumanWaterConsumption() {
           delay={0.4}
         />
       </div>
+
+      <ImpactSummary metrics={impactMetrics} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <div className="stat-card">
