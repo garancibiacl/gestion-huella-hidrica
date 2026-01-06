@@ -12,8 +12,12 @@ import {
   Legend,
 } from 'recharts';
 import { StatCard } from '@/components/ui/stat-card';
+import { ChartCard } from '@/components/ui/chart-card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { useElectricMeters } from '@/hooks/useElectricMeters';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -39,6 +43,16 @@ const DEFAULT_EMISSION_FACTOR = 0.4; // kgCO₂e/kWh
 
 const PRIMARY_COLOR = 'hsl(152, 55%, 42%)';
 const SECONDARY_COLOR = 'hsl(45, 93%, 47%)';
+const TOOLTIP_STYLE = {
+  backgroundColor: 'hsl(var(--card))',
+  border: 'none',
+  borderRadius: '12px',
+  boxShadow: '0 10px 40px -10px rgba(0,0,0,0.3)',
+  padding: '12px 16px',
+};
+const MOTION_EASE = [0.25, 0.46, 0.45, 0.94] as const;
+const MOTION_FAST = 0.3;
+const MOTION_MED = 0.5;
 
 const formatPeriod = (period: string) => {
   const [year, month] = period.split('-');
@@ -100,6 +114,16 @@ export default function ElectricEmissions() {
     ? ((latest?.emissions ?? 0) - previous.emissions) / previous.emissions
     : 0;
   const isPositiveVariation = variation > 0;
+  const eventNote = useMemo(() => {
+    if (!latest || !previous) return null;
+    const pct = variation * 100;
+    if (Math.abs(pct) < 20) return null;
+    return {
+      label: latest.label,
+      text: `${pct > 0 ? '+' : ''}${pct.toFixed(1)}% vs ${previous.label}`,
+      tone: pct > 0 ? 'warning' : 'success',
+    };
+  }, [latest, previous, variation]);
 
   const emissionsByCentro = useMemo(() => {
     const grouped = rows.reduce<Record<string, number>>((acc, row) => {
@@ -223,19 +247,18 @@ export default function ElectricEmissions() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <LoaderHourglass label="Cargando emisiones..." />
+        <LoaderHourglass label="Preparando emisiones" />
       </div>
     );
   }
 
   if (!rows.length) {
     return (
-      <div className="stat-card flex flex-col items-center justify-center py-12">
-        <Factory className="w-8 h-8 text-muted-foreground mb-3" />
-        <p className="text-sm text-muted-foreground text-center max-w-md">
-          No hay datos de consumo eléctrico disponibles. Sincroniza los datos desde Google Sheets.
-        </p>
-      </div>
+      <EmptyState
+        title="Sin datos de emisiones"
+        description="Sincroniza los datos para visualizar la huella de carbono eléctrica."
+        icon={<Factory className="h-8 w-8 text-muted-foreground" />}
+      />
     );
   }
 
@@ -251,14 +274,19 @@ export default function ElectricEmissions() {
         </Alert>
       )}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between mb-6">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: MOTION_FAST, ease: MOTION_EASE }}
+        className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between mb-6"
+      >
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <Leaf className="w-5 h-5 text-emerald-500" />
-            Emisiones Totales de CO₂
+            Huella de carbono eléctrica
           </h3>
           <p className="text-sm text-muted-foreground">
-            Huella de carbono asociada al consumo eléctrico — base para decisiones de reducción.
+            Emisiones asociadas al consumo eléctrico — base para decisiones de reducción.
           </p>
         </div>
         <div className="flex flex-wrap items-end gap-3">
@@ -281,13 +309,13 @@ export default function ElectricEmissions() {
             variant="default" 
             size="sm" 
             onClick={handleExportPDF}
-            className="gap-2 bg-[#ba4a3f] text-white hover:bg-[#a13f36] disabled:opacity-70"
+            className="gap-2 bg-[#C3161D] text-white hover:bg-[#A31217] disabled:opacity-70"
           >
             <FileDown className="w-4 h-4" />
             Exportar PDF
           </Button>
         </div>
-      </div>
+      </motion.div>
 
       <div className="stat-card mb-6">
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -309,6 +337,7 @@ export default function ElectricEmissions() {
             icon={<Leaf className="w-5 h-5 text-emerald-500" />}
             subtitle="Huella de carbono del rango"
             delay={0}
+            variant="primary"
           />
           <StatCard
             title="Factor promedio"
@@ -316,6 +345,7 @@ export default function ElectricEmissions() {
             icon={<Activity className="w-5 h-5 text-blue-500" />}
             subtitle="Intensidad de emisiones"
             delay={0.1}
+            variant="minimal"
           />
           <StatCard
             title="Variación período"
@@ -326,6 +356,11 @@ export default function ElectricEmissions() {
             }
             subtitle={previous ? `vs. ${previous.label}` : 'Sin período anterior'}
             delay={0.2}
+            badge={previous ? {
+              text: isPositiveVariation ? 'Atención: alza en emisiones' : 'Emisiones a la baja',
+              variant: isPositiveVariation ? 'warning' : 'success',
+            } : undefined}
+            variant="minimal"
           />
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
@@ -337,84 +372,91 @@ export default function ElectricEmissions() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="stat-card"
+          transition={{ duration: MOTION_MED, ease: MOTION_EASE }}
+          className="relative overflow-hidden"
         >
-          <h4 className="font-semibold mb-1">Emisiones por período</h4>
-          <p className="text-sm text-muted-foreground mb-4">
-            Evolución de huella de carbono en kgCO₂e.
-          </p>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={filteredSummaries}>
-                <defs>
-                  <linearGradient id="emissionsGradient" x1="0" y1="1" x2="0" y2="0">
-                    <stop offset="0%" stopColor={PRIMARY_COLOR} stopOpacity={0.6} />
-                    <stop offset="100%" stopColor={PRIMARY_COLOR} stopOpacity={1} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${(v/1000).toFixed(0)}t`} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '12px',
-                    padding: '10px 12px',
-                  }}
-                  formatter={(value: number) => [`${Math.round(value).toLocaleString('es-CL')} kgCO₂e`, 'Emisiones']}
-                  labelFormatter={(label) => `Período: ${label}`}
-                />
-                <Legend />
-                <Bar dataKey="emissions" name="Emisiones CO₂" fill="url(#emissionsGradient)" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <ChartCard
+            title="Emisiones por período"
+            subtitle="Evolución de huella de carbono en kgCO₂e."
+          >
+            {eventNote && (
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                <span>Evento destacado: {eventNote.label}</span>
+                <Badge
+                  variant="outline"
+                  className={eventNote.tone === 'warning'
+                    ? 'bg-amber-500/10 text-amber-700 border-amber-200'
+                    : 'bg-emerald-500/10 text-emerald-700 border-emerald-200'
+                  }
+                >
+                  {eventNote.text}
+                </Badge>
+              </div>
+            )}
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={filteredSummaries}>
+                  <defs>
+                    <linearGradient id="emissionsGradient" x1="0" y1="1" x2="0" y2="0">
+                      <stop offset="0%" stopColor={PRIMARY_COLOR} stopOpacity={0.6} />
+                      <stop offset="100%" stopColor={PRIMARY_COLOR} stopOpacity={1} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${(v/1000).toFixed(0)}t`} />
+                  <Tooltip
+                    contentStyle={TOOLTIP_STYLE}
+                    formatter={(value: number) => [`${Math.round(value).toLocaleString('es-CL')} kgCO₂e`, 'Emisiones']}
+                    labelFormatter={(label) => `Período: ${label}`}
+                  />
+                  <Legend />
+                  <Bar dataKey="emissions" name="Emisiones CO₂" fill="url(#emissionsGradient)" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartCard>
         </motion.div>
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="stat-card"
+          transition={{ duration: MOTION_MED, delay: 0.1, ease: MOTION_EASE }}
+          className="relative overflow-hidden"
         >
-          <h4 className="font-semibold mb-1">Emisiones por centro de trabajo</h4>
-          <p className="text-sm text-muted-foreground mb-4">
-            Identifica los centros con mayor huella para priorizar acciones.
-          </p>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={emissionsByCentro.slice(0, 8)} layout="vertical">
-                <defs>
-                  <linearGradient id="emissionsCentroGradient" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor={SECONDARY_COLOR} stopOpacity={0.6} />
-                    <stop offset="100%" stopColor={SECONDARY_COLOR} stopOpacity={1} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
-                <XAxis type="number" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${(v/1000).toFixed(1)}t`} />
-                <YAxis 
-                  dataKey="centro" 
-                  type="category" 
-                  fontSize={10} 
-                  width={100} 
-                  tickLine={false} 
-                  axisLine={false}
-                  tickFormatter={(v) => v.length > 14 ? `${v.slice(0, 14)}...` : v}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '12px',
-                    padding: '10px 12px',
-                  }}
-                  formatter={(value: number) => [`${Math.round(value).toLocaleString('es-CL')} kgCO₂e`, 'Emisiones']}
-                />
-                <Bar dataKey="emissions" name="Emisiones CO₂" fill="url(#emissionsCentroGradient)" radius={[0, 6, 6, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <ChartCard
+            title="Emisiones por centro de trabajo"
+            subtitle="Identifica los centros con mayor huella para priorizar acciones."
+          >
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={emissionsByCentro.slice(0, 8)} layout="vertical">
+                  <defs>
+                    <linearGradient id="emissionsCentroGradient" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor={SECONDARY_COLOR} stopOpacity={0.6} />
+                      <stop offset="100%" stopColor={SECONDARY_COLOR} stopOpacity={1} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
+                  <XAxis type="number" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${(v/1000).toFixed(1)}t`} />
+                  <YAxis 
+                    dataKey="centro" 
+                    type="category" 
+                    fontSize={10} 
+                    width={100} 
+                    tickLine={false} 
+                    axisLine={false}
+                    tickFormatter={(v) => v.length > 14 ? `${v.slice(0, 14)}...` : v}
+                  />
+                  <Tooltip
+                    contentStyle={TOOLTIP_STYLE}
+                    formatter={(value: number) => [`${Math.round(value).toLocaleString('es-CL')} kgCO₂e`, 'Emisiones']}
+                  />
+                  <Bar dataKey="emissions" name="Emisiones CO₂" fill="url(#emissionsCentroGradient)" radius={[0, 6, 6, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </ChartCard>
         </motion.div>
       </div>
 
@@ -423,7 +465,7 @@ export default function ElectricEmissions() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
+          transition={{ duration: MOTION_MED, delay: 0.15, ease: MOTION_EASE }}
           className="stat-card mb-6"
         >
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
@@ -448,16 +490,16 @@ export default function ElectricEmissions() {
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-lg font-bold">{year.year}</span>
                   {year.yoyChange !== null && (
-                    <Badge 
-                      variant="outline" 
-                      className={year.yoyChange <= 0 
-                        ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30' 
-                        : 'bg-red-500/10 text-red-600 border-red-500/30'
-                      }
-                    >
+                <Badge 
+                  variant="outline" 
+                  className={year.yoyChange <= 0 
+                    ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30' 
+                    : 'bg-red-500/10 text-red-600 border-red-500/30'
+                  }
+                >
                       {year.yoyChange <= 0 ? <TrendingDown className="w-3 h-3 mr-1" /> : <TrendingUp className="w-3 h-3 mr-1" />}
                       {year.yoyChange >= 0 ? '+' : ''}{year.yoyChange.toFixed(1)}%
-                    </Badge>
+                </Badge>
                   )}
                 </div>
                 <p className="text-xl font-semibold text-foreground">

@@ -14,6 +14,8 @@ import {
 import { StatCard } from '@/components/ui/stat-card';
 import { SkeletonCard, SkeletonChart } from '@/components/ui/skeleton-card';
 import { LoaderHourglass } from '@/components/ui/loader-hourglass';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ChartCard } from '@/components/ui/chart-card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useElectricMeters } from '@/hooks/useElectricMeters';
 
@@ -28,8 +30,16 @@ interface MedidorChartData {
   consumo: number;
 }
 
-const PRIMARY_COLOR = 'hsl(210, 80%, 50%)'; // azul para consumo kWh
-const SECONDARY_COLOR = 'hsl(5, 63%, 43%)'; // rojo corporativo para resaltar
+const TOOLTIP_STYLE = {
+  backgroundColor: 'hsl(var(--card))',
+  border: 'none',
+  borderRadius: '12px',
+  boxShadow: '0 10px 40px -10px rgba(0,0,0,0.3)',
+  padding: '12px 16px',
+};
+const MOTION_EASE = [0.25, 0.46, 0.45, 0.94] as const;
+const MOTION_FAST = 0.3;
+const MOTION_MED = 0.5;
 
 export default function ElectricMeterConsumption() {
   const { data, loading, error, refetch } = useElectricMeters();
@@ -114,7 +124,7 @@ export default function ElectricMeterConsumption() {
     return (
       <>
         <div className="flex items-center justify-center py-6">
-          <LoaderHourglass label="Cargando consumo eléctrico por medidor" />
+          <LoaderHourglass label="Preparando consumo eléctrico por medidor" />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <SkeletonCard />
@@ -128,36 +138,22 @@ export default function ElectricMeterConsumption() {
 
   if (error) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="stat-card flex flex-col items-center justify-center py-12 border-destructive/50"
-      >
-        <Zap className="w-16 h-16 text-destructive mb-4" />
-        <h3 className="text-lg font-semibold mb-2 text-destructive">Error cargando datos</h3>
-        <p className="text-muted-foreground text-center mb-2 max-w-md">
-          {error}
-        </p>
-      </motion.div>
+      <EmptyState
+        title="No pudimos cargar el consumo"
+        description={error}
+        icon={<Zap className="h-10 w-10 text-destructive" />}
+        tone="error"
+      />
     );
   }
 
   if (data.length === 0) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="stat-card flex flex-col items-center justify-center py-12"
-      >
-        <Zap className="w-16 h-16 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-semibold mb-2">Sin datos de consumo eléctrico</h3>
-        <p className="text-muted-foreground text-center mb-2 max-w-md">
-          Aún no hay registros de consumo de energía eléctrica por medidor.
-        </p>
-        <p className="text-muted-foreground text-xs text-center max-w-md">
-          Sincroniza los datos desde Google Sheets para comenzar a monitorear kWh y costos.
-        </p>
-      </motion.div>
+      <EmptyState
+        title="Sin datos de consumo eléctrico"
+        description="Sincroniza los datos para visualizar consumo y costos por medidor."
+        icon={<Zap className="h-10 w-10 text-muted-foreground" />}
+      />
     );
   }
 
@@ -165,8 +161,9 @@ export default function ElectricMeterConsumption() {
     <>
       {/* Filtros */}
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: MOTION_FAST, ease: MOTION_EASE }}
         className="mb-6"
       >
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -232,24 +229,28 @@ export default function ElectricMeterConsumption() {
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <StatCard
-          title="kWh totales"
+          title="Consumo total (kWh)"
           value={totalKwh.toLocaleString()}
           icon={<Zap className="w-5 h-5" />}
-          subtitle="Consumo acumulado en el período filtrado"
+          subtitle="Suma del período filtrado"
           delay={0}
+          variant="primary"
         />
         <StatCard
           title="Costo total"
           value={`$${totalCosto.toLocaleString()}`}
           icon={<DollarSign className="w-5 h-5" />}
+          subtitle="Gasto asociado al consumo"
           delay={0.1}
+          variant="minimal"
         />
         <StatCard
           title="Medidores activos"
           value={totalMedidores.toString()}
           icon={<Building2 className="w-5 h-5" />}
-          subtitle="Con registros en el período filtrado"
+          subtitle="Con consumo registrado"
           delay={0.2}
+          variant="minimal"
         />
       </div>
 
@@ -257,214 +258,190 @@ export default function ElectricMeterConsumption() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Consumo por centro */}
         <motion.div
-          initial={{ opacity: 0, x: -30, rotateY: -5 }}
-          animate={{ opacity: 1, x: 0, rotateY: 0 }}
-          transition={{ duration: 0.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          className="stat-card relative overflow-hidden group"
+          initial={{ opacity: 0, x: -24 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: MOTION_MED, delay: 0.2, ease: MOTION_EASE }}
+          className="relative overflow-hidden"
         >
           {/* Animated accent line */}
           <motion.div
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
-            transition={{ duration: 0.8, delay: 0.5 }}
+            transition={{ duration: MOTION_MED, delay: 0.35, ease: MOTION_EASE }}
             className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-500/60 via-yellow-400/40 to-transparent origin-left"
           />
           {/* Subtle gradient overlay on hover */}
           <div className="absolute inset-0 bg-gradient-to-br from-amber-500/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-          
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
+          <ChartCard
+            title="Consumo por centro de trabajo"
+            subtitle="Comparativo de consumo y costo por centro"
           >
-            <h3 className="font-semibold mb-1">Consumo por Centro de Trabajo</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Distribución de kWh y costo por centro de trabajo
-            </p>
-          </motion.div>
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="h-72"
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartByCentro} layout="vertical">
-                <defs>
-                  <linearGradient id="electricConsumoGradient" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.8} />
-                    <stop offset="100%" stopColor="#eab308" stopOpacity={1} />
-                  </linearGradient>
-                  <linearGradient id="electricCostoGradient" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#ef4444" stopOpacity={0.8} />
-                    <stop offset="100%" stopColor="#dc2626" stopOpacity={1} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="hsl(var(--border))"
-                  horizontal
-                  vertical={false}
-                  opacity={0.5}
-                />
-                <XAxis
-                  type="number"
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis
-                  type="category"
-                  dataKey="centro"
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={11}
-                  width={110}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    border: 'none',
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.3)',
-                    padding: '12px 16px',
-                  }}
-                  cursor={{ fill: 'hsl(var(--primary) / 0.05)' }}
-                  formatter={(value: any, name: string) => {
-                    if (name === 'Consumo') {
-                      return [`${value.toLocaleString()} kWh`, 'Consumo'];
-                    }
-                    return [`$${value.toLocaleString()}`, 'Costo'];
-                  }}
-                />
-                <Legend wrapperStyle={{ paddingTop: '16px' }} iconType="circle" iconSize={8} />
-                <Bar 
-                  dataKey="consumo" 
-                  name="Consumo" 
-                  fill="url(#electricConsumoGradient)" 
-                  radius={[0, 6, 6, 0]}
-                  isAnimationActive={true}
-                  animationBegin={400}
-                  animationDuration={1200}
-                  animationEasing="ease-out"
-                />
-                <Bar 
-                  dataKey="costo" 
-                  name="Costo" 
-                  fill="url(#electricCostoGradient)" 
-                  radius={[0, 6, 6, 0]}
-                  isAnimationActive={true}
-                  animationBegin={600}
-                  animationDuration={1200}
-                  animationEasing="ease-out"
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </motion.div>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: MOTION_MED, delay: 0.3, ease: MOTION_EASE }}
+              className="h-72"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartByCentro} layout="vertical">
+                  <defs>
+                    <linearGradient id="electricConsumoGradient" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.8} />
+                      <stop offset="100%" stopColor="#eab308" stopOpacity={1} />
+                    </linearGradient>
+                    <linearGradient id="electricCostoGradient" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#ef4444" stopOpacity={0.8} />
+                      <stop offset="100%" stopColor="#dc2626" stopOpacity={1} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="hsl(var(--border))"
+                    horizontal
+                    vertical={false}
+                    opacity={0.5}
+                  />
+                  <XAxis
+                    type="number"
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="centro"
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={11}
+                    width={110}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={TOOLTIP_STYLE}
+                    cursor={{ fill: 'hsl(var(--primary) / 0.05)' }}
+                    formatter={(value: any, name: string) => {
+                      if (name === 'Consumo') {
+                        return [`${value.toLocaleString()} kWh`, 'Consumo'];
+                      }
+                      return [`$${value.toLocaleString()}`, 'Costo'];
+                    }}
+                  />
+                  <Legend wrapperStyle={{ paddingTop: '16px' }} iconType="circle" iconSize={8} />
+                  <Bar 
+                    dataKey="consumo" 
+                    name="Consumo" 
+                    fill="url(#electricConsumoGradient)" 
+                    radius={[0, 6, 6, 0]}
+                    isAnimationActive={true}
+                    animationBegin={400}
+                    animationDuration={1200}
+                    animationEasing="ease-out"
+                  />
+                  <Bar 
+                    dataKey="costo" 
+                    name="Costo" 
+                    fill="url(#electricCostoGradient)" 
+                    radius={[0, 6, 6, 0]}
+                    isAnimationActive={true}
+                    animationBegin={600}
+                    animationDuration={1200}
+                    animationEasing="ease-out"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </motion.div>
+          </ChartCard>
         </motion.div>
 
         {/* Consumo por medidor */}
         <motion.div
-          initial={{ opacity: 0, x: 30, rotateY: 5 }}
-          animate={{ opacity: 1, x: 0, rotateY: 0 }}
-          transition={{ duration: 0.6, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
-          className="stat-card relative overflow-hidden group"
+          initial={{ opacity: 0, x: 24 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: MOTION_MED, delay: 0.25, ease: MOTION_EASE }}
+          className="relative overflow-hidden"
         >
           {/* Animated accent line */}
           <motion.div
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
-            transition={{ duration: 0.8, delay: 0.55 }}
+            transition={{ duration: MOTION_MED, delay: 0.4, ease: MOTION_EASE }}
             className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500/60 via-cyan-400/40 to-transparent origin-left"
           />
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-          
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.45 }}
+          <ChartCard
+            title="Consumo por medidor"
+            subtitle="Acumulado del período seleccionado"
           >
-            <h3 className="font-semibold mb-1">Consumo por Medidor</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              kWh acumulados por medidor en el período filtrado
-            </p>
-          </motion.div>
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.55 }}
-            className="h-72"
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartByMedidor}>
-                <defs>
-                  <linearGradient id="medidorGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
-                    <stop offset="100%" stopColor="#1d4ed8" stopOpacity={0.8} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="hsl(var(--border))"
-                  vertical={false}
-                  opacity={0.5}
-                />
-                <XAxis
-                  dataKey="medidor"
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    border: 'none',
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.3)',
-                    padding: '12px 16px',
-                  }}
-                  cursor={{ fill: 'hsl(var(--primary) / 0.05)' }}
-                  formatter={(value: any) => [`${value.toLocaleString()} kWh`, 'Consumo']}
-                />
-                <Legend wrapperStyle={{ paddingTop: '16px' }} iconType="circle" iconSize={8} />
-                <Bar 
-                  dataKey="consumo" 
-                  name="Consumo" 
-                  fill="url(#medidorGradient)" 
-                  radius={[6, 6, 0, 0]}
-                  isAnimationActive={true}
-                  animationBegin={500}
-                  animationDuration={1200}
-                  animationEasing="ease-out"
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </motion.div>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: MOTION_MED, delay: 0.35, ease: MOTION_EASE }}
+              className="h-72"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartByMedidor}>
+                  <defs>
+                    <linearGradient id="medidorGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
+                      <stop offset="100%" stopColor="#1d4ed8" stopOpacity={0.8} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="hsl(var(--border))"
+                    vertical={false}
+                    opacity={0.5}
+                  />
+                  <XAxis
+                    dataKey="medidor"
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={TOOLTIP_STYLE}
+                    cursor={{ fill: 'hsl(var(--primary) / 0.05)' }}
+                    formatter={(value: any) => [`${value.toLocaleString()} kWh`, 'Consumo']}
+                  />
+                  <Legend wrapperStyle={{ paddingTop: '16px' }} iconType="circle" iconSize={8} />
+                  <Bar 
+                    dataKey="consumo" 
+                    name="Consumo" 
+                    fill="url(#medidorGradient)" 
+                    radius={[6, 6, 0, 0]}
+                    isAnimationActive={true}
+                    animationBegin={500}
+                    animationDuration={1200}
+                    animationEasing="ease-out"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </motion.div>
+          </ChartCard>
         </motion.div>
       </div>
 
       {/* Evolución mensual */}
       {periods.length > 0 && (
         <motion.div
-          initial={{ opacity: 0, y: 40, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.8, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          className="stat-card relative overflow-hidden group"
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: MOTION_MED, delay: 0.3, ease: MOTION_EASE }}
+          className="relative overflow-hidden"
         >
           {/* Animated background gradient */}
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1.2, delay: 0.6 }}
+            transition={{ duration: MOTION_MED, delay: 0.4, ease: MOTION_EASE }}
             className="absolute inset-0 bg-gradient-to-br from-amber-500/[0.03] via-transparent to-blue-500/[0.02] pointer-events-none"
           />
           
@@ -472,25 +449,15 @@ export default function ElectricMeterConsumption() {
           <motion.div
             initial={{ x: -100, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.7, ease: "easeOut" }}
+            transition={{ duration: MOTION_MED, delay: 0.45, ease: MOTION_EASE }}
             className="absolute top-0 left-0 w-32 h-1 bg-gradient-to-r from-amber-500/50 via-yellow-400/30 to-transparent rounded-full"
           />
           
-          <div className="relative">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.5 }}
-            >
-              <h3 className="font-semibold mb-1">Evolución Mensual de Consumo</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Tendencia de kWh consumidos por período
-              </p>
-            </motion.div>
+          <ChartCard title="Evolución mensual" subtitle="Tendencia de consumo eléctrico por período">
             <motion.div 
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.6 }}
+              transition={{ duration: MOTION_MED, delay: 0.4, ease: MOTION_EASE }}
               className="h-72"
             >
               <ResponsiveContainer width="100%" height="100%">
@@ -531,13 +498,7 @@ export default function ElectricMeterConsumption() {
                     dx={-10}
                   />
                   <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--card))',
-                      border: 'none',
-                      borderRadius: '12px',
-                      boxShadow: '0 10px 40px -10px rgba(0,0,0,0.3)',
-                      padding: '12px 16px',
-                    }}
+                    contentStyle={TOOLTIP_STYLE}
                     cursor={{ fill: 'hsl(var(--primary) / 0.05)' }}
                     formatter={(value: any) => [`${value.toLocaleString()} kWh`, 'Consumo']}
                   />
@@ -556,7 +517,7 @@ export default function ElectricMeterConsumption() {
                 </BarChart>
               </ResponsiveContainer>
             </motion.div>
-          </div>
+          </ChartCard>
         </motion.div>
       )}
     </>

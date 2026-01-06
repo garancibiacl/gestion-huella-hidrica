@@ -26,6 +26,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { StatCard } from "@/components/ui/stat-card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ImpactSummary } from "@/components/ui/impact-summary";
 import { SkeletonCard, SkeletonChart } from "@/components/ui/skeleton-card";
 import {
@@ -72,6 +73,16 @@ const COLORS = [
   "#f59e0b",
   "#ec4899",
 ];
+const TOOLTIP_STYLE = {
+  backgroundColor: "hsl(var(--card))",
+  border: "none",
+  borderRadius: "12px",
+  boxShadow: "0 10px 40px -10px rgba(0,0,0,0.3)",
+  padding: "12px 16px",
+};
+const MOTION_EASE = [0.25, 0.46, 0.45, 0.94] as const;
+const MOTION_FAST = 0.3;
+const MOTION_MED = 0.5;
 
 export default function HumanWaterConsumption() {
   const { user } = useAuth();
@@ -342,7 +353,7 @@ export default function HumanWaterConsumption() {
     return (
       <>
         <div className="flex items-center justify-center py-6">
-          <LoaderHourglass label="Cargando consumo humano" />
+          <LoaderHourglass label="Preparando consumo humano" />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <SkeletonCard />
@@ -357,26 +368,19 @@ export default function HumanWaterConsumption() {
 
   if (data.length === 0) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="stat-card flex flex-col items-center justify-center py-12"
-      >
-        <Droplets className="w-16 h-16 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-semibold mb-2">
-          Sin datos de consumo humano
-        </h3>
-        <p className="text-muted-foreground text-center mb-4 max-w-md">
-          Aún no hay registros de consumo de agua para consumo humano. Importa
-          datos desde tu archivo Excel.
-        </p>
-        <Link to="/importar">
-          <Button className="gap-2">
-            <Upload className="w-4 h-4" />
-            Importar datos
-          </Button>
-        </Link>
-      </motion.div>
+      <EmptyState
+        title="Sin datos de consumo humano"
+        description="Aún no hay registros para consumo humano. Importa o sincroniza para comenzar."
+        icon={<Droplets className="h-10 w-10 text-muted-foreground" />}
+        action={
+          <Link to="/importar">
+            <Button className="gap-2">
+              <Upload className="w-4 h-4" />
+              Importar datos
+            </Button>
+          </Link>
+        }
+      />
     );
   }
 
@@ -384,8 +388,9 @@ export default function HumanWaterConsumption() {
     <>
       {/* Filters */}
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: MOTION_FAST, ease: MOTION_EASE }}
         className="mb-6"
       >
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -588,38 +593,44 @@ export default function HumanWaterConsumption() {
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <StatCard
-          title="Total Botellas"
+          title="Botellas"
           value={totalBotellas.toLocaleString()}
           icon={<Package className="w-5 h-5" />}
           subtitle={`${(totalBotellas * 0.5).toLocaleString()} litros`}
           delay={0}
+          variant="primary"
         />
         <StatCard
-          title="Total Bidones 20L"
+          title="Bidones 20L"
           value={totalBidones.toLocaleString()}
           icon={<Droplets className="w-5 h-5" />}
           subtitle={`${(totalBidones * 20).toLocaleString()} litros`}
           delay={0.1}
+          variant="minimal"
         />
         <StatCard
-          title="Litros Totales"
+          title="Litros totales"
           value={totalLitros.toLocaleString()}
           icon={<Droplets className="w-5 h-5" />}
-          subtitle="Botellas + bidones"
+          subtitle="Consumo humano acumulado"
           delay={0.2}
+          variant="minimal"
         />
         <StatCard
-          title="Costo Total"
+          title="Costo total"
           value={`$${totalCosto.toLocaleString()}`}
           icon={<DollarSign className="w-5 h-5" />}
+          subtitle="Gasto asociado al consumo"
           delay={0.3}
+          variant="minimal"
         />
         <StatCard
-          title="Centros de Trabajo"
+          title="Centros de trabajo"
           value={centros.length.toString()}
           icon={<Building2 className="w-5 h-5" />}
-          subtitle="Con registros cargados"
+          subtitle="Con consumo registrado"
           delay={0.4}
+          variant="minimal"
         />
       </div>
 
@@ -629,7 +640,7 @@ export default function HumanWaterConsumption() {
         <div className="stat-card">
           <h4 className="font-semibold mb-1">Variación vs período anterior</h4>
           <p className="text-sm text-muted-foreground mb-4">
-            Top centros con mayor aumento de litros.
+            Centros con mayor variación de consumo.
           </p>
           <div className="space-y-3 text-sm">
             {centerMetrics.topVariation.length > 0 ? (
@@ -658,7 +669,7 @@ export default function HumanWaterConsumption() {
         <div className="stat-card">
           <h4 className="font-semibold mb-1">Costo por litro</h4>
           <p className="text-sm text-muted-foreground mb-4">
-            Centros con alza de costo unitario.
+            Centros con variación de costo unitario.
           </p>
           <div className="space-y-3 text-sm">
             {centerMetrics.topCostPerLiter.length > 0 ? (
@@ -852,9 +863,9 @@ export default function HumanWaterConsumption() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Bar chart by centro */}
         <motion.div
-          initial={{ opacity: 0, x: -30, rotateY: -5 }}
-          animate={{ opacity: 1, x: 0, rotateY: 0 }}
-          transition={{ duration: 0.6, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          initial={{ opacity: 0, x: -24 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: MOTION_MED, delay: 0.3, ease: MOTION_EASE }}
           className="stat-card relative overflow-hidden group"
         >
           {/* Animated accent line */}
@@ -949,13 +960,7 @@ export default function HumanWaterConsumption() {
                   axisLine={false}
                 />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "none",
-                    borderRadius: "12px",
-                    boxShadow: "0 10px 40px -10px rgba(0,0,0,0.3)",
-                    padding: "12px 16px",
-                  }}
+                  contentStyle={TOOLTIP_STYLE}
                   labelStyle={{
                     fontWeight: 600,
                     marginBottom: "6px",
@@ -995,9 +1000,9 @@ export default function HumanWaterConsumption() {
 
         {/* Pie chart for format distribution */}
         <motion.div
-          initial={{ opacity: 0, x: 30, rotateY: 5 }}
-          animate={{ opacity: 1, x: 0, rotateY: 0 }}
-          transition={{ duration: 0.6, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          initial={{ opacity: 0, x: 24 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: MOTION_MED, delay: 0.35, ease: MOTION_EASE }}
           className="stat-card relative overflow-hidden group"
         >
           {/* Animated accent line */}
@@ -1062,13 +1067,7 @@ export default function HumanWaterConsumption() {
                   ))}
                 </Pie>
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "none",
-                    borderRadius: "12px",
-                    boxShadow: "0 10px 40px -10px rgba(0,0,0,0.3)",
-                    padding: "12px 16px",
-                  }}
+                  contentStyle={TOOLTIP_STYLE}
                   formatter={(value: number, name: string, props: any) => [
                     `${value.toLocaleString()} unidades (${props.payload.litros.toLocaleString()}L)`,
                     name,

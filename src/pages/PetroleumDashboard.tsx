@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Flame, Fuel, Factory, CheckCircle2, Clock, RefreshCw, Building2, Zap, TrendingDown, DollarSign, Leaf } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Flame, Fuel, Factory, RefreshCw, Building2, Zap, TrendingDown, DollarSign, Leaf } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -10,9 +10,12 @@ import {
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { PageHeader } from '@/components/ui/page-header';
+import { DashboardHeader } from '@/components/ui/dashboard-header';
 import { StatCard } from '@/components/ui/stat-card';
 import { LoaderHourglass } from '@/components/ui/loader-hourglass';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ChartCard } from '@/components/ui/chart-card';
+import { NextActionPanel } from '@/components/ui/next-action-panel';
 import { usePetroleumData } from '@/hooks/usePetroleumData';
 import { usePetroleumSync } from '@/hooks/usePetroleumSync';
 import { ExportPDFButton } from '@/components/export/ExportPDFButton';
@@ -33,6 +36,16 @@ export default function PetroleumDashboard() {
 
   const latest = aggregates[aggregates.length - 1];
   const previous = aggregates[aggregates.length - 2];
+  const nextActions = useMemo(() => {
+    if (recommendations && recommendations.recommendations.length > 0) {
+      return recommendations.recommendations.slice(0, 3).map((rec) => rec.message);
+    }
+    return [
+      'Revisar centros con mayor consumo de combustible.',
+      'Validar rutas con alza sostenida de litros.',
+      'Priorizar medidas de eficiencia operativa en faenas críticas.',
+    ];
+  }, [recommendations]);
 
   const variationLitersPct = useMemo(() => {
     if (!latest || !previous || previous.totalLiters <= 0) return 0;
@@ -75,7 +88,7 @@ export default function PetroleumDashboard() {
   if (loading) {
     return (
       <div className="page-container flex items-center justify-center py-12">
-        <LoaderHourglass label="Cargando datos de petróleo" />
+        <LoaderHourglass label="Preparando datos de petróleo" />
       </div>
     );
   }
@@ -83,12 +96,17 @@ export default function PetroleumDashboard() {
   if (error) {
     return (
       <div className="page-container">
-        <PageHeader
+        <DashboardHeader
           title="Dashboard Petróleo"
           description="Monitoreo de consumo de combustibles fósiles y su huella de carbono."
         />
-        <div className="mt-6 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-          {error}
+        <div className="mt-6">
+          <EmptyState
+            title="No pudimos cargar los datos"
+            description={error}
+            icon={<Factory className="h-10 w-10 text-destructive" />}
+            tone="error"
+          />
         </div>
       </div>
     );
@@ -99,62 +117,54 @@ export default function PetroleumDashboard() {
 
   return (
     <div className="page-container space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
-        <PageHeader
-          title="Dashboard Petróleo"
-          description="Consumo de combustibles fósiles, costos asociados y huella de carbono."
-        />
+      <DashboardHeader
+        title="Dashboard Petróleo"
+        description="Consumo de combustibles fósiles, costos asociados y huella de carbono."
+        narrative="Este mes puedes revisar consumo, costos y huella para orientar planes de eficiencia."
+        action={
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              onClick={() => syncPetroleum(true)}
+              disabled={isSyncing}
+              size="sm"
+              className="gap-2 bg-[#C3161D] text-white hover:bg-[#A31217]"
+            >
+              <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+              {isSyncing ? 'Sincronizando...' : 'Sincronizar Petróleo'}
+            </Button>
+            <ExportPDFButton
+              onExport={async () => {
+                if (!hasData || !metrics || aggregates.length === 0) return;
 
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={() => syncPetroleum(true)}
-            disabled={isSyncing}
-            variant="outline"
-            size="sm"
-            className="gap-2"
-          >
-            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-            {isSyncing ? 'Sincronizando...' : 'Sincronizar Petróleo'}
-          </Button>
+                const summaries = aggregates.map((agg) => ({
+                  period: agg.periodKey,
+                  label: agg.periodLabel,
+                  liters: agg.totalLiters,
+                  cost: agg.totalCost,
+                }));
 
-          <AnimatePresence mode="wait">
-            {(lastSyncAt || lastUpdated) && !isSyncing && (
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                className="flex items-center gap-2 text-xs text-muted-foreground"
-              >
-                <CheckCircle2 className="w-3.5 h-3.5 text-success" />
-                <Clock className="w-3.5 h-3.5" />
-                <span>{formatLastSync(lastSyncAt || lastUpdated!)}</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <ExportPDFButton
-            onExport={async () => {
-              if (!hasData || !metrics || aggregates.length === 0) return;
-
-              const summaries = aggregates.map((agg) => ({
-                period: agg.periodKey,
-                label: agg.periodLabel,
-                liters: agg.totalLiters,
-                cost: agg.totalCost,
-              }));
-
-              exportPetroleumReport({
-                summaries,
-                totalLiters: metrics.totalLiters,
-                totalCost: metrics.totalCost,
-                totalEmissionsKgCO2e: metrics.totalEmissionsKgCO2e,
-                variationLitersPct,
-              });
-            }}
-            label="Exportar PDF"
-          />
-        </div>
-      </div>
+                exportPetroleumReport({
+                  summaries,
+                  totalLiters: metrics.totalLiters,
+                  totalCost: metrics.totalCost,
+                  totalEmissionsKgCO2e: metrics.totalEmissionsKgCO2e,
+                  variationLitersPct,
+                });
+              }}
+              label="Exportar PDF"
+            />
+          </div>
+        }
+        statusLabel={isSyncing ? 'Sincronizando' : (lastSyncAt || lastUpdated) ? 'Actualizado' : 'Pendiente'}
+        statusTone={isSyncing ? 'warning' : (lastSyncAt || lastUpdated) ? 'success' : 'muted'}
+        statusDetail={
+          (lastSyncAt || lastUpdated) && !isSyncing
+            ? `Última actualización: ${formatLastSync(lastSyncAt || lastUpdated!)}`
+            : !lastSyncAt && !lastUpdated && !isSyncing
+            ? 'Sin sincronizaciones recientes'
+            : undefined
+        }
+      />
 
       <Tabs defaultValue="consumo" className="w-full">
         <TabsList className="flex w-full max-w-full gap-2 overflow-x-auto rounded-xl bg-muted/60 p-1">
@@ -209,9 +219,9 @@ export default function PetroleumDashboard() {
                 className="grid gap-4 md:grid-cols-3"
               >
                 <StatCard
-                  title="Consumo total de petróleo"
+                  title="Consumo total"
                   value={`${metrics.totalLiters.toLocaleString('es-CL', { maximumFractionDigits: 0 })} L`}
-                  subtitle="Período consolidado"
+                  subtitle="Suma del período consolidado"
                   icon={<Flame className="w-6 h-6" />}
                   variant="primary"
                 />
@@ -219,23 +229,25 @@ export default function PetroleumDashboard() {
                 <StatCard
                   title="Costo total asociado"
                   value={`$${metrics.totalCost.toLocaleString('es-CL')}`}
-                  subtitle="Costos de combustible"
+                  subtitle="Gasto asociado al consumo"
                   icon={<Fuel className="w-6 h-6" />}
+                  variant="minimal"
                 />
 
                 <StatCard
-                  title="Huella de carbono estimada"
+                  title="Huella estimada"
                   value={`${totalEmissionsTons.toLocaleString('es-CL', { maximumFractionDigits: 2 })} tCO₂e`}
-                  subtitle="Emisiones derivadas del consumo de petróleo"
+                  subtitle="Emisiones asociadas al consumo"
                   icon={<Factory className="w-6 h-6" />}
                   trend={latest && previous ? {
                     value: `${variationEmissionsPct.toFixed(1)}% vs período anterior`,
                     positive: variationEmissionsPct <= 0,
                   } : undefined}
                   badge={{
-                    text: variationEmissionsPct <= 0 ? 'Tendencia a la baja en emisiones' : 'Emisiones en aumento',
+                    text: variationEmissionsPct <= 0 ? 'Emisiones a la baja' : 'Atención: alza en emisiones',
                     variant: variationEmissionsPct <= 0 ? 'success' : 'warning',
                   }}
+                  variant="minimal"
                 />
               </motion.div>
 
@@ -244,63 +256,60 @@ export default function PetroleumDashboard() {
                 animate={{ opacity: 1, y: 0 }}
                 className="stat-card"
               >
-                <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <h3 className="text-sm font-semibold flex items-center gap-2">
-                      <Flame className="w-4 h-4 text-orange-500" />
-                      Histórico de consumo de petróleo
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      Litros y costo total por período. Útil para ver tendencias y detectar meses críticos.
-                    </p>
+                <ChartCard
+                  title="Histórico de consumo"
+                  subtitle="Litros y costos por período para identificar tendencias."
+                >
+                  <div className="h-[280px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={chartData} margin={{ top: 8, right: 16, left: -16, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis dataKey="period" tick={{ fontSize: 11 }} angle={-15} textAnchor="end" height={40} />
+                        <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
+                        <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
+                        <RechartsTooltip
+                          contentStyle={TOOLTIP_STYLE}
+                          formatter={(value: any, name: string) => {
+                            if (name === 'Litros') {
+                              return [
+                                Number(value).toLocaleString('es-CL', { maximumFractionDigits: 0 }),
+                                'Litros',
+                              ];
+                            }
+                            if (name === 'Costo') {
+                              return [`$${Number(value).toLocaleString('es-CL')}`, 'Costo'];
+                            }
+                            return [value, name];
+                          }}
+                        />
+                        <Bar
+                          yAxisId="left"
+                          dataKey="liters"
+                          name="Litros"
+                          fill="hsl(24, 95%, 58%)"
+                          radius={[4, 4, 0, 0]}
+                        />
+                        <Bar
+                          yAxisId="right"
+                          dataKey="cost"
+                          name="Costo"
+                          fill="hsl(210, 70%, 45%)"
+                          radius={[4, 4, 0, 0]}
+                        />
+                      </BarChart>
+                    </ResponsiveContainer>
                   </div>
-                </div>
-
-                <div className="h-[280px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} margin={{ top: 8, right: 16, left: -16, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="period" tick={{ fontSize: 11 }} angle={-15} textAnchor="end" height={40} />
-                      <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
-                      <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
-                      <RechartsTooltip
-                        formatter={(value: any, name: string) => {
-                          if (name === 'Litros') {
-                            return [
-                              Number(value).toLocaleString('es-CL', { maximumFractionDigits: 0 }),
-                              'Litros',
-                            ];
-                          }
-                          if (name === 'Costo') {
-                            return [`$${Number(value).toLocaleString('es-CL')}`, 'Costo'];
-                          }
-                          return [value, name];
-                        }}
-                      />
-                      <Bar
-                        yAxisId="left"
-                        dataKey="liters"
-                        name="Litros"
-                        fill="hsl(24, 95%, 58%)"
-                        radius={[4, 4, 0, 0]}
-                      />
-                      <Bar
-                        yAxisId="right"
-                        dataKey="cost"
-                        name="Costo"
-                        fill="hsl(210, 70%, 45%)"
-                        radius={[4, 4, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                </ChartCard>
               </motion.div>
+
+              <NextActionPanel items={nextActions} />
             </>
           ) : (
-            <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
-              Aún no hay datos de petróleo cargados. Usa "Sincronizar Petróleo" para traer los datos desde la hoja de
-              cálculo y ver aquí los KPIs y el histórico.
-            </div>
+            <EmptyState
+              title="Sin datos de petróleo"
+              description='Sincroniza para ver KPIs e histórico de consumo.'
+              icon={<Flame className="h-10 w-10 text-muted-foreground" />}
+            />
           )}
         </TabsContent>
 
@@ -311,47 +320,46 @@ export default function PetroleumDashboard() {
               animate={{ opacity: 1, y: 0 }}
               className="stat-card"
             >
-              <div className="mb-4">
-                <h3 className="text-sm font-semibold flex items-center gap-2">
-                  <Factory className="w-4 h-4 text-slate-700" />
-                  Huella de carbono asociada al petróleo
-                </h3>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Estimación de emisiones de CO₂e derivadas del consumo total de combustibles líquidos. Úsalo como base
-                  para metas de reducción y reportes de huella.
-                </p>
-              </div>
+              <ChartCard
+                title="Huella de carbono asociada al petróleo"
+                subtitle="Estimación de emisiones de CO₂e derivadas del consumo total."
+              >
+                <div className="grid gap-4 md:grid-cols-3">
+                  <StatCard
+                    title="Emisiones totales"
+                    value={`${totalEmissionsTons.toLocaleString('es-CL', { maximumFractionDigits: 2 })} tCO₂e`}
+                    subtitle="Suma del período consolidado"
+                    icon={<Factory className="w-6 h-6" />}
+                    variant="primary"
+                  />
+                  <StatCard
+                    title="Intensidad de emisiones"
+                    value={`${(metrics.totalEmissionsKgCO2e / metrics.totalLiters).toFixed(2)} kgCO₂e/L`}
+                    subtitle="Factor promedio implícito"
+                    variant="minimal"
+                  />
+                  <StatCard
+                    title="Tendencia reciente"
+                    value={latest && previous
+                      ? `${variationEmissionsPct.toFixed(1)}% vs período anterior`
+                      : 'Sin datos suficientes'}
+                    subtitle="Comparación último período"
+                    badge={latest && previous ? {
+                      text: variationEmissionsPct <= 0 ? 'Emisiones a la baja' : 'Atención: alza en emisiones',
+                      variant: variationEmissionsPct <= 0 ? 'success' : 'warning',
+                    } : undefined}
+                    variant="minimal"
+                  />
+                </div>
+              </ChartCard>
 
-              <div className="grid gap-4 md:grid-cols-3">
-                <StatCard
-                  title="Emisiones totales estimadas"
-                  value={`${totalEmissionsTons.toLocaleString('es-CL', { maximumFractionDigits: 2 })} tCO₂e`}
-                  subtitle="Período consolidado"
-                  icon={<Factory className="w-6 h-6" />}
-                  variant="primary"
-                />
-                <StatCard
-                  title="Intensidad de emisiones"
-                  value={`${(metrics.totalEmissionsKgCO2e / metrics.totalLiters).toFixed(2)} kgCO₂e/L`}
-                  subtitle="Factor promedio implícito"
-                />
-                <StatCard
-                  title="Tendencia reciente"
-                  value={latest && previous
-                    ? `${variationEmissionsPct.toFixed(1)}% vs período anterior`
-                    : 'Sin datos suficientes'}
-                  subtitle="Comparación último período"
-                  badge={latest && previous ? {
-                    text: variationEmissionsPct <= 0 ? 'Emisiones en descenso' : 'Emisiones en aumento',
-                    variant: variationEmissionsPct <= 0 ? 'success' : 'warning',
-                  } : undefined}
-                />
-              </div>
             </motion.div>
           ) : (
-            <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
-              Aún no hay datos suficientes para calcular huella de carbono. Sincroniza primero los datos de Petróleo.
-            </div>
+            <EmptyState
+              title="Sin datos de huella"
+              description="Sincroniza primero los datos de Petróleo para calcular emisiones."
+              icon={<Factory className="h-10 w-10 text-muted-foreground" />}
+            />
           )}
         </TabsContent>
 
@@ -445,9 +453,11 @@ export default function PetroleumDashboard() {
               </div>
             </motion.div>
           ) : (
-            <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
-              Aún no hay datos suficientes para mostrar el desglose por empresa. Sincroniza los datos de Petróleo.
-            </div>
+            <EmptyState
+              title="Sin datos por empresa"
+              description="Sincroniza datos de Petróleo para ver el desglose por empresa."
+              icon={<Building2 className="h-10 w-10 text-muted-foreground" />}
+            />
           )}
         </TabsContent>
 
@@ -591,9 +601,11 @@ export default function PetroleumDashboard() {
               ))}
             </motion.div>
           ) : (
-            <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
-              Aún no hay datos suficientes para generar el análisis de transición energética. Sincroniza los datos de Petróleo.
-            </div>
+            <EmptyState
+              title="Sin datos para transición"
+              description="Sincroniza datos de Petróleo para generar el análisis de transición energética."
+              icon={<Zap className="h-10 w-10 text-muted-foreground" />}
+            />
           )}
         </TabsContent>
 
@@ -644,13 +656,21 @@ export default function PetroleumDashboard() {
               </ul>
             </motion.div>
           ) : (
-            <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
-              Aún no hay suficiente histórico para generar medidas específicas. Sincroniza varios períodos de Petróleo
-              para ver recomendaciones de reducción.
-            </div>
+            <EmptyState
+              title="Sin medidas disponibles"
+              description="Sincroniza más períodos de Petróleo para generar recomendaciones."
+              icon={<Fuel className="h-10 w-10 text-muted-foreground" />}
+            />
           )}
         </TabsContent>
       </Tabs>
     </div>
   );
 }
+  const TOOLTIP_STYLE = {
+    backgroundColor: 'hsl(var(--card))',
+    border: 'none',
+    borderRadius: '12px',
+    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.3)',
+    padding: '12px 16px',
+  };

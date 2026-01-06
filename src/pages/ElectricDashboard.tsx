@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Activity, RefreshCw, CheckCircle2, Clock, LineChart, Leaf } from 'lucide-react';
-import { PageHeader } from '@/components/ui/page-header';
+import { motion } from 'framer-motion';
+import { Zap, RefreshCw, LineChart, Leaf } from 'lucide-react';
+import { DashboardHeader } from '@/components/ui/dashboard-header';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import ElectricMeterConsumption from '@/components/dashboard/ElectricMeterConsumption';
@@ -74,43 +74,34 @@ export default function ElectricDashboard() {
   const canSync = isAdmin || isPrevencionista;
 
   return (
-    <div className="page-container">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <PageHeader
-          title="Dashboard Energía Eléctrica"
-          description="Monitoreo de consumo eléctrico por medidor"
-        />
-
-        {canSync && (
-          <div className="flex items-center gap-3">
+    <div className="page-container space-y-6">
+      <DashboardHeader
+        title="Dashboard Energía Eléctrica"
+        description="Monitoreo de consumo eléctrico por medidor"
+        narrative="Este mes puedes revisar consumo, costos y emisiones para priorizar acciones de eficiencia."
+        action={
+          canSync ? (
             <Button
               onClick={handleSync}
               disabled={isSyncing}
-              variant="outline"
               size="sm"
-              className="gap-2"
+              className="gap-2 bg-[#C3161D] text-white hover:bg-[#A31217]"
             >
               <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
               {isSyncing ? 'Sincronizando...' : 'Sincronizar Energía'}
             </Button>
-
-            <AnimatePresence mode="wait">
-              {lastSyncAt && !isSyncing && (
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  className="flex items-center gap-2 text-xs text-muted-foreground"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5 text-success" />
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>{formatLastSync(lastSyncAt)}</span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        )}
-      </div>
+          ) : null
+        }
+        statusLabel={isSyncing ? 'Sincronizando' : lastSyncAt ? 'Actualizado' : 'Pendiente'}
+        statusTone={isSyncing ? 'warning' : lastSyncAt ? 'success' : 'muted'}
+        statusDetail={
+          lastSyncAt && !isSyncing
+            ? `Última actualización: ${formatLastSync(lastSyncAt)}`
+            : !lastSyncAt && !isSyncing
+            ? 'Sin sincronizaciones recientes'
+            : undefined
+        }
+      />
 
       <motion.div
         initial={{ opacity: 0, y: 10 }}

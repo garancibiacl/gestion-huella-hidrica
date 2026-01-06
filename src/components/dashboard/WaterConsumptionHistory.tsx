@@ -13,7 +13,12 @@ import {
   Legend,
 } from 'recharts';
 import { StatCard } from '@/components/ui/stat-card';
+import { ChartCard } from '@/components/ui/chart-card';
 import { ImpactSummary } from '@/components/ui/impact-summary';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ProgressKpi } from '@/components/ui/progress-kpi';
+import { Badge } from '@/components/ui/badge';
+import { NextActionPanel } from '@/components/ui/next-action-panel';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -33,6 +38,16 @@ interface PeriodSummary {
 
 const PRIMARY_COLOR = 'hsl(210, 70%, 45%)';
 const SECONDARY_COLOR = 'hsl(152, 55%, 42%)';
+const TOOLTIP_STYLE = {
+  backgroundColor: 'hsl(var(--card))',
+  border: 'none',
+  borderRadius: '12px',
+  boxShadow: '0 10px 40px -10px rgba(0,0,0,0.3)',
+  padding: '12px 16px',
+};
+const MOTION_EASE = [0.25, 0.46, 0.45, 0.94] as const;
+const MOTION_FAST = 0.3;
+const MOTION_MED = 0.5;
 
 const formatPeriod = (period: string) => {
   const [year, month] = period.split('-');
@@ -147,6 +162,10 @@ export default function WaterConsumptionHistory() {
   const totalM3 = filteredSummaries.reduce((sum, s) => sum + s.m3, 0);
   const totalCost = filteredSummaries.reduce((sum, s) => sum + s.cost, 0);
   const impactMetrics = useMemo(() => calculateImpactFromM3(totalM3), [totalM3]);
+  const targetM3 = averageM3 > 0 ? averageM3 * 0.9 : 0;
+  const progressM3 = targetM3 > 0 ? (totalM3 / targetM3) * 100 : 0;
+  const targetCost = averageM3 > 0 ? averageM3 * 0.9 * (totalCost / Math.max(totalM3, 1)) : 0;
+  const progressCost = targetCost > 0 ? (totalCost / targetCost) * 100 : 0;
 
   const alerts = useMemo(() => {
     const items: string[] = [];
@@ -158,6 +177,24 @@ export default function WaterConsumptionHistory() {
     }
     return items;
   }, [latest, previous]);
+  const nextActions = useMemo(() => {
+    if (alerts.length > 0) return alerts.slice(0, 3);
+    return [
+      'Revisar centros con mayor variación de consumo en el rango actual.',
+      'Validar lecturas en períodos con cambios atípicos.',
+      'Programar una revisión preventiva de fugas y equipos.',
+    ];
+  }, [alerts]);
+  const eventNote = useMemo(() => {
+    if (!latest || !previous) return null;
+    const pct = variation * 100;
+    if (Math.abs(pct) < 20) return null;
+    return {
+      label: latest.label,
+      text: `${pct > 0 ? '+' : ''}${pct.toFixed(1)}% vs ${previous.label}`,
+      tone: pct > 0 ? 'warning' : 'success',
+    };
+  }, [latest, previous, variation]);
 
   if (loading) {
     return (
@@ -167,13 +204,23 @@ export default function WaterConsumptionHistory() {
     );
   }
 
+  if (filteredSummaries.length === 0) {
+    return (
+      <EmptyState
+        title="Sin datos históricos"
+        description="No hay registros suficientes para mostrar tendencias. Sincroniza o amplía el rango."
+        icon={<Droplets className="h-10 w-10 text-muted-foreground" />}
+      />
+    );
+  }
+
   return (
     <>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between mb-6">
         <div>
           <h3 className="text-lg font-semibold">Histórico por Período</h3>
           <p className="text-sm text-muted-foreground">
-            Visión consolidada de consumo hídrico.
+            Resumen consolidado de consumo hídrico por período.
           </p>
         </div>
         <div className="flex items-end gap-3">
@@ -266,11 +313,12 @@ export default function WaterConsumptionHistory() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <StatCard
-          title="m³ total"
+          title="Consumo total (m³)"
           value={totalM3.toLocaleString()}
           icon={<Droplets className="w-5 h-5" />}
           subtitle="Suma del rango seleccionado"
           delay={0}
+          variant="primary"
         />
         <StatCard
           title="Costo total"
@@ -278,6 +326,7 @@ export default function WaterConsumptionHistory() {
           icon={<TrendingUp className="w-5 h-5" />}
           subtitle={latest ? `Último período: ${latest.label}` : 'Sin datos'}
           delay={0.1}
+          variant="minimal"
         />
         <StatCard
           title="Variación último período"
@@ -285,10 +334,38 @@ export default function WaterConsumptionHistory() {
           icon={<Activity className="w-5 h-5" />}
           subtitle={previous ? `vs. ${previous.label}` : 'Sin referencia'}
           delay={0.2}
+          variant="minimal"
         />
       </div>
 
       <ImpactSummary metrics={impactMetrics} />
+
+      <div className="stat-card mb-6">
+        <div className="mb-4">
+          <h3 className="text-base font-semibold">Metas y progreso</h3>
+          <p className="text-sm text-muted-foreground">
+            Seguimiento vs objetivo de reducción sobre el promedio histórico.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <ProgressKpi
+            title="Meta de consumo (m³)"
+            value={`${Math.round(totalM3).toLocaleString()} / ${Math.round(targetM3).toLocaleString()} m³`}
+            progress={progressM3}
+            helper="Objetivo: 10% bajo el promedio histórico."
+            tone={progressM3 <= 100 ? 'success' : 'warning'}
+          />
+          <ProgressKpi
+            title="Meta de costo"
+            value={`$${Math.round(totalCost).toLocaleString()} / $${Math.round(targetCost).toLocaleString()}`}
+            progress={progressCost}
+            helper="Costo objetivo ajustado al consumo promedio."
+            tone={progressCost <= 100 ? 'success' : 'warning'}
+          />
+        </div>
+      </div>
+
+      <NextActionPanel items={nextActions} className="mb-6" />
 
       <div className="mb-6">
         <RiskPanel />
@@ -301,7 +378,7 @@ export default function WaterConsumptionHistory() {
           icon={<Droplets className="w-5 h-5" />}
           subtitle={`Rango ${Math.round(Math.max(0, forecastM3 - m3StdDev)).toLocaleString()}–${Math.round(forecastM3 + m3StdDev).toLocaleString()} m³`}
           badge={{
-            text: isForecastRisk ? 'Riesgo proyectado' : 'Riesgo estable',
+            text: isForecastRisk ? 'Atención: tendencia al alza' : 'Estable',
             variant: isForecastRisk ? 'warning' : 'success',
           }}
           delay={0}
@@ -317,149 +394,131 @@ export default function WaterConsumptionHistory() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <motion.div
-          initial={{ opacity: 0, x: -30, rotateY: -5 }}
-          animate={{ opacity: 1, x: 0, rotateY: 0 }}
-          transition={{ duration: 0.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          className="stat-card relative overflow-hidden group"
+          initial={{ opacity: 0, x: -24 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: MOTION_MED, delay: 0.2, ease: MOTION_EASE }}
+          className="relative overflow-hidden"
         >
           {/* Animated accent line */}
           <motion.div
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
-            transition={{ duration: 0.8, delay: 0.5 }}
+            transition={{ duration: MOTION_MED, delay: 0.35, ease: MOTION_EASE }}
             className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500/60 via-cyan-400/40 to-transparent origin-left"
           />
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-          
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-          >
-            <h4 className="font-semibold mb-1">m³ por período</h4>
-            <p className="text-sm text-muted-foreground mb-4">
-              Tendencia de consumo hídrico acumulado.
-            </p>
-          </motion.div>
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="h-72"
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={filteredSummaries}>
-                <defs>
-                  <linearGradient id="waterM3Gradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
-                    <stop offset="100%" stopColor="#60a5fa" stopOpacity={0.6} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} opacity={0.5} />
-                <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis fontSize={11} tickLine={false} axisLine={false} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    border: 'none',
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.3)',
-                    padding: '12px 16px',
-                  }}
-                  cursor={{ fill: 'hsl(var(--primary) / 0.05)' }}
-                  formatter={(value: number) => `${value.toLocaleString()} m³`}
-                />
-                <Legend wrapperStyle={{ paddingTop: '16px' }} iconType="circle" iconSize={8} />
-                <Bar 
-                  dataKey="m3" 
-                  name="Consumo m³" 
-                  fill="url(#waterM3Gradient)" 
-                  radius={[6, 6, 0, 0]}
-                  isAnimationActive={true}
-                  animationBegin={400}
-                  animationDuration={1200}
-                  animationEasing="ease-out"
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </motion.div>
+          <ChartCard title="Consumo por período" subtitle="Evolución del consumo hídrico.">
+            {eventNote && (
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                <span>Evento destacado: {eventNote.label}</span>
+                <Badge variant="outline" className={eventNote.tone === 'warning'
+                  ? 'bg-amber-500/10 text-amber-700 border-amber-200'
+                  : 'bg-emerald-500/10 text-emerald-700 border-emerald-200'
+                }>
+                  {eventNote.text}
+                </Badge>
+              </div>
+            )}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: MOTION_MED, delay: 0.3, ease: MOTION_EASE }}
+              className="h-72"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={filteredSummaries}>
+                  <defs>
+                    <linearGradient id="waterM3Gradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
+                      <stop offset="100%" stopColor="#60a5fa" stopOpacity={0.6} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} opacity={0.5} />
+                  <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis fontSize={11} tickLine={false} axisLine={false} />
+                  <Tooltip
+                    contentStyle={TOOLTIP_STYLE}
+                    cursor={{ fill: 'hsl(var(--primary) / 0.05)' }}
+                    formatter={(value: number) => `${value.toLocaleString()} m³`}
+                  />
+                  <Legend wrapperStyle={{ paddingTop: '16px' }} iconType="circle" iconSize={8} />
+                  <Bar 
+                    dataKey="m3" 
+                    name="Consumo m³" 
+                    fill="url(#waterM3Gradient)" 
+                    radius={[6, 6, 0, 0]}
+                    isAnimationActive={true}
+                    animationBegin={400}
+                    animationDuration={1200}
+                    animationEasing="ease-out"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </motion.div>
+          </ChartCard>
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, x: 30, rotateY: 5 }}
-          animate={{ opacity: 1, x: 0, rotateY: 0 }}
-          transition={{ duration: 0.6, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
-          className="stat-card relative overflow-hidden group"
+          initial={{ opacity: 0, x: 24 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: MOTION_MED, delay: 0.25, ease: MOTION_EASE }}
+          className="relative overflow-hidden"
         >
           {/* Animated accent line */}
           <motion.div
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
-            transition={{ duration: 0.8, delay: 0.55 }}
+            transition={{ duration: MOTION_MED, delay: 0.4, ease: MOTION_EASE }}
             className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald-500/60 via-teal-400/40 to-transparent origin-left"
           />
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
           
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.45 }}
-          >
-            <h4 className="font-semibold mb-1">Costo por período</h4>
-            <p className="text-sm text-muted-foreground mb-4">
-              Seguimiento del gasto asociado al consumo.
-            </p>
-          </motion.div>
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.55 }}
-            className="h-72"
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={filteredSummaries}>
-                <defs>
-                  <linearGradient id="waterCostGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
-                    <stop offset="100%" stopColor="#34d399" stopOpacity={0.6} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} opacity={0.5} />
-                <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis fontSize={11} tickLine={false} axisLine={false} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    border: 'none',
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.3)',
-                    padding: '12px 16px',
-                  }}
-                  cursor={{ fill: 'hsl(var(--primary) / 0.05)' }}
-                  formatter={(value: number) => `$${value.toLocaleString()}`}
-                />
-                <Legend wrapperStyle={{ paddingTop: '16px' }} iconType="circle" iconSize={8} />
-                <Bar 
-                  dataKey="cost" 
-                  name="Costo total" 
-                  fill="url(#waterCostGradient)" 
-                  radius={[6, 6, 0, 0]}
-                  isAnimationActive={true}
-                  animationBegin={500}
-                  animationDuration={1200}
-                  animationEasing="ease-out"
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </motion.div>
+          <ChartCard title="Costo por período" subtitle="Evolución del gasto asociado al consumo.">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: MOTION_MED, delay: 0.35, ease: MOTION_EASE }}
+              className="h-72"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={filteredSummaries}>
+                  <defs>
+                    <linearGradient id="waterCostGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10b981" stopOpacity={1} />
+                      <stop offset="100%" stopColor="#34d399" stopOpacity={0.6} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} opacity={0.5} />
+                  <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis fontSize={11} tickLine={false} axisLine={false} />
+                  <Tooltip
+                    contentStyle={TOOLTIP_STYLE}
+                    cursor={{ fill: 'hsl(var(--primary) / 0.05)' }}
+                    formatter={(value: number) => `$${value.toLocaleString()}`}
+                  />
+                  <Legend wrapperStyle={{ paddingTop: '16px' }} iconType="circle" iconSize={8} />
+                  <Bar 
+                    dataKey="cost" 
+                    name="Costo total" 
+                    fill="url(#waterCostGradient)" 
+                    radius={[6, 6, 0, 0]}
+                    isAnimationActive={true}
+                    animationBegin={500}
+                    animationDuration={1200}
+                    animationEasing="ease-out"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </motion.div>
+          </ChartCard>
         </motion.div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <motion.div 
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: MOTION_MED, delay: 0.3, ease: MOTION_EASE }}
           className="lg:col-span-2 stat-card relative overflow-hidden"
         >
           <motion.div
@@ -483,13 +542,13 @@ export default function WaterConsumptionHistory() {
               </thead>
               <tbody>
                 {filteredSummaries.map((s, index) => (
-                  <motion.tr 
-                    key={s.period} 
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: 0.5 + index * 0.03 }}
-                    className="border-b last:border-b-0 hover:bg-muted/30 transition-colors"
-                  >
+                <motion.tr 
+                  key={s.period} 
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: MOTION_FAST, delay: 0.35 + index * 0.02, ease: MOTION_EASE }}
+                  className="border-b last:border-b-0 hover:bg-muted/30 transition-colors"
+                >
                     <td className="py-2 pr-3">{s.label}</td>
                     <td className="py-2 px-3 text-right">{s.m3.toLocaleString()}</td>
                     <td className="py-2 px-3 text-right">${s.cost.toLocaleString()}</td>
@@ -501,9 +560,9 @@ export default function WaterConsumptionHistory() {
         </motion.div>
 
         <motion.div 
-          initial={{ opacity: 0, x: 30, rotateY: 5 }}
-          animate={{ opacity: 1, x: 0, rotateY: 0 }}
-          transition={{ duration: 0.6, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: MOTION_MED, delay: 0.35, ease: MOTION_EASE }}
           className="stat-card relative overflow-hidden"
         >
           <motion.div
@@ -519,14 +578,14 @@ export default function WaterConsumptionHistory() {
           <div className="space-y-3 text-sm">
             {alerts.length > 0 ? (
               alerts.map((alert, index) => (
-                <motion.div 
-                  key={index} 
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.4, delay: 0.6 + index * 0.1 }}
-                  whileHover={{ scale: 1.02, x: 4 }}
-                  className="flex items-start gap-3 rounded-lg border border-warning/30 bg-gradient-to-r from-warning/10 to-amber-500/5 p-3 cursor-default"
-                >
+              <motion.div 
+                key={index} 
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: MOTION_FAST, delay: 0.45 + index * 0.08, ease: MOTION_EASE }}
+                whileHover={{ scale: 1.02, x: 4 }}
+                className="flex items-start gap-3 rounded-lg border border-warning/30 bg-gradient-to-r from-warning/10 to-amber-500/5 p-3 cursor-default"
+              >
                   <motion.div
                     animate={{ rotate: [0, -10, 10, 0] }}
                     transition={{ duration: 0.5, delay: 0.8 + index * 0.1 }}
@@ -548,9 +607,9 @@ export default function WaterConsumptionHistory() {
               </motion.div>
             )}
             <motion.div 
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.7 }}
+              transition={{ duration: MOTION_FAST, delay: 0.5, ease: MOTION_EASE }}
               className="flex items-start gap-3 rounded-lg border border-border bg-background p-3"
             >
               <TrendingUp className="w-4 h-4 text-muted-foreground mt-0.5" />
