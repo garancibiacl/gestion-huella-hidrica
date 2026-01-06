@@ -6,6 +6,9 @@ import {
   PetroleumDashboardMetrics,
   PetroleumRecommendationsSummary,
   PetroleumSavingRecommendation,
+  PetroleumCompanyAggregate,
+  MitigationMeasure,
+  MitigationAnalysis,
 } from './types';
 
 // --- Helpers internos ---
@@ -240,4 +243,219 @@ export function buildPetroleumRecommendations(
     topConsumers,
     recommendations,
   };
+}
+
+// --- Agregados por empresa ---
+
+export function aggregatePetroleumByCompany(
+  readings: PetroleumReading[],
+  factorKgCO2ePerLiter: number,
+): PetroleumCompanyAggregate[] {
+  const map = new Map<string, PetroleumCompanyAggregate>();
+  const periodsByCompany = new Map<string, Set<string>>();
+
+  readings.forEach((r) => {
+    // Normalizar nombre de empresa
+    const companyRaw = r.company.trim();
+    const companyKey = normalizeCompanyName(companyRaw);
+    
+    if (!companyKey) return;
+
+    const existing = map.get(companyKey);
+    const emissions = r.liters * factorKgCO2ePerLiter;
+
+    if (!existing) {
+      map.set(companyKey, {
+        company: companyKey,
+        totalLiters: r.liters,
+        totalCost: r.totalCost,
+        totalEmissionsKgCO2e: emissions,
+        periodCount: 1,
+      });
+      periodsByCompany.set(companyKey, new Set([r.periodKey]));
+    } else {
+      existing.totalLiters += r.liters;
+      existing.totalCost += r.totalCost;
+      existing.totalEmissionsKgCO2e += emissions;
+      periodsByCompany.get(companyKey)?.add(r.periodKey);
+    }
+  });
+
+  // Actualizar periodCount
+  map.forEach((agg, key) => {
+    agg.periodCount = periodsByCompany.get(key)?.size ?? 1;
+  });
+
+  return Array.from(map.values()).sort((a, b) => b.totalLiters - a.totalLiters);
+}
+
+// Normaliza nombres de empresa a las 3 principales
+function normalizeCompanyName(raw: string): string {
+  const lower = raw.toLowerCase();
+  
+  if (lower.includes('buses jm') || lower.includes('bus jm') || lower.includes('busesjm')) {
+    return 'Buses JM';
+  }
+  if (lower.includes('consorcio') || lower.includes('nuevo norte') || lower.includes('nuev')) {
+    return 'Consorcio Nuevo Norte';
+  }
+  if (lower.includes('minardi') || lower.includes('servicios industriales')) {
+    return 'Servicios Industriales Minardi';
+  }
+  
+  // Si no coincide con ninguna, usar el nombre original limpio
+  return raw || 'Sin empresa';
+}
+
+// --- Medidas de mitigación con análisis de inversión ---
+
+// Precios de referencia (CLP)
+const DIESEL_PRICE_PER_LITER = 950; // Precio promedio diésel CLP/L
+const ELECTRIC_BUS_COST = 350_000_000; // Costo bus eléctrico (CLP)
+const DIESEL_BUS_ANNUAL_FUEL = 25_000; // Litros anuales promedio por bus diésel
+const ELECTRIC_BUS_ANNUAL_ENERGY_COST = 4_500_000; // Costo energía anual bus eléctrico (CLP)
+const HYBRID_BUS_COST = 180_000_000; // Costo bus híbrido
+const HYBRID_FUEL_REDUCTION = 0.35; // 35% reducción consumo
+
+export function buildMitigationAnalysis(
+  companyAggregates: PetroleumCompanyAggregate[],
+  factorKgCO2ePerLiter: number,
+): MitigationAnalysis[] {
+  return companyAggregates.map((company) => {
+    // Estimar consumo anual (si tenemos menos de 12 meses, proyectar)
+    const monthsOfData = Math.max(1, company.periodCount);
+    const annualMultiplier = 12 / monthsOfData;
+    
+    const currentAnnualLiters = company.totalLiters * annualMultiplier;
+    const currentAnnualCost = company.totalCost * annualMultiplier;
+    const currentAnnualEmissionsKgCO2e = company.totalEmissionsKgCO2e * annualMultiplier;
+
+    // Estimar cantidad de buses basado en consumo
+    const estimatedBuses = Math.max(1, Math.round(currentAnnualLiters / DIESEL_BUS_ANNUAL_FUEL));
+
+    const measures: MitigationMeasure[] = [];
+
+    // Medida 1: Buses eléctricos (reemplazo gradual - 20% de flota)
+    const electricBusCount = Math.max(1, Math.round(estimatedBuses * 0.2));
+    const electricFuelSavings = electricBusCount * DIESEL_BUS_ANNUAL_FUEL;
+    const electricCostSavings = electricFuelSavings * DIESEL_PRICE_PER_LITER - (electricBusCount * ELECTRIC_BUS_ANNUAL_ENERGY_COST);
+    const electricEmissionsSavings = electricFuelSavings * factorKgCO2ePerLiter;
+    const electricInvestment = electricBusCount * ELECTRIC_BUS_COST;
+    const electricPayback = electricCostSavings > 0 ? electricInvestment / electricCostSavings : 99;
+    const electricROI = electricCostSavings > 0 ? ((electricCostSavings * 10 - electricInvestment) / electricInvestment) * 100 : 0;
+
+    measures.push({
+      id: `${company.company}-electric`,
+      type: 'electric_bus',
+      title: `Buses Eléctricos (${electricBusCount} unidades)`,
+      description: `Reemplazar ${electricBusCount} buses diésel por eléctricos. Elimina completamente el consumo de combustible fósil en estas unidades.`,
+      company: company.company,
+      investmentCLP: electricInvestment,
+      annualFuelSavingsLiters: electricFuelSavings,
+      annualCostSavingsCLP: Math.max(0, electricCostSavings),
+      annualEmissionsSavingsKgCO2e: electricEmissionsSavings,
+      paybackYears: Math.min(99, Math.max(0, electricPayback)),
+      roiPercent: Math.max(0, electricROI),
+      additionalBenefits: [
+        'Cero emisiones directas',
+        'Menor costo de mantenimiento',
+        'Incentivos tributarios disponibles',
+        'Mejora imagen corporativa',
+      ],
+    });
+
+    // Medida 2: Buses híbridos (30% de flota)
+    const hybridBusCount = Math.max(1, Math.round(estimatedBuses * 0.3));
+    const hybridFuelSavings = hybridBusCount * DIESEL_BUS_ANNUAL_FUEL * HYBRID_FUEL_REDUCTION;
+    const hybridCostSavings = hybridFuelSavings * DIESEL_PRICE_PER_LITER;
+    const hybridEmissionsSavings = hybridFuelSavings * factorKgCO2ePerLiter;
+    const hybridInvestment = hybridBusCount * HYBRID_BUS_COST;
+    const hybridPayback = hybridCostSavings > 0 ? hybridInvestment / hybridCostSavings : 99;
+    const hybridROI = hybridCostSavings > 0 ? ((hybridCostSavings * 10 - hybridInvestment) / hybridInvestment) * 100 : 0;
+
+    measures.push({
+      id: `${company.company}-hybrid`,
+      type: 'hybrid_bus',
+      title: `Buses Híbridos (${hybridBusCount} unidades)`,
+      description: `Incorporar ${hybridBusCount} buses híbridos que reducen el consumo de combustible en un 35%.`,
+      company: company.company,
+      investmentCLP: hybridInvestment,
+      annualFuelSavingsLiters: hybridFuelSavings,
+      annualCostSavingsCLP: hybridCostSavings,
+      annualEmissionsSavingsKgCO2e: hybridEmissionsSavings,
+      paybackYears: Math.min(99, Math.max(0, hybridPayback)),
+      roiPercent: Math.max(0, hybridROI),
+      additionalBenefits: [
+        'Menor inversión inicial que eléctricos',
+        'No requiere infraestructura de carga',
+        'Reducción inmediata de emisiones',
+      ],
+    });
+
+    // Medida 3: Optimización de rutas (sin inversión mayor)
+    const routeOptimizationSavings = currentAnnualLiters * 0.08; // 8% ahorro
+    const routeCostSavings = routeOptimizationSavings * DIESEL_PRICE_PER_LITER;
+    const routeEmissionsSavings = routeOptimizationSavings * factorKgCO2ePerLiter;
+    const routeInvestment = 15_000_000; // Software + capacitación
+
+    measures.push({
+      id: `${company.company}-routes`,
+      type: 'route_optimization',
+      title: 'Optimización de Rutas',
+      description: 'Implementar software de optimización de rutas y capacitar conductores en conducción eficiente.',
+      company: company.company,
+      investmentCLP: routeInvestment,
+      annualFuelSavingsLiters: routeOptimizationSavings,
+      annualCostSavingsCLP: routeCostSavings,
+      annualEmissionsSavingsKgCO2e: routeEmissionsSavings,
+      paybackYears: routeCostSavings > 0 ? routeInvestment / routeCostSavings : 99,
+      roiPercent: routeCostSavings > 0 ? ((routeCostSavings * 5 - routeInvestment) / routeInvestment) * 100 : 0,
+      additionalBenefits: [
+        'Implementación rápida',
+        'Bajo riesgo',
+        'Mejora tiempos de servicio',
+      ],
+    });
+
+    // Medida 4: Mantenimiento preventivo mejorado
+    const maintenanceSavings = currentAnnualLiters * 0.05; // 5% ahorro
+    const maintenanceCostSavings = maintenanceSavings * DIESEL_PRICE_PER_LITER;
+    const maintenanceEmissionsSavings = maintenanceSavings * factorKgCO2ePerLiter;
+    const maintenanceInvestment = 8_000_000; // Programa de mantenimiento
+
+    measures.push({
+      id: `${company.company}-maintenance`,
+      type: 'fleet_maintenance',
+      title: 'Programa de Mantenimiento Preventivo',
+      description: 'Implementar programa de mantenimiento preventivo con monitoreo de eficiencia de combustible.',
+      company: company.company,
+      investmentCLP: maintenanceInvestment,
+      annualFuelSavingsLiters: maintenanceSavings,
+      annualCostSavingsCLP: maintenanceCostSavings,
+      annualEmissionsSavingsKgCO2e: maintenanceEmissionsSavings,
+      paybackYears: maintenanceCostSavings > 0 ? maintenanceInvestment / maintenanceCostSavings : 99,
+      roiPercent: maintenanceCostSavings > 0 ? ((maintenanceCostSavings * 5 - maintenanceInvestment) / maintenanceInvestment) * 100 : 0,
+      additionalBenefits: [
+        'Extiende vida útil de flota',
+        'Reduce averías',
+        'Mejora seguridad',
+      ],
+    });
+
+    // Totales
+    const totalPotentialSavingsLiters = measures.reduce((sum, m) => sum + m.annualFuelSavingsLiters, 0);
+    const totalPotentialSavingsCLP = measures.reduce((sum, m) => sum + m.annualCostSavingsCLP, 0);
+    const totalPotentialEmissionsReductionKgCO2e = measures.reduce((sum, m) => sum + m.annualEmissionsSavingsKgCO2e, 0);
+
+    return {
+      company: company.company,
+      currentAnnualLiters,
+      currentAnnualCost,
+      currentAnnualEmissionsKgCO2e,
+      measures,
+      totalPotentialSavingsLiters,
+      totalPotentialSavingsCLP,
+      totalPotentialEmissionsReductionKgCO2e,
+    };
+  });
 }

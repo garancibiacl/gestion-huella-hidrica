@@ -436,6 +436,76 @@ export function exportWaterReport(data: {
   });
 }
 
+export function exportPetroleumReport(data: {
+  summaries: { period: string; label: string; liters: number; cost: number }[];
+  totalLiters: number;
+  totalCost: number;
+  totalEmissionsKgCO2e: number;
+  variationLitersPct?: number;
+  organization?: string;
+  dateRange?: string;
+  logoDataUrl?: string;
+}) {
+  const alerts: string[] = [];
+
+  if (data.variationLitersPct !== undefined) {
+    const v = data.variationLitersPct;
+    alerts.push(
+      `El consumo de petróleo presenta una variación de ${v.toFixed(1)}% respecto al período anterior. ` +
+        (v > 0
+          ? 'Revisar oportunidades de optimización de rutas, renovación de flota y transición a buses eléctricos o híbridos.'
+          : 'Se observa una mejora en el consumo. Mantener y reforzar las medidas de eficiencia implementadas.'),
+    );
+  }
+
+  generatePDF({
+    title: 'Reporte Mensual – Consumo de Petróleo',
+    subtitle: 'Buses JM · Consumo de combustibles fósiles y su impacto económico y climático',
+    organization: data.organization ?? 'Buses JM',
+    dateRange: data.dateRange,
+    logoDataUrl: data.logoDataUrl,
+    kpis: [
+      {
+        title: 'Litros Totales',
+        value: data.totalLiters.toLocaleString('es-CL'),
+        subtitle: 'Consumo acumulado de combustible',
+      },
+      {
+        title: 'Costo Total',
+        value: `$${data.totalCost.toLocaleString('es-CL')}`,
+        subtitle: 'Gasto acumulado en combustible',
+      },
+      {
+        title: 'Emisiones estimadas',
+        value: `${(data.totalEmissionsKgCO2e / 1000).toLocaleString('es-CL', { maximumFractionDigits: 1 })} tCO₂e`,
+        subtitle: 'Huella de carbono asociada al período',
+      },
+      data.variationLitersPct !== undefined
+        ? {
+            title: 'Variación',
+            value: `${data.variationLitersPct.toFixed(1)}%`,
+            subtitle: 'vs período anterior',
+          }
+        : {
+            title: 'Variación',
+            value: 'N/D',
+            subtitle: 'Sin datos comparables',
+          },
+    ],
+    chartData: data.summaries.map((s) => ({ label: s.label, value: s.liters, value2: s.cost })),
+    chartTitle: 'Evolución de Consumo de Petróleo (Litros y Costo)',
+    tableData: data.summaries,
+    tableColumns: [
+      { header: 'Período', dataKey: 'label' },
+      { header: 'Litros', dataKey: 'liters' },
+      { header: 'Costo ($)', dataKey: 'cost' },
+    ],
+    alerts,
+    footer:
+      'https://www.pasajesjm.cl · Reporte de Consumo de Petróleo – Soporta decisiones de eficiencia energética y transición a buses eléctricos.',
+  });
+}
+
 export function exportHumanWaterReport(data: {
   periods: { period: string; botellas: number; bidones: number; costo: number }[];
   totalBotellas: number;

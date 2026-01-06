@@ -57,3 +57,47 @@ export interface PetroleumRecommendationsSummary {
   topConsumers: PetroleumPeriodAggregate[];
   recommendations: PetroleumSavingRecommendation[];
 }
+
+// --- Agregados por empresa ---
+
+export interface PetroleumCompanyAggregate {
+  company: string;
+  totalLiters: number;
+  totalCost: number;
+  totalEmissionsKgCO2e: number;
+  periodCount: number;
+}
+
+// --- Medidas de mitigación con análisis de inversión ---
+
+export type MitigationType = 'electric_bus' | 'hybrid_bus' | 'route_optimization' | 'fleet_maintenance';
+
+export interface MitigationMeasure {
+  id: string;
+  type: MitigationType;
+  title: string;
+  description: string;
+  company: string;
+  // Inversión
+  investmentCLP: number;
+  // Ahorros anuales estimados
+  annualFuelSavingsLiters: number;
+  annualCostSavingsCLP: number;
+  annualEmissionsSavingsKgCO2e: number;
+  // Retorno
+  paybackYears: number;
+  roiPercent: number;
+  // Beneficios adicionales
+  additionalBenefits: string[];
+}
+
+export interface MitigationAnalysis {
+  company: string;
+  currentAnnualLiters: number;
+  currentAnnualCost: number;
+  currentAnnualEmissionsKgCO2e: number;
+  measures: MitigationMeasure[];
+  totalPotentialSavingsLiters: number;
+  totalPotentialSavingsCLP: number;
+  totalPotentialEmissionsReductionKgCO2e: number;
+}

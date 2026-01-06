@@ -5,11 +5,15 @@ import {
   PetroleumPeriodAggregate,
   PetroleumDashboardMetrics,
   PetroleumRecommendationsSummary,
+  PetroleumCompanyAggregate,
+  MitigationAnalysis,
 } from '@/lib/petroleum/types';
 import {
   aggregatePetroleumByPeriod,
   calculatePetroleumDashboardMetrics,
   buildPetroleumRecommendations,
+  aggregatePetroleumByCompany,
+  buildMitigationAnalysis,
 } from '@/lib/petroleum/utils';
  
 // Tipo local para filas de la tabla petroleum_consumption.
@@ -37,8 +41,10 @@ interface UsePetroleumDataResult {
   error: string | null;
   rows: PetroleumConsumptionRow[];
   aggregates: PetroleumPeriodAggregate[];
+  companyAggregates: PetroleumCompanyAggregate[];
   metrics: PetroleumDashboardMetrics | null;
   recommendations: PetroleumRecommendationsSummary | null;
+  mitigationAnalysis: MitigationAnalysis[];
   lastUpdated: number | null;
   refetch: () => Promise<void>;
 }
@@ -96,14 +102,16 @@ export function usePetroleumData(): UsePetroleumDataResult {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  const { aggregates, metrics, recommendations, lastUpdated } = useMemo(() => {
+  const { aggregates, companyAggregates, metrics, recommendations, mitigationAnalysis, lastUpdated } = useMemo(() => {
     if (rows.length === 0) {
       return {
         aggregates: [] as PetroleumPeriodAggregate[],
+        companyAggregates: [] as PetroleumCompanyAggregate[],
         metrics: null as PetroleumDashboardMetrics | null,
         recommendations: null as PetroleumRecommendationsSummary | null,
+        mitigationAnalysis: [] as MitigationAnalysis[],
         lastUpdated: null,
-      } as any;
+      };
     }
 
     const mappedRows = rows.map((row) => ({
@@ -127,12 +135,22 @@ export function usePetroleumData(): UsePetroleumDataResult {
       PETROLEUM_EMISSION_FACTOR_KG_CO2E_PER_LITER,
     );
 
+    const companyAggregatesResult = aggregatePetroleumByCompany(
+      mappedRows,
+      PETROLEUM_EMISSION_FACTOR_KG_CO2E_PER_LITER,
+    );
+
     const metricsResult = calculatePetroleumDashboardMetrics(
       mappedRows,
       PETROLEUM_EMISSION_FACTOR_KG_CO2E_PER_LITER,
     );
 
     const recommendationsResult = buildPetroleumRecommendations(aggregatesResult);
+
+    const mitigationAnalysisResult = buildMitigationAnalysis(
+      companyAggregatesResult,
+      PETROLEUM_EMISSION_FACTOR_KG_CO2E_PER_LITER,
+    );
 
     const lastUpdatedTs = rows.reduce<number>((max, row) => {
       const dateStr = row.date_emission || row.date_payment || row.created_at || null;
@@ -144,8 +162,10 @@ export function usePetroleumData(): UsePetroleumDataResult {
 
     return {
       aggregates: aggregatesResult,
+      companyAggregates: companyAggregatesResult,
       metrics: metricsResult,
       recommendations: recommendationsResult,
+      mitigationAnalysis: mitigationAnalysisResult,
       lastUpdated: lastUpdatedTs || null,
     };
   }, [rows]);
@@ -155,8 +175,10 @@ export function usePetroleumData(): UsePetroleumDataResult {
     error,
     rows,
     aggregates,
+    companyAggregates,
     metrics,
     recommendations,
+    mitigationAnalysis,
     lastUpdated,
     refetch: load,
   };
