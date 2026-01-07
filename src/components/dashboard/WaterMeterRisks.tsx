@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
-import { AlertTriangle, ClipboardList, PlusCircle, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, ClipboardList, PlusCircle, CheckCircle2, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChartCard } from "@/components/ui/chart-card";
@@ -277,31 +277,58 @@ export default function WaterMeterRisks() {
               const taskCount = existingAlert?.water_alert_tasks.length ?? 0;
               const pendingCount = existingAlert?.water_alert_tasks.filter(t => t.status !== "completed").length ?? 0;
 
+              // Color indicators based on delta level
+              const deltaPct = r.delta_pct * 100;
+              let riskLevel: "low" | "medium" | "high" | "negative" = "low";
+              if (deltaPct < 0) riskLevel = "negative";
+              else if (deltaPct >= 30) riskLevel = "high";
+              else if (deltaPct >= 15) riskLevel = "medium";
+
+              const riskColors = {
+                negative: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
+                low: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30",
+                medium: "bg-amber-500/15 text-amber-600 border-amber-500/30",
+                high: "bg-red-500/15 text-red-600 border-red-500/30",
+              };
+
+              const RiskIcon = deltaPct < 0 ? TrendingDown : deltaPct >= 15 ? TrendingUp : Minus;
+
               return (
                 <li
                   key={key}
                   className="py-3 flex items-center justify-between gap-4"
                 >
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium truncate flex items-center gap-2">
-                      {r.centro_trabajo} / {r.medidor} · {r.period}
-                      {hasTasks && (
-                        <Badge 
-                          variant={pendingCount > 0 ? "secondary" : "default"} 
-                          className="gap-1 text-xs"
-                        >
-                          <CheckCircle2 className="w-3 h-3" />
-                          {pendingCount > 0 
-                            ? `${taskCount} tarea${taskCount > 1 ? "s" : ""}`
-                            : "Completada"}
-                        </Badge>
-                      )}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className={`flex items-center justify-center w-10 h-10 rounded-full border ${riskColors[riskLevel]}`}>
+                      <RiskIcon className="w-5 h-5" />
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Baseline: {r.baseline_m3.toLocaleString()} m³ · Actual:{" "}
-                      {r.current_m3.toLocaleString()} m³ · Delta:{" "}
-                      {(r.delta_pct * 100).toFixed(1)}% · Confidence:{" "}
-                      {(r.confidence * 100).toFixed(0)}% · Datos: {r.data_points}
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium truncate flex items-center gap-2">
+                        {r.centro_trabajo} / {r.medidor} · {r.period}
+                        {hasTasks && (
+                          <Badge 
+                            variant={pendingCount > 0 ? "secondary" : "default"} 
+                            className="gap-1 text-xs"
+                          >
+                            <CheckCircle2 className="w-3 h-3" />
+                            {pendingCount > 0 
+                              ? `${taskCount} tarea${taskCount > 1 ? "s" : ""}`
+                              : "Completada"}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-2">
+                        <span>Baseline: {r.baseline_m3.toLocaleString()} m³</span>
+                        <span>Actual: {r.current_m3.toLocaleString()} m³</span>
+                        <span className={`font-medium ${
+                          deltaPct < 0 ? "text-emerald-600" : 
+                          deltaPct >= 30 ? "text-red-600" : 
+                          deltaPct >= 15 ? "text-amber-600" : "text-muted-foreground"
+                        }`}>
+                          Delta: {deltaPct >= 0 ? "+" : ""}{deltaPct.toFixed(1)}%
+                        </span>
+                        <span>Confianza: {(r.confidence * 100).toFixed(0)}%</span>
+                      </div>
                     </div>
                   </div>
                   <div className="shrink-0">
