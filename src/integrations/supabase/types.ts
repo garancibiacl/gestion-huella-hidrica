@@ -598,6 +598,98 @@ export type Database = {
         }
         Relationships: []
       }
+      water_alert_tasks: {
+        Row: {
+          alert_id: string
+          assignee_id: string | null
+          created_at: string
+          due_date: string | null
+          evidence_url: string | null
+          id: string
+          notes: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          alert_id: string
+          assignee_id?: string | null
+          created_at?: string
+          due_date?: string | null
+          evidence_url?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          alert_id?: string
+          assignee_id?: string | null
+          created_at?: string
+          due_date?: string | null
+          evidence_url?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "water_alert_tasks_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "water_meter_alerts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      water_meter_alerts: {
+        Row: {
+          baseline_m3: number
+          centro_trabajo: string
+          confidence: number
+          created_at: string
+          current_m3: number
+          data_points: number
+          delta_pct: number
+          id: string
+          medidor: string
+          organization_id: string
+          period: string
+          status: string
+        }
+        Insert: {
+          baseline_m3: number
+          centro_trabajo: string
+          confidence: number
+          created_at?: string
+          current_m3: number
+          data_points: number
+          delta_pct: number
+          id?: string
+          medidor: string
+          organization_id: string
+          period: string
+          status?: string
+        }
+        Update: {
+          baseline_m3?: number
+          centro_trabajo?: string
+          confidence?: number
+          created_at?: string
+          current_m3?: number
+          data_points?: number
+          delta_pct?: number
+          id?: string
+          medidor?: string
+          organization_id?: string
+          period?: string
+          status?: string
+        }
+        Relationships: []
+      }
       water_meter_readings: {
         Row: {
           centro_trabajo: string
