@@ -7,6 +7,7 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -153,6 +154,7 @@ export default function WaterMeterRisks() {
   const [taskFilter, setTaskFilter] = useState<"all" | "pending" | "completed">(
     "all"
   );
+  const [creatingTask, setCreatingTask] = useState(false);
 
   const currentAlert = useMemo(() => {
     return currentAlertKey ? existingAlerts.get(currentAlertKey) : undefined;
@@ -268,6 +270,7 @@ export default function WaterMeterRisks() {
 
   const createNewTask = async () => {
     if (!currentAlert || !newTaskTitle.trim()) return;
+    setCreatingTask(true);
     const { error } = await supabase.from("water_alert_tasks").insert({
       alert_id: currentAlert.id,
       title: newTaskTitle.trim(),
@@ -281,12 +284,14 @@ export default function WaterMeterRisks() {
         title: "Error",
         description: error.message,
       });
+      setCreatingTask(false);
       return;
     }
     setNewTaskTitle("");
     setNewTaskAssignee("");
     setNewTaskDueDate("");
     await fetchExistingAlerts();
+    setCreatingTask(false);
   };
 
   const uploadEvidence = async (taskId: string, file: File) => {
@@ -637,7 +642,10 @@ export default function WaterMeterRisks() {
                       size="sm"
                       variant={hasTasks ? "outline" : "default"}
                       className="gap-2"
-                      onClick={() => createTask(r)}
+                      onClick={async () => {
+                        await createTask(r);
+                        await openTasksModal(r);
+                      }}
                     >
                       <PlusCircle className="w-4 h-4" />
                       {hasTasks ? "Agregar tarea" : "Crear tarea"}
@@ -658,25 +666,40 @@ export default function WaterMeterRisks() {
       </ChartCard>
       {/* Tasks modal */}
       <Dialog open={isTasksOpen} onOpenChange={setIsTasksOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Gestión de tareas</DialogTitle>
-            <DialogDescription>
-              {currentAlert ? (
-                <span>
-                  {currentAlert.centro_trabajo} / {currentAlert.medidor} ·{" "}
-                  {currentAlert.period}
-                </span>
-              ) : (
-                "Selecciona una alerta"
-              )}
-            </DialogDescription>
+        <DialogContent className="sm:max-w-2xl p-6 sm:p-8">
+          <DialogHeader className="pb-2">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <DialogTitle>Gestión de tareas</DialogTitle>
+                <DialogDescription>
+                  {currentAlert ? (
+                    <span>
+                      {currentAlert.centro_trabajo} / {currentAlert.medidor} ·{" "}
+                      {currentAlert.period}
+                    </span>
+                  ) : (
+                    "Selecciona una alerta"
+                  )}
+                </DialogDescription>
+              </div>
+              <Button
+                size="sm"
+                onClick={createNewTask}
+                disabled={!newTaskTitle.trim() || creatingTask}
+                className="h-9"
+              >
+                {creatingTask && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {creatingTask ? "Agregando" : "Agregar"}
+              </Button>
+            </div>
           </DialogHeader>
 
-          {/* Create task - 4 column grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 items-end">
-            <div className="sm:col-span-2">
-              <label className="text-xs font-medium text-muted-foreground">
+          {/* Create task - wider grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-5 items-end mt-4">
+            <div className="sm:col-span-5">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 Título
               </label>
               <Input
@@ -685,19 +708,19 @@ export default function WaterMeterRisks() {
                 onChange={(e) => setNewTaskTitle(e.target.value)}
               />
             </div>
-            <div className="sm:col-span-2">
-              <label className="text-xs font-medium text-muted-foreground">
+            <div className="sm:col-span-4">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 Responsable
               </label>
               <Select
-                value={newTaskAssignee}
-                onValueChange={setNewTaskAssignee}
+                value={newTaskAssignee || "none"}
+                onValueChange={(v) => setNewTaskAssignee(v === "none" ? "" : v)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Sin asignar" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sin asignar</SelectItem>
+                  <SelectItem value="none">Sin asignar</SelectItem>
                   {profiles.map((p) => (
                     <SelectItem key={p.user_id} value={p.user_id}>
                       {p.full_name || p.email || p.user_id.slice(0, 8)}
@@ -706,8 +729,8 @@ export default function WaterMeterRisks() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">
+            <div className="sm:col-span-3">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
                 Fecha compromiso
               </label>
               <Input
@@ -716,13 +739,10 @@ export default function WaterMeterRisks() {
                 onChange={(e) => setNewTaskDueDate(e.target.value)}
               />
             </div>
-            <Button size="sm" onClick={createNewTask} className="h-10">
-              Agregar
-            </Button>
           </div>
 
           {/* Tasks toolbar */}
-          <div className="mt-3 flex items-center justify-between">
+          <div className="mt-6 flex items-center justify-between">
             <div className="text-xs text-muted-foreground">Tareas</div>
             <div className="flex items-center gap-2">
               <label className="text-xs text-muted-foreground">Filtrar</label>
@@ -743,7 +763,7 @@ export default function WaterMeterRisks() {
           </div>
 
           {/* Tasks list */}
-          <div className="mt-2 space-y-2">
+          <div className="mt-3 space-y-3">
             {currentAlert && currentAlert.water_alert_tasks.length > 0 ? (
               currentAlert.water_alert_tasks
                 .filter((t) =>
@@ -760,7 +780,7 @@ export default function WaterMeterRisks() {
                   return (
                     <div
                       key={t.id}
-                      className="border rounded-md px-3 py-2 space-y-2"
+                      className="border rounded-md px-4 py-3 space-y-3 bg-muted"
                     >
                       {/* Task title and status */}
                       <div className="flex items-center justify-between text-sm">
@@ -785,21 +805,23 @@ export default function WaterMeterRisks() {
                       {/* Inline editing row */}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-center text-sm">
                         <Select
-                          value={t.assignee_id || ""}
+                          value={t.assignee_id || "none"}
                           onValueChange={(v) =>
-                            updateTask(t.id, { assignee_id: v || null })
+                            updateTask(t.id, {
+                              assignee_id: v === "none" ? null : v,
+                            })
                           }
                         >
                           <SelectTrigger className="h-8">
-                            <SelectValue
-                              placeholder="Sin asignar"
-                            />
+                            <SelectValue placeholder="Sin asignar" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Sin asignar</SelectItem>
+                            <SelectItem value="none">Sin asignar</SelectItem>
                             {profiles.map((p) => (
                               <SelectItem key={p.user_id} value={p.user_id}>
-                                {p.full_name || p.email || p.user_id.slice(0, 8)}
+                                {p.full_name ||
+                                  p.email ||
+                                  p.user_id.slice(0, 8)}
                               </SelectItem>
                             ))}
                           </SelectContent>
