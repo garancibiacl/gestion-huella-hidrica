@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
-import { AlertTriangle, ClipboardList, PlusCircle } from "lucide-react";
+import { useMemo, useState, useEffect, useCallback } from "react";
+import { AlertTriangle, ClipboardList, PlusCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ChartCard } from "@/components/ui/chart-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -15,13 +16,48 @@ import { useWaterMeters } from "@/hooks/useWaterMeters";
 import { useWaterMeterRisk } from "@/hooks/useWaterMeterRisk";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useOrganization } from "@/hooks/useOrganization";
+
+type AlertWithTasks = {
+  id: string;
+  centro_trabajo: string;
+  medidor: string;
+  period: string;
+  status: string;
+  water_alert_tasks: { id: string; status: string }[];
+};
 
 export default function WaterMeterRisks() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { organizationId } = useOrganization();
   const [selectedCentro, setSelectedCentro] = useState<string>("all");
   const [selectedMedidor, setSelectedMedidor] = useState<string>("all");
   const [minDelta, setMinDelta] = useState<number>(0.2);
+  const [existingAlerts, setExistingAlerts] = useState<Map<string, AlertWithTasks>>(new Map());
+
+  // Fetch existing alerts with their tasks
+  const fetchExistingAlerts = useCallback(async () => {
+    if (!organizationId) return;
+    const { data, error } = await supabase
+      .from("water_meter_alerts")
+      .select("id, centro_trabajo, medidor, period, status, water_alert_tasks(id, status)")
+      .eq("organization_id", organizationId);
+    if (error) {
+      console.error("Error fetching existing alerts:", error);
+      return;
+    }
+    const map = new Map<string, AlertWithTasks>();
+    (data ?? []).forEach((alert) => {
+      const key = `${alert.centro_trabajo}-${alert.medidor}-${alert.period}`;
+      map.set(key, alert as AlertWithTasks);
+    });
+    setExistingAlerts(map);
+  }, [organizationId]);
+
+  useEffect(() => {
+    fetchExistingAlerts();
+  }, [fetchExistingAlerts]);
 
   const { data } = useWaterMeters();
   const centros = useMemo(
@@ -115,6 +151,9 @@ export default function WaterMeterRisks() {
         title: "Tarea creada",
         description: "Se creó una tarea para esta alerta",
       });
+      
+      // Refresh alerts to update badges
+      fetchExistingAlerts();
     } catch (e: any) {
       toast({
         variant: "destructive",
@@ -230,34 +269,54 @@ export default function WaterMeterRisks() {
           </div>
         ) : (
           <ul className="divide-y divide-border">
-            {visible.map((r) => (
-              <li
-                key={`${r.centro_trabajo}-${r.medidor}-${r.period}`}
-                className="py-3 flex items-center justify-between gap-4"
-              >
-                <div className="min-w-0">
-                  <div className="text-sm font-medium truncate">
-                    {r.centro_trabajo} / {r.medidor} · {r.period}
+            {visible.map((r) => {
+              const key = `${r.centro_trabajo}-${r.medidor}-${r.period}`;
+              const existingAlert = existingAlerts.get(key);
+              const hasTasks = existingAlert && existingAlert.water_alert_tasks.length > 0;
+              const taskCount = existingAlert?.water_alert_tasks.length ?? 0;
+              const pendingCount = existingAlert?.water_alert_tasks.filter(t => t.status !== "completed").length ?? 0;
+
+              return (
+                <li
+                  key={key}
+                  className="py-3 flex items-center justify-between gap-4"
+                >
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate flex items-center gap-2">
+                      {r.centro_trabajo} / {r.medidor} · {r.period}
+                      {hasTasks && (
+                        <Badge 
+                          variant={pendingCount > 0 ? "secondary" : "default"} 
+                          className="gap-1 text-xs"
+                        >
+                          <CheckCircle2 className="w-3 h-3" />
+                          {pendingCount > 0 
+                            ? `${taskCount} tarea${taskCount > 1 ? "s" : ""}`
+                            : "Completada"}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Baseline: {r.baseline_m3.toLocaleString()} m³ · Actual:{" "}
+                      {r.current_m3.toLocaleString()} m³ · Delta:{" "}
+                      {(r.delta_pct * 100).toFixed(1)}% · Confidence:{" "}
+                      {(r.confidence * 100).toFixed(0)}% · Datos: {r.data_points}
+                    </div>
                   </div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    Baseline: {r.baseline_m3.toLocaleString()} m³ · Actual:{" "}
-                    {r.current_m3.toLocaleString()} m³ · Delta:{" "}
-                    {(r.delta_pct * 100).toFixed(1)}% · Confidence:{" "}
-                    {(r.confidence * 100).toFixed(0)}% · Datos: {r.data_points}
+                  <div className="shrink-0">
+                    <Button
+                      size="sm"
+                      variant={hasTasks ? "outline" : "default"}
+                      className="gap-2"
+                      onClick={() => createTask(r)}
+                    >
+                      <PlusCircle className="w-4 h-4" />
+                      {hasTasks ? "Agregar tarea" : "Crear tarea"}
+                    </Button>
                   </div>
-                </div>
-                <div className="shrink-0">
-                  <Button
-                    size="sm"
-                    className="gap-2"
-                    onClick={() => createTask(r)}
-                  >
-                    <PlusCircle className="w-4 h-4" />
-                    Crear tarea
-                  </Button>
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
       </ChartCard>
