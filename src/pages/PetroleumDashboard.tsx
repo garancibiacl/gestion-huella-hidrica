@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Flame, Fuel, Factory, RefreshCw, Building2, Zap, TrendingDown, DollarSign, Leaf } from 'lucide-react';
 import {
@@ -16,15 +16,29 @@ import { LoaderHourglass } from '@/components/ui/loader-hourglass';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ChartCard } from '@/components/ui/chart-card';
 import { NextActionPanel } from '@/components/ui/next-action-panel';
-import { usePetroleumData } from '@/hooks/usePetroleumData';
+import { PETROLEUM_EMISSION_FACTOR_KG_CO2E_PER_LITER, usePetroleumData } from '@/hooks/usePetroleumData';
 import { usePetroleumSync } from '@/hooks/usePetroleumSync';
 import { ExportPDFButton } from '@/components/export/ExportPDFButton';
 import { exportPetroleumReport } from '@/lib/pdf-export';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  aggregatePetroleumByCompany,
+  aggregatePetroleumByPeriod,
+  buildMitigationAnalysis,
+  buildPetroleumRecommendations,
+  calculatePetroleumDashboardMetrics,
+} from '@/lib/petroleum/utils';
 
 export default function PetroleumDashboard() {
-  const { loading, error, aggregates, companyAggregates, metrics, recommendations, mitigationAnalysis, lastUpdated, refetch } = usePetroleumData();
+  const {
+    loading,
+    error,
+    lastUpdated,
+    refetch,
+    readings,
+  } = usePetroleumData();
   const { sync: syncPetroleum, isSyncing, lastSyncAt } = usePetroleumSync({
     enabled: true,
     onSyncComplete: async (success, rowsProcessed) => {
@@ -34,18 +48,80 @@ export default function PetroleumDashboard() {
     },
   });
 
-  const latest = aggregates[aggregates.length - 1];
-  const previous = aggregates[aggregates.length - 2];
+  const [selectedPeriod, setSelectedPeriod] = useState('all');
+  const [selectedCenter, setSelectedCenter] = useState('all');
+  const [selectedMedidor, setSelectedMedidor] = useState('all');
+
+  const periodOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    readings.forEach((reading) => {
+      if (!map.has(reading.periodKey)) {
+        map.set(reading.periodKey, reading.periodLabel);
+      }
+    });
+    return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
+  }, [readings]);
+
+  const centerOptions = useMemo(
+    () => Array.from(new Set(readings.map((reading) => reading.center).filter(Boolean))).sort(),
+    [readings],
+  );
+
+  const medidorOptions = useMemo(
+    () => Array.from(new Set(readings.map((reading) => reading.supplier).filter(Boolean))).sort(),
+    [readings],
+  );
+
+  const filteredReadings = useMemo(
+    () =>
+      readings.filter((reading) => {
+        if (selectedPeriod !== 'all' && reading.periodKey !== selectedPeriod) return false;
+        if (selectedCenter !== 'all' && reading.center !== selectedCenter) return false;
+        if (selectedMedidor !== 'all' && reading.supplier !== selectedMedidor) return false;
+        return true;
+      }),
+    [readings, selectedPeriod, selectedCenter, selectedMedidor],
+  );
+
+  const filteredAggregates = useMemo(
+    () =>
+      aggregatePetroleumByPeriod(filteredReadings, PETROLEUM_EMISSION_FACTOR_KG_CO2E_PER_LITER),
+    [filteredReadings],
+  );
+
+  const filteredCompanyAggregates = useMemo(
+    () =>
+      aggregatePetroleumByCompany(filteredReadings, PETROLEUM_EMISSION_FACTOR_KG_CO2E_PER_LITER),
+    [filteredReadings],
+  );
+
+  const filteredMetrics = useMemo(() => {
+    if (filteredReadings.length === 0) return null;
+    return calculatePetroleumDashboardMetrics(filteredReadings, PETROLEUM_EMISSION_FACTOR_KG_CO2E_PER_LITER);
+  }, [filteredReadings]);
+
+  const filteredRecommendations = useMemo(() => {
+    if (filteredAggregates.length === 0) return null;
+    return buildPetroleumRecommendations(filteredAggregates);
+  }, [filteredAggregates]);
+
+  const filteredMitigationAnalysis = useMemo(() => {
+    if (filteredCompanyAggregates.length === 0) return [];
+    return buildMitigationAnalysis(filteredCompanyAggregates, PETROLEUM_EMISSION_FACTOR_KG_CO2E_PER_LITER);
+  }, [filteredCompanyAggregates]);
+
+  const latest = filteredAggregates[filteredAggregates.length - 1];
+  const previous = filteredAggregates[filteredAggregates.length - 2];
   const nextActions = useMemo(() => {
-    if (recommendations && recommendations.recommendations.length > 0) {
-      return recommendations.recommendations.slice(0, 3).map((rec) => rec.message);
+    if (filteredRecommendations && filteredRecommendations.recommendations.length > 0) {
+      return filteredRecommendations.recommendations.slice(0, 3).map((rec) => rec.message);
     }
     return [
       'Revisar centros con mayor consumo de combustible.',
       'Validar rutas con alza sostenida de litros.',
       'Priorizar medidas de eficiencia operativa en faenas críticas.',
     ];
-  }, [recommendations]);
+  }, [filteredRecommendations]);
 
   const variationLitersPct = useMemo(() => {
     if (!latest || !previous || previous.totalLiters <= 0) return 0;
@@ -59,12 +135,12 @@ export default function PetroleumDashboard() {
 
   const chartData = useMemo(
     () =>
-      aggregates.map((agg) => ({
+      filteredAggregates.map((agg) => ({
         period: agg.periodLabel,
         liters: agg.totalLiters,
         cost: agg.totalCost,
       })),
-    [aggregates],
+    [filteredAggregates],
   );
 
   const formatLastSync = (timestamp: number) => {
@@ -112,8 +188,8 @@ export default function PetroleumDashboard() {
     );
   }
 
-  const hasData = !!metrics && aggregates.length > 0;
-  const totalEmissionsTons = hasData ? metrics.totalEmissionsKgCO2e / 1000 : 0;
+  const hasData = !!filteredMetrics && filteredAggregates.length > 0;
+  const totalEmissionsTons = hasData ? filteredMetrics!.totalEmissionsKgCO2e / 1000 : 0;
 
   return (
     <div className="page-container space-y-6">
@@ -134,9 +210,9 @@ export default function PetroleumDashboard() {
             </Button>
             <ExportPDFButton
               onExport={async () => {
-                if (!hasData || !metrics || aggregates.length === 0) return;
+                if (!hasData || !filteredMetrics || filteredAggregates.length === 0) return;
 
-                const summaries = aggregates.map((agg) => ({
+                const summaries = filteredAggregates.map((agg) => ({
                   period: agg.periodKey,
                   label: agg.periodLabel,
                   liters: agg.totalLiters,
@@ -145,9 +221,9 @@ export default function PetroleumDashboard() {
 
                 exportPetroleumReport({
                   summaries,
-                  totalLiters: metrics.totalLiters,
-                  totalCost: metrics.totalCost,
-                  totalEmissionsKgCO2e: metrics.totalEmissionsKgCO2e,
+                  totalLiters: filteredMetrics.totalLiters,
+                  totalCost: filteredMetrics.totalCost,
+                  totalEmissionsKgCO2e: filteredMetrics.totalEmissionsKgCO2e,
                   variationLitersPct,
                 });
               }}
@@ -210,6 +286,70 @@ export default function PetroleumDashboard() {
           </TabsTrigger>
         </TabsList>
 
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+        >
+          <div className="flex flex-col gap-1">
+            <label htmlFor="petroleum-period" className="text-xs font-medium text-muted-foreground">
+              Período
+            </label>
+            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+              <SelectTrigger id="petroleum-period" className="w-full [&>span]:line-clamp-2 [&>span]:leading-tight">
+                <SelectValue placeholder="Todos los períodos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los períodos</SelectItem>
+                {periodOptions.map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label htmlFor="petroleum-center" className="text-xs font-medium text-muted-foreground">
+              Centro de trabajo
+            </label>
+            <Select value={selectedCenter} onValueChange={setSelectedCenter}>
+              <SelectTrigger id="petroleum-center" className="w-full [&>span]:line-clamp-2 [&>span]:leading-tight">
+                <SelectValue placeholder="Todos los centros" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los centros</SelectItem>
+                {centerOptions.map((center) => (
+                  <SelectItem key={center} value={center}>
+                    {center}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label htmlFor="petroleum-medidor" className="text-xs font-medium text-muted-foreground">
+              Medidor
+            </label>
+            <Select value={selectedMedidor} onValueChange={setSelectedMedidor}>
+              <SelectTrigger id="petroleum-medidor" className="w-full [&>span]:line-clamp-2 [&>span]:leading-tight">
+                <SelectValue placeholder="Todos los medidores" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los medidores</SelectItem>
+                {medidorOptions.map((medidor) => (
+                  <SelectItem key={medidor} value={medidor}>
+                    {medidor}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </motion.div>
+
         <TabsContent value="consumo" className="mt-6 space-y-6">
           {hasData ? (
             <>
@@ -220,7 +360,7 @@ export default function PetroleumDashboard() {
               >
                 <StatCard
                   title="Consumo total"
-                  value={`${metrics.totalLiters.toLocaleString('es-CL', { maximumFractionDigits: 0 })} L`}
+                  value={`${filteredMetrics!.totalLiters.toLocaleString('es-CL', { maximumFractionDigits: 0 })} L`}
                   subtitle="Suma del período consolidado"
                   icon={<Flame className="w-6 h-6" />}
                   variant="primary"
@@ -228,7 +368,7 @@ export default function PetroleumDashboard() {
 
                 <StatCard
                   title="Costo total asociado"
-                  value={`$${metrics.totalCost.toLocaleString('es-CL')}`}
+                  value={`$${filteredMetrics!.totalCost.toLocaleString('es-CL')}`}
                   subtitle="Gasto asociado al consumo"
                   icon={<Fuel className="w-6 h-6" />}
                   variant="minimal"
@@ -334,7 +474,7 @@ export default function PetroleumDashboard() {
                   />
                   <StatCard
                     title="Intensidad de emisiones"
-                    value={`${(metrics.totalEmissionsKgCO2e / metrics.totalLiters).toFixed(2)} kgCO₂e/L`}
+                    value={`${(filteredMetrics!.totalEmissionsKgCO2e / filteredMetrics!.totalLiters).toFixed(2)} kgCO₂e/L`}
                     subtitle="Factor promedio implícito"
                     variant="minimal"
                   />
@@ -364,7 +504,7 @@ export default function PetroleumDashboard() {
         </TabsContent>
 
         <TabsContent value="empresas" className="mt-6 space-y-4">
-          {hasData && companyAggregates.length > 0 ? (
+          {hasData && filteredCompanyAggregates.length > 0 ? (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -382,7 +522,7 @@ export default function PetroleumDashboard() {
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-3">
-                  {companyAggregates.map((company) => (
+                  {filteredCompanyAggregates.map((company) => (
                     <div
                       key={company.company}
                       className="rounded-lg border bg-gradient-to-br from-blue-50 to-slate-50 p-4"
@@ -427,7 +567,7 @@ export default function PetroleumDashboard() {
                 <div className="h-[200px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
-                      data={companyAggregates.map((c) => ({
+                      data={filteredCompanyAggregates.map((c) => ({
                         name: c.company.length > 15 ? c.company.substring(0, 15) + '...' : c.company,
                         litros: c.totalLiters,
                         costo: c.totalCost,
@@ -462,7 +602,7 @@ export default function PetroleumDashboard() {
         </TabsContent>
 
         <TabsContent value="transicion" className="mt-6 space-y-4">
-          {hasData && mitigationAnalysis.length > 0 ? (
+          {hasData && filteredMitigationAnalysis.length > 0 ? (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -483,27 +623,27 @@ export default function PetroleumDashboard() {
                 <div className="grid gap-4 md:grid-cols-3 mb-6">
                   <StatCard
                     title="Ahorro potencial anual"
-                    value={`$${mitigationAnalysis.reduce((sum, m) => sum + m.totalPotentialSavingsCLP, 0).toLocaleString('es-CL')}`}
+                    value={`$${filteredMitigationAnalysis.reduce((sum, m) => sum + m.totalPotentialSavingsCLP, 0).toLocaleString('es-CL')}`}
                     subtitle="Si se implementan todas las medidas"
                     icon={<DollarSign className="w-6 h-6" />}
                     variant="primary"
                   />
                   <StatCard
                     title="Reducción de combustible"
-                    value={`${mitigationAnalysis.reduce((sum, m) => sum + m.totalPotentialSavingsLiters, 0).toLocaleString('es-CL', { maximumFractionDigits: 0 })} L/año`}
+                    value={`${filteredMitigationAnalysis.reduce((sum, m) => sum + m.totalPotentialSavingsLiters, 0).toLocaleString('es-CL', { maximumFractionDigits: 0 })} L/año`}
                     subtitle="Litros de diésel evitados"
                     icon={<TrendingDown className="w-6 h-6" />}
                   />
                   <StatCard
                     title="Emisiones evitadas"
-                    value={`${(mitigationAnalysis.reduce((sum, m) => sum + m.totalPotentialEmissionsReductionKgCO2e, 0) / 1000).toLocaleString('es-CL', { maximumFractionDigits: 1 })} tCO₂e/año`}
+                    value={`${(filteredMitigationAnalysis.reduce((sum, m) => sum + m.totalPotentialEmissionsReductionKgCO2e, 0) / 1000).toLocaleString('es-CL', { maximumFractionDigits: 1 })} tCO₂e/año`}
                     subtitle="Reducción de huella de carbono"
                     icon={<Leaf className="w-6 h-6" />}
                   />
                 </div>
               </div>
 
-              {mitigationAnalysis.map((analysis) => (
+              {filteredMitigationAnalysis.map((analysis) => (
                 <div key={analysis.company} className="stat-card">
                   <div className="mb-4 flex items-center justify-between">
                     <div>
@@ -610,7 +750,7 @@ export default function PetroleumDashboard() {
         </TabsContent>
 
         <TabsContent value="medidas" className="mt-6 space-y-4">
-          {hasData && recommendations && recommendations.recommendations.length > 0 ? (
+          {hasData && filteredRecommendations && filteredRecommendations.recommendations.length > 0 ? (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -628,7 +768,7 @@ export default function PetroleumDashboard() {
               </div>
 
               <ul className="space-y-3 text-xs">
-                {recommendations.recommendations.map((rec, index) => (
+                {filteredRecommendations.recommendations.map((rec, index) => (
                   <li
                     key={`${rec.center}-${index}`}
                     className="rounded-lg border border-emerald-100 bg-emerald-50/60 px-3 py-2 text-emerald-900"

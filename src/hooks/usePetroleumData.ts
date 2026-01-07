@@ -7,6 +7,7 @@ import {
   PetroleumRecommendationsSummary,
   PetroleumCompanyAggregate,
   MitigationAnalysis,
+  PetroleumReading,
 } from '@/lib/petroleum/types';
 import {
   aggregatePetroleumByPeriod,
@@ -40,6 +41,7 @@ interface UsePetroleumDataResult {
   loading: boolean;
   error: string | null;
   rows: PetroleumConsumptionRow[];
+  readings: PetroleumReading[];
   aggregates: PetroleumPeriodAggregate[];
   companyAggregates: PetroleumCompanyAggregate[];
   metrics: PetroleumDashboardMetrics | null;
@@ -50,7 +52,7 @@ interface UsePetroleumDataResult {
 }
 
 // Factor genérico de emisión por litro de combustible (kgCO2e/L)
-const PETROLEUM_EMISSION_FACTOR_KG_CO2E_PER_LITER = 2.68;
+export const PETROLEUM_EMISSION_FACTOR_KG_CO2E_PER_LITER = 2.68;
 
 export function usePetroleumData(): UsePetroleumDataResult {
   const { user } = useAuth();
@@ -102,8 +104,28 @@ export function usePetroleumData(): UsePetroleumDataResult {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
+  const readings = useMemo(
+    () =>
+      rows.map((row) => ({
+        id: `${row.id}`,
+        periodKey: row.period,
+        periodLabel: row.period_label ?? row.period,
+        dateEmission: row.date_emission,
+        datePayment: row.date_payment,
+        center: row.center ?? '',
+        company: row.company ?? '',
+        supplier: row.supplier ?? '',
+        liters: Number(row.liters ?? 0),
+        unit: 'L' as const,
+        totalCost: Number(row.total_cost ?? 0),
+        miningUseRaw: row.mining_use_raw ?? '',
+        isMiningUse: Boolean(row.is_mining_use),
+      })),
+    [rows],
+  );
+
   const { aggregates, companyAggregates, metrics, recommendations, mitigationAnalysis, lastUpdated } = useMemo(() => {
-    if (rows.length === 0) {
+    if (readings.length === 0) {
       return {
         aggregates: [] as PetroleumPeriodAggregate[],
         companyAggregates: [] as PetroleumCompanyAggregate[],
@@ -114,34 +136,18 @@ export function usePetroleumData(): UsePetroleumDataResult {
       };
     }
 
-    const mappedRows = rows.map((row) => ({
-      id: `${row.id}`,
-      periodKey: row.period,
-      periodLabel: row.period_label ?? row.period,
-      dateEmission: row.date_emission,
-      datePayment: row.date_payment,
-      center: row.center ?? '',
-      company: row.company ?? '',
-      supplier: row.supplier ?? '',
-      liters: Number(row.liters ?? 0),
-      unit: 'L' as const,
-      totalCost: Number(row.total_cost ?? 0),
-      miningUseRaw: row.mining_use_raw ?? '',
-      isMiningUse: Boolean(row.is_mining_use),
-    }));
-
     const aggregatesResult = aggregatePetroleumByPeriod(
-      mappedRows,
+      readings,
       PETROLEUM_EMISSION_FACTOR_KG_CO2E_PER_LITER,
     );
 
     const companyAggregatesResult = aggregatePetroleumByCompany(
-      mappedRows,
+      readings,
       PETROLEUM_EMISSION_FACTOR_KG_CO2E_PER_LITER,
     );
 
     const metricsResult = calculatePetroleumDashboardMetrics(
-      mappedRows,
+      readings,
       PETROLEUM_EMISSION_FACTOR_KG_CO2E_PER_LITER,
     );
 
@@ -168,12 +174,13 @@ export function usePetroleumData(): UsePetroleumDataResult {
       mitigationAnalysis: mitigationAnalysisResult,
       lastUpdated: lastUpdatedTs || null,
     };
-  }, [rows]);
+  }, [readings, rows]);
 
   return {
     loading,
     error,
     rows,
+    readings,
     aggregates,
     companyAggregates,
     metrics,
