@@ -1,22 +1,30 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Gauge, Users, RefreshCw, CheckCircle2, Clock, LineChart } from 'lucide-react';
-import { DashboardHeader } from '@/components/ui/dashboard-header';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { EmptyState } from '@/components/ui/empty-state';
-import WaterMeterConsumption from '@/components/dashboard/WaterMeterConsumption';
-import HumanWaterConsumption from '@/components/dashboard/HumanWaterConsumption';
-import WaterConsumptionHistory from '@/components/dashboard/WaterConsumptionHistory';
-import { useWaterSync } from '@/hooks/useWaterSync';
-import { useWaterMeterSync } from '@/hooks/useWaterMeterSync';
-import { useWaterMeters } from '@/hooks/useWaterMeters';
-import { useAuth } from '@/hooks/useAuth';
-import { useRole } from '@/hooks/useRole';
-import { useToast } from '@/hooks/use-toast';
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Gauge,
+  Users,
+  RefreshCw,
+  CheckCircle2,
+  Clock,
+  LineChart,
+} from "lucide-react";
+import { DashboardHeader } from "@/components/ui/dashboard-header";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import WaterMeterConsumption from "@/components/dashboard/WaterMeterConsumption";
+import WaterMeterRisks from "@/components/dashboard/WaterMeterRisks";
+import HumanWaterConsumption from "@/components/dashboard/HumanWaterConsumption";
+import WaterConsumptionHistory from "@/components/dashboard/WaterConsumptionHistory";
+import { useWaterSync } from "@/hooks/useWaterSync";
+import { useWaterMeterSync } from "@/hooks/useWaterMeterSync";
+import { useWaterMeters } from "@/hooks/useWaterMeters";
+import { useAuth } from "@/hooks/useAuth";
+import { useRole } from "@/hooks/useRole";
+import { useToast } from "@/hooks/use-toast";
 
 export default function WaterDashboard() {
-  const [activeTab, setActiveTab] = useState('medidor');
+  const [activeTab, setActiveTab] = useState("medidor");
   const [refreshKey, setRefreshKey] = useState(0);
   const [dataReady, setDataReady] = useState(false);
   const { user } = useAuth();
@@ -26,23 +34,31 @@ export default function WaterDashboard() {
   const { refetch: refetchWaterMeter } = useWaterMeters();
 
   // Sync para consumo humano (botellas/bidones)
-  const { sync: syncHuman, isSyncing: isSyncingHuman, lastSyncAt: lastSyncHuman } = useWaterSync({
+  const {
+    sync: syncHuman,
+    isSyncing: isSyncingHuman,
+    lastSyncAt: lastSyncHuman,
+  } = useWaterSync({
     enabled: true,
     onSyncComplete: (success, rowsProcessed) => {
       setDataReady(true);
       if (success && rowsProcessed > 0) {
-        setRefreshKey(prev => prev + 1);
+        setRefreshKey((prev) => prev + 1);
       }
     },
   });
 
   // Sync para consumo por medidor (m³)
-  const { syncWaterMeter, isSyncing: isSyncingMeter, lastSyncAt: lastSyncMeter } = useWaterMeterSync({
+  const {
+    syncWaterMeter,
+    isSyncing: isSyncingMeter,
+    lastSyncAt: lastSyncMeter,
+  } = useWaterMeterSync({
     enabled: true,
     onSyncComplete: async (success, rowsInserted) => {
       if (success) {
         await refetchWaterMeter();
-        setRefreshKey(prev => prev + 1);
+        setRefreshKey((prev) => prev + 1);
       }
     },
   });
@@ -52,13 +68,10 @@ export default function WaterDashboard() {
 
   const handleSync = async () => {
     // Sincronizar ambos en paralelo
-    await Promise.all([
-      syncHuman(true),
-      syncWaterMeter(true),
-    ]);
+    await Promise.all([syncHuman(true), syncWaterMeter(true)]);
     toast({
-      title: 'Sincronización completada',
-      description: 'Datos de agua actualizados',
+      title: "Sincronización completada",
+      description: "Datos de agua actualizados",
     });
   };
 
@@ -69,14 +82,14 @@ export default function WaterDashboard() {
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
 
-    if (diffMins < 1) return 'Hace un momento';
+    if (diffMins < 1) return "Hace un momento";
     if (diffMins < 60) return `Hace ${diffMins} min`;
     if (diffHours < 24) return `Hace ${diffHours}h`;
-    return date.toLocaleDateString('es-CL', {
-      day: 'numeric',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
+    return date.toLocaleDateString("es-CL", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -96,18 +109,22 @@ export default function WaterDashboard() {
               size="sm"
               className="gap-2 bg-[#C3161D] text-white hover:bg-[#A31217]"
             >
-              <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-              {isSyncing ? 'Sincronizando...' : 'Sincronizar Agua'}
+              <RefreshCw
+                className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`}
+              />
+              {isSyncing ? "Sincronizando..." : "Sincronizar Agua"}
             </Button>
           ) : null
         }
-        statusLabel={isSyncing ? 'Sincronizando' : lastSyncAt ? 'Actualizado' : 'Pendiente'}
-        statusTone={isSyncing ? 'warning' : lastSyncAt ? 'success' : 'muted'}
+        statusLabel={
+          isSyncing ? "Sincronizando" : lastSyncAt ? "Actualizado" : "Pendiente"
+        }
+        statusTone={isSyncing ? "warning" : lastSyncAt ? "success" : "muted"}
         statusDetail={
           lastSyncAt && !isSyncing
             ? `Última actualización: ${formatLastSync(lastSyncAt)}`
             : !lastSyncAt && !isSyncing
-            ? 'Sin sincronizaciones recientes'
+            ? "Sin sincronizaciones recientes"
             : undefined
         }
       />
@@ -146,7 +163,10 @@ export default function WaterDashboard() {
           </TabsList>
 
           <TabsContent value="medidor" className="mt-6">
-            <WaterMeterConsumption key={`meter-${refreshKey}`} />
+            <div className="space-y-6">
+              <WaterMeterRisks />
+              <WaterMeterConsumption key={`meter-${refreshKey}`} />
+            </div>
           </TabsContent>
 
           <TabsContent value="humano" className="mt-6">
@@ -156,7 +176,9 @@ export default function WaterDashboard() {
               <EmptyState
                 title="Preparando datos"
                 description="Sincronizando consumo humano para mostrar el tablero."
-                icon={<RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />}
+                icon={
+                  <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+                }
               />
             )}
           </TabsContent>
