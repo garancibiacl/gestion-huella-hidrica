@@ -33,7 +33,7 @@ export default function WaterMeterRisks() {
   const { organizationId } = useOrganization();
   const [selectedCentro, setSelectedCentro] = useState<string>("all");
   const [selectedMedidor, setSelectedMedidor] = useState<string>("all");
-  const [minDelta, setMinDelta] = useState<number>(0.2);
+  const [minDelta, setMinDelta] = useState<number>(-1); // Show all by default
   const [existingAlerts, setExistingAlerts] = useState<Map<string, AlertWithTasks>>(new Map());
 
   // Fetch existing alerts with their tasks
@@ -250,10 +250,11 @@ export default function WaterMeterRisks() {
               <SelectValue placeholder="Umbral" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="0.1">10%</SelectItem>
-              <SelectItem value="0.2">20%</SelectItem>
-              <SelectItem value="0.3">30%</SelectItem>
-              <SelectItem value="0.5">50%</SelectItem>
+              <SelectItem value="-1">Todos</SelectItem>
+              <SelectItem value="0">Solo positivos</SelectItem>
+              <SelectItem value="0.1">+10%</SelectItem>
+              <SelectItem value="0.2">+20%</SelectItem>
+              <SelectItem value="0.3">+30%</SelectItem>
             </SelectContent>
           </Select>
         </div>
