@@ -164,8 +164,8 @@ export default function WaterDashboard() {
 
           <TabsContent value="medidor" className="mt-6">
             <div className="space-y-6">
-              <WaterMeterRisks />
               <WaterMeterConsumption key={`meter-${refreshKey}`} />
+              <WaterMeterRisks />
             </div>
           </TabsContent>
 
