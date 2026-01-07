@@ -14,9 +14,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useWaterMeters } from "@/hooks/useWaterMeters";
 import { useWaterMeterRisk } from "@/hooks/useWaterMeterRisk";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function WaterMeterRisks() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [selectedCentro, setSelectedCentro] = useState<string>("all");
   const [selectedMedidor, setSelectedMedidor] = useState<string>("all");
   const [minDelta, setMinDelta] = useState<number>(0.2);
@@ -45,33 +47,69 @@ export default function WaterMeterRisks() {
 
   const createTask = async (risk: (typeof risks)[number]) => {
     try {
-      const { data: alertRes, error: alertErr } = await (supabase as any)
+      if (!user?.id) {
+        toast({
+          variant: "destructive",
+          title: "Sesión requerida",
+          description: "Inicia sesión para crear tareas.",
+        });
+        return;
+      }
+
+      // Obtener organization_id del perfil del usuario para cumplir RLS y los índices únicos
+      const { data: profile, error: profileErr } = await supabase
+        .from("profiles")
+        .select("organization_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (profileErr) throw profileErr;
+      const organizationId = profile?.organization_id as string | null;
+      if (!organizationId) {
+        toast({
+          variant: "destructive",
+          title: "Organización no encontrada",
+          description: "No se pudo determinar la organización del usuario.",
+        });
+        return;
+      }
+
+      const { data: alertRes, error: alertErr } = await supabase
         .from("water_meter_alerts")
-        .upsert({
-          centro_trabajo: risk.centro_trabajo,
-          medidor: risk.medidor,
-          period: risk.period,
-          baseline_m3: risk.baseline_m3,
-          current_m3: risk.current_m3,
-          delta_pct: risk.delta_pct,
-          confidence: risk.confidence,
-          data_points: risk.data_points,
-          status: "open",
-        })
+        .upsert(
+          {
+            organization_id: organizationId,
+            centro_trabajo: risk.centro_trabajo,
+            medidor: risk.medidor,
+            period: risk.period,
+            baseline_m3: risk.baseline_m3,
+            current_m3: risk.current_m3,
+            delta_pct: risk.delta_pct,
+            confidence: risk.confidence,
+            data_points: risk.data_points,
+            status: "open",
+          },
+          { onConflict: "organization_id,centro_trabajo,medidor,period" }
+        )
         .select("id")
         .limit(1);
-      if (alertErr) throw alertErr;
+      if (alertErr) {
+        console.error("Alert upsert error", alertErr);
+        throw alertErr;
+      }
       const alertId = alertRes?.[0]?.id;
       if (!alertId) throw new Error("No se pudo obtener el id de alerta");
 
-      const { error: taskErr } = await (supabase as any)
+      const { error: taskErr } = await supabase
         .from("water_alert_tasks")
         .insert({
           alert_id: alertId,
           title: `Revisar sobreconsumo en ${risk.centro_trabajo} / ${risk.medidor}`,
           status: "pending",
         });
-      if (taskErr) throw taskErr;
+      if (taskErr) {
+        console.error("Task insert error", taskErr);
+        throw taskErr;
+      }
 
       toast({
         title: "Tarea creada",
