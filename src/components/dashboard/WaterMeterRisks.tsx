@@ -527,10 +527,32 @@ export default function WaterMeterRisks() {
               const hasTasks =
                 existingAlert && existingAlert.water_alert_tasks.length > 0;
               const taskCount = existingAlert?.water_alert_tasks.length ?? 0;
-              const pendingCount =
+              const pendingTasks =
                 existingAlert?.water_alert_tasks.filter(
                   (t) => t.status !== "completed"
-                ).length ?? 0;
+                ) ?? [];
+              const pendingCount = pendingTasks.length;
+
+              // Get unique assignees for pending tasks
+              const assigneeIds = [
+                ...new Set(
+                  pendingTasks
+                    .map((t) => t.assignee_id)
+                    .filter((id): id is string => !!id)
+                ),
+              ];
+              const assigneeNames = assigneeIds
+                .map((id) => {
+                  const p = profiles.find((pr) => pr.user_id === id);
+                  return p?.full_name || p?.email?.split("@")[0] || null;
+                })
+                .filter((n): n is string => !!n);
+              const assigneeSummary =
+                assigneeNames.length > 0
+                  ? assigneeNames.length === 1
+                    ? assigneeNames[0]
+                    : `${assigneeNames[0]} +${assigneeNames.length - 1}`
+                  : null;
 
               // Color indicators based on delta level
               const deltaPct = r.delta_pct * 100;
@@ -577,6 +599,11 @@ export default function WaterMeterRisks() {
                             {pendingCount > 0
                               ? `${taskCount} tarea${taskCount > 1 ? "s" : ""}`
                               : "Completada"}
+                            {assigneeSummary && (
+                              <span className="ml-1 text-muted-foreground">
+                                · {assigneeSummary}
+                              </span>
+                            )}
                           </Badge>
                         )}
                       </div>
