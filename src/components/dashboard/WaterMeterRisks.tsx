@@ -46,17 +46,28 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
 
+type TaskInfo = {
+  id: string;
+  title: string;
+  status: string;
+  evidence_url?: string | null;
+  assignee_id?: string | null;
+  due_date?: string | null;
+};
+
 type AlertWithTasks = {
   id: string;
   centro_trabajo: string;
   medidor: string;
   period: string;
   status: string;
-  water_alert_tasks: {
-    id: string;
-    status: string;
-    evidence_url?: string | null;
-  }[];
+  water_alert_tasks: TaskInfo[];
+};
+
+type Profile = {
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
 };
 
 export default function WaterMeterRisks() {
@@ -69,6 +80,7 @@ export default function WaterMeterRisks() {
   const [existingAlerts, setExistingAlerts] = useState<
     Map<string, AlertWithTasks>
   >(new Map());
+  const [profiles, setProfiles] = useState<Profile[]>([]);
 
   // Fetch existing alerts with their tasks
   const fetchExistingAlerts = useCallback(async () => {
@@ -76,7 +88,7 @@ export default function WaterMeterRisks() {
     const { data, error } = await supabase
       .from("water_meter_alerts")
       .select(
-        "id, centro_trabajo, medidor, period, status, water_alert_tasks(id, status, evidence_url)"
+        "id, centro_trabajo, medidor, period, status, water_alert_tasks(id, title, status, evidence_url, assignee_id, due_date)"
       )
       .eq("organization_id", organizationId);
     if (error) {
@@ -91,9 +103,24 @@ export default function WaterMeterRisks() {
     setExistingAlerts(map);
   }, [organizationId]);
 
+  // Fetch profiles for assignee dropdown
+  const fetchProfiles = useCallback(async () => {
+    if (!organizationId) return;
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("user_id, full_name, email")
+      .eq("organization_id", organizationId);
+    if (error) {
+      console.error("Error fetching profiles:", error);
+      return;
+    }
+    setProfiles(data ?? []);
+  }, [organizationId]);
+
   useEffect(() => {
     fetchExistingAlerts();
-  }, [fetchExistingAlerts]);
+    fetchProfiles();
+  }, [fetchExistingAlerts, fetchProfiles]);
 
   const { data } = useWaterMeters();
   const centros = useMemo(
@@ -121,6 +148,8 @@ export default function WaterMeterRisks() {
   const [isTasksOpen, setIsTasksOpen] = useState(false);
   const [currentAlertKey, setCurrentAlertKey] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskAssignee, setNewTaskAssignee] = useState<string>("");
+  const [newTaskDueDate, setNewTaskDueDate] = useState<string>("");
   const [taskFilter, setTaskFilter] = useState<"all" | "pending" | "completed">(
     "all"
   );
@@ -218,12 +247,33 @@ export default function WaterMeterRisks() {
     await fetchExistingAlerts();
   };
 
+  const updateTask = async (
+    taskId: string,
+    patch: { assignee_id?: string | null; due_date?: string | null }
+  ) => {
+    const { error } = await supabase
+      .from("water_alert_tasks")
+      .update(patch)
+      .eq("id", taskId);
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+      return;
+    }
+    await fetchExistingAlerts();
+  };
+
   const createNewTask = async () => {
     if (!currentAlert || !newTaskTitle.trim()) return;
     const { error } = await supabase.from("water_alert_tasks").insert({
       alert_id: currentAlert.id,
       title: newTaskTitle.trim(),
       status: "pending",
+      assignee_id: newTaskAssignee || null,
+      due_date: newTaskDueDate || null,
     });
     if (error) {
       toast({
@@ -234,6 +284,8 @@ export default function WaterMeterRisks() {
       return;
     }
     setNewTaskTitle("");
+    setNewTaskAssignee("");
+    setNewTaskDueDate("");
     await fetchExistingAlerts();
   };
 
@@ -594,19 +646,50 @@ export default function WaterMeterRisks() {
             </DialogDescription>
           </DialogHeader>
 
-          {/* Create task */}
-          <div className="flex gap-2 items-end">
-            <div className="flex-1">
+          {/* Create task - 4 column grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 items-end">
+            <div className="sm:col-span-2">
               <label className="text-xs font-medium text-muted-foreground">
-                Nueva tarea
+                Título
               </label>
               <Input
-                placeholder="Ej: Revisar fuga, pedir lectura extraordinaria"
+                placeholder="Ej: Revisar fuga"
                 value={newTaskTitle}
                 onChange={(e) => setNewTaskTitle(e.target.value)}
               />
             </div>
-            <Button size="sm" onClick={createNewTask}>
+            <div className="sm:col-span-2">
+              <label className="text-xs font-medium text-muted-foreground">
+                Responsable
+              </label>
+              <Select
+                value={newTaskAssignee}
+                onValueChange={setNewTaskAssignee}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Sin asignar" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Sin asignar</SelectItem>
+                  {profiles.map((p) => (
+                    <SelectItem key={p.user_id} value={p.user_id}>
+                      {p.full_name || p.email || p.user_id.slice(0, 8)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">
+                Fecha compromiso
+              </label>
+              <Input
+                type="date"
+                value={newTaskDueDate}
+                onChange={(e) => setNewTaskDueDate(e.target.value)}
+              />
+            </div>
+            <Button size="sm" onClick={createNewTask} className="h-10">
               Agregar
             </Button>
           </div>
@@ -643,91 +726,149 @@ export default function WaterMeterRisks() {
                     ? t.status !== "completed"
                     : t.status === "completed"
                 )
-                .map((t) => (
-                  <div
-                    key={t.id}
-                    className="flex items-center justify-between text-sm border rounded-md px-3 py-2"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={
-                          t.status === "completed"
-                            ? "text-emerald-600"
-                            : "text-amber-600"
-                        }
-                      >
-                        {t.status === "completed" ? "Completada" : "Pendiente"}
-                      </span>
-                      <span className="text-muted-foreground">
-                        #{t.id.slice(0, 8)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {t.status !== "completed" && (
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => completeTask(t.id)}
+                .map((t) => {
+                  const assignee = profiles.find(
+                    (p) => p.user_id === t.assignee_id
+                  );
+                  return (
+                    <div
+                      key={t.id}
+                      className="border rounded-md px-3 py-2 space-y-2"
+                    >
+                      {/* Task title and status */}
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span
+                            className={`shrink-0 ${
+                              t.status === "completed"
+                                ? "text-emerald-600"
+                                : "text-amber-600"
+                            }`}
+                          >
+                            {t.status === "completed"
+                              ? "✓ Completada"
+                              : "○ Pendiente"}
+                          </span>
+                          <span className="truncate font-medium">
+                            {t.title}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Inline editing row */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 items-center text-sm">
+                        <Select
+                          value={t.assignee_id || ""}
+                          onValueChange={(v) =>
+                            updateTask(t.id, { assignee_id: v || null })
+                          }
                         >
-                          Completar
-                        </Button>
-                      )}
-                      {t.evidence_url ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={async () => {
-                            const url = await getEvidenceUrl(t.evidence_url!);
-                            if (url) window.open(url, "_blank");
-                            else
-                              toast({
-                                variant: "destructive",
-                                title: "Sin acceso",
-                                description: "No fue posible generar el enlace",
-                              });
-                          }}
-                        >
-                          Ver evidencia
-                        </Button>
-                      ) : null}
-                      <label className="text-xs text-muted-foreground cursor-pointer">
-                        <input
-                          type="file"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) uploadEvidence(t.id, file);
-                            e.currentTarget.value = ""; // reset
-                          }}
+                          <SelectTrigger className="h-8">
+                            <SelectValue
+                              placeholder="Sin asignar"
+                            />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Sin asignar</SelectItem>
+                            {profiles.map((p) => (
+                              <SelectItem key={p.user_id} value={p.user_id}>
+                                {p.full_name || p.email || p.user_id.slice(0, 8)}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        <Input
+                          type="date"
+                          className="h-8"
+                          value={t.due_date || ""}
+                          onChange={(e) =>
+                            updateTask(t.id, {
+                              due_date: e.target.value || null,
+                            })
+                          }
                         />
-                        <span className="underline">Adjuntar evidencia</span>
-                      </label>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button size="sm" variant="outline">
-                            Eliminar
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              ¿Eliminar tarea?
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Esta acción no se puede deshacer.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => deleteTask(t.id)}>
-                              Eliminar
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+
+                        {/* Action buttons */}
+                        <div className="col-span-2 flex items-center gap-1 flex-wrap">
+                          {t.status !== "completed" && (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              className="h-8"
+                              onClick={() => completeTask(t.id)}
+                            >
+                              Completar
+                            </Button>
+                          )}
+                          {t.evidence_url ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8"
+                              onClick={async () => {
+                                const url = await getEvidenceUrl(
+                                  t.evidence_url!
+                                );
+                                if (url) window.open(url, "_blank");
+                                else
+                                  toast({
+                                    variant: "destructive",
+                                    title: "Sin acceso",
+                                    description:
+                                      "No fue posible generar el enlace",
+                                  });
+                              }}
+                            >
+                              Ver evidencia
+                            </Button>
+                          ) : null}
+                          <label className="text-xs text-muted-foreground cursor-pointer">
+                            <input
+                              type="file"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) uploadEvidence(t.id, file);
+                                e.currentTarget.value = "";
+                              }}
+                            />
+                            <span className="underline">Adjuntar</span>
+                          </label>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8"
+                              >
+                                Eliminar
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  ¿Eliminar tarea?
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Esta acción no se puede deshacer.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteTask(t.id)}
+                                >
+                                  Eliminar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
             ) : (
               <div className="text-xs text-muted-foreground">
                 Sin tareas aún
