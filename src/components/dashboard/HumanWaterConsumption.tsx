@@ -26,6 +26,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { StatCard } from "@/components/ui/stat-card";
+import { ChartCard } from "@/components/ui/chart-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ImpactSummary } from "@/components/ui/impact-summary";
 import { SkeletonCard, SkeletonChart } from "@/components/ui/skeleton-card";
@@ -1082,43 +1083,28 @@ export default function HumanWaterConsumption() {
       {/* Summary by period */}
       {selectedPeriod === "all" && periods.length > 0 && (
         <motion.div
-          initial={{ opacity: 0, y: 40, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.8, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="stat-card relative overflow-hidden group"
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: MOTION_MED, delay: 0.3, ease: MOTION_EASE }}
+          className="relative overflow-hidden"
         >
-          {/* Animated background gradient */}
+          {/* Animated accent line */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1.2, delay: 0.8 }}
-            className="absolute inset-0 bg-gradient-to-br from-rose-500/[0.03] via-transparent to-emerald-500/[0.02] pointer-events-none"
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ duration: MOTION_MED, delay: 0.45, ease: MOTION_EASE }}
+            className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-rose-500/60 via-red-400/40 to-transparent origin-left"
           />
+          <div className="absolute inset-0 bg-gradient-to-br from-rose-500/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
 
-          {/* Animated corner accent */}
-          <motion.div
-            initial={{ x: -100, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.8, ease: "easeOut" }}
-            className="absolute top-0 left-0 w-32 h-1 bg-gradient-to-r from-rose-500/50 via-red-400/30 to-transparent rounded-full"
-          />
-
-          <div className="relative">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.7 }}
-            >
-              <h3 className="font-semibold mb-1">Evolución Mensual</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Tendencia de consumo humano por período
-              </p>
-            </motion.div>
-
+          <ChartCard
+            title="Evolución mensual"
+            subtitle="Tendencia de consumo humano por período"
+          >
             <motion.div
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.8 }}
+              transition={{ duration: MOTION_MED, delay: 0.4, ease: MOTION_EASE }}
               className="h-72"
             >
               <ResponsiveContainer width="100%" height="100%">
@@ -1255,7 +1241,7 @@ export default function HumanWaterConsumption() {
                 </BarChart>
               </ResponsiveContainer>
             </motion.div>
-          </div>
+          </ChartCard>
         </motion.div>
       )}
     </>

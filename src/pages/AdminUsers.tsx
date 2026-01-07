@@ -20,6 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useRole } from '@/hooks/useRole';
 import { useAuth } from '@/hooks/useAuth';
 import { PageHeader } from '@/components/ui/page-header';
+import { LoaderHourglass } from '@/components/ui/loader-hourglass';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -383,7 +384,7 @@ export default function AdminUsers() {
   if (roleLoading || loading) {
     return (
       <div className="page-container flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <LoaderHourglass label="Preparando panel de administración" />
       </div>
     );
   }

@@ -462,19 +462,14 @@ export default function WaterMeterConsumption() {
           transition={{ duration: MOTION_MED, delay: 0.3, ease: MOTION_EASE }}
           className="relative overflow-hidden"
         >
+          {/* Animated accent line */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1.2, delay: 0.6 }}
-            className="absolute inset-0 bg-gradient-to-br from-cyan-500/[0.03] via-transparent to-blue-500/[0.02] pointer-events-none"
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ duration: MOTION_MED, delay: 0.45, ease: MOTION_EASE }}
+            className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500/60 via-blue-400/40 to-transparent origin-left"
           />
-          
-          <motion.div
-            initial={{ x: -100, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.7, ease: "easeOut" }}
-            className="absolute top-0 left-0 w-32 h-1 bg-gradient-to-r from-cyan-500/50 via-blue-400/30 to-transparent rounded-full"
-          />
+          <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
           
           <ChartCard
             title="Evolución mensual"

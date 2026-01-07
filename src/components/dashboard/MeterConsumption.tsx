@@ -24,9 +24,13 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { StatCard } from '@/components/ui/stat-card';
+import { ChartCard } from '@/components/ui/chart-card';
 import { SkeletonCard, SkeletonChart } from '@/components/ui/skeleton-card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const MOTION_EASE = [0.25, 0.46, 0.45, 0.94] as const;
+const MOTION_MED = 0.5;
 
 interface WaterReading {
   period: string;
@@ -203,48 +207,29 @@ export default function MeterConsumption() {
 
       {/* Chart */}
       <motion.div
-        initial={{ opacity: 0, y: 40, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ 
-          duration: 0.8, 
-          delay: 0.3,
-          ease: [0.16, 1, 0.3, 1]
-        }}
-        className="stat-card mb-6 relative overflow-hidden"
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: MOTION_MED, delay: 0.3, ease: MOTION_EASE }}
+        className="mb-6 relative overflow-hidden"
       >
-        {/* Animated background gradient */}
+        {/* Animated accent line */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1.2, delay: 0.5 }}
-          className="absolute inset-0 bg-gradient-to-br from-primary/[0.03] via-transparent to-accent/[0.02] pointer-events-none"
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ duration: MOTION_MED, delay: 0.45, ease: MOTION_EASE }}
+          className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500/60 via-cyan-400/40 to-transparent origin-left"
         />
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
         
-        {/* Animated corner accent */}
-        <motion.div
-          initial={{ x: -100, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
-          className="absolute top-0 left-0 w-24 h-1 bg-gradient-to-r from-primary/40 to-transparent rounded-full"
-        />
-        
-        <div className="relative">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-          >
-            <h3 className="font-semibold mb-1">Tendencia de Consumo Hídrico</h3>
-            <p className="text-sm text-muted-foreground mb-6">
-              Evolución mensual comparada con promedio y objetivo
-            </p>
-          </motion.div>
-          
+        <ChartCard
+          title="Tendencia de consumo hídrico"
+          subtitle="Evolución mensual comparada con promedio y objetivo"
+        >
           {readings.length > 0 ? (
             <motion.div 
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.5 }}
+              transition={{ duration: MOTION_MED, delay: 0.4, ease: MOTION_EASE }}
               className="h-80"
             >
               <ResponsiveContainer width="100%" height="100%">
@@ -375,7 +360,7 @@ export default function MeterConsumption() {
               </div>
             </motion.div>
           )}
-        </div>
+        </ChartCard>
       </motion.div>
 
       {/* Alerts and Quick Actions */}

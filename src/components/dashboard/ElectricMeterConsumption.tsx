@@ -437,21 +437,14 @@ export default function ElectricMeterConsumption() {
           transition={{ duration: MOTION_MED, delay: 0.3, ease: MOTION_EASE }}
           className="relative overflow-hidden"
         >
-          {/* Animated background gradient */}
+          {/* Animated accent line */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: MOTION_MED, delay: 0.4, ease: MOTION_EASE }}
-            className="absolute inset-0 bg-gradient-to-br from-amber-500/[0.03] via-transparent to-blue-500/[0.02] pointer-events-none"
-          />
-          
-          {/* Animated corner accent */}
-          <motion.div
-            initial={{ x: -100, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
             transition={{ duration: MOTION_MED, delay: 0.45, ease: MOTION_EASE }}
-            className="absolute top-0 left-0 w-32 h-1 bg-gradient-to-r from-amber-500/50 via-yellow-400/30 to-transparent rounded-full"
+            className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-amber-500/60 via-yellow-400/40 to-transparent origin-left"
           />
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
           
           <ChartCard title="Evolución mensual" subtitle="Tendencia de consumo eléctrico por período">
             <motion.div 
