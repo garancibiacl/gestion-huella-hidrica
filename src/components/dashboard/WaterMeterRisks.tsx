@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertTriangle,
   ClipboardList,
@@ -8,6 +9,7 @@ import {
   TrendingDown,
   Minus,
   Loader2,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +23,11 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -269,7 +276,14 @@ export default function WaterMeterRisks() {
   };
 
   const createNewTask = async () => {
-    if (!currentAlert || !newTaskTitle.trim()) return;
+    if (!currentAlert || !newTaskTitle.trim() || !newTaskAssignee || !newTaskDueDate) {
+      toast({
+        variant: "destructive",
+        title: "Datos incompletos",
+        description: "Completa título, responsable y fecha compromiso antes de agregar la tarea.",
+      });
+      return;
+    }
     setCreatingTask(true);
     const { error } = await supabase.from("water_alert_tasks").insert({
       alert_id: currentAlert.id,
@@ -291,6 +305,10 @@ export default function WaterMeterRisks() {
     setNewTaskAssignee("");
     setNewTaskDueDate("");
     await fetchExistingAlerts();
+    toast({
+      title: "✓ Tarea creada exitosamente",
+      description: `Se agregó una tarea para ${currentAlert.centro_trabajo} / ${currentAlert.medidor}`,
+    });
     setCreatingTask(false);
   };
 
@@ -402,13 +420,13 @@ export default function WaterMeterRisks() {
         throw taskErr;
       }
 
-      toast({
-        title: "Tarea creada",
-        description: "Se creó una tarea para esta alerta",
-      });
-
       // Refresh alerts to update badges
-      fetchExistingAlerts();
+      await fetchExistingAlerts();
+
+      toast({
+        title: "✓ Tarea creada exitosamente",
+        description: `Se agregó una tarea para ${risk.centro_trabajo} / ${risk.medidor}`,
+      });
     } catch (e: any) {
       toast({
         variant: "destructive",
@@ -642,20 +660,10 @@ export default function WaterMeterRisks() {
                       size="sm"
                       variant={hasTasks ? "outline" : "default"}
                       className="gap-2"
-                      onClick={async () => {
-                        await createTask(r);
-                        await openTasksModal(r);
-                      }}
-                    >
-                      <PlusCircle className="w-4 h-4" />
-                      {hasTasks ? "Agregar tarea" : "Crear tarea"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="secondary"
                       onClick={() => openTasksModal(r)}
                     >
-                      Ver tareas
+                      <PlusCircle className="w-4 h-4" />
+                      {hasTasks ? "Gestionar tareas" : "Crear tarea"}
                     </Button>
                   </div>
                 </li>
@@ -667,37 +675,74 @@ export default function WaterMeterRisks() {
       {/* Tasks modal */}
       <Dialog open={isTasksOpen} onOpenChange={setIsTasksOpen}>
         <DialogContent className="sm:max-w-2xl p-6 sm:p-8">
-          <DialogHeader className="pb-2">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <DialogTitle>Gestión de tareas</DialogTitle>
-                <DialogDescription>
-                  {currentAlert ? (
-                    <span>
-                      {currentAlert.centro_trabajo} / {currentAlert.medidor} ·{" "}
-                      {currentAlert.period}
-                    </span>
-                  ) : (
-                    "Selecciona una alerta"
-                  )}
-                </DialogDescription>
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <DialogHeader className="pb-2">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <DialogTitle className="text-lg font-semibold">Gestión de tareas</DialogTitle>
+                  <DialogDescription className="text-sm">
+                    {currentAlert ? (
+                      <span className="font-medium">
+                        {currentAlert.centro_trabajo} / {currentAlert.medidor} ·{" "}
+                        {currentAlert.period}
+                      </span>
+                    ) : (
+                      "Selecciona una alerta"
+                    )}
+                  </DialogDescription>
+                </div>
+                <motion.div
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Button
+                    size="sm"
+                    onClick={createNewTask}
+                    disabled={!newTaskTitle.trim() || !newTaskAssignee || !newTaskDueDate || creatingTask}
+                    className="h-9 gap-2 bg-primary hover:bg-primary/90 transition-all"
+                  >
+                    <AnimatePresence mode="wait">
+                      {creatingTask ? (
+                        <motion.div
+                          key="loading"
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          className="flex items-center gap-2"
+                        >
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>Agregando...</span>
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="add"
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          className="flex items-center gap-2"
+                        >
+                          <PlusCircle className="h-4 w-4" />
+                          <span>Agregar tarea</span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </Button>
+                </motion.div>
               </div>
-              <Button
-                size="sm"
-                onClick={createNewTask}
-                disabled={!newTaskTitle.trim() || creatingTask}
-                className="h-9"
-              >
-                {creatingTask && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                {creatingTask ? "Agregando" : "Agregar"}
-              </Button>
-            </div>
-          </DialogHeader>
+            </DialogHeader>
+          </motion.div>
 
           {/* Create task - wider grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-12 gap-5 items-end mt-4">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+            className="grid grid-cols-1 sm:grid-cols-12 gap-5 items-end mt-4"
+          >
             <div className="sm:col-span-5">
               <label className="block text-xs font-medium text-muted-foreground mb-1">
                 Título
@@ -739,7 +784,7 @@ export default function WaterMeterRisks() {
                 onChange={(e) => setNewTaskDueDate(e.target.value)}
               />
             </div>
-          </div>
+          </motion.div>
 
           {/* Tasks toolbar */}
           <div className="mt-6 flex items-center justify-between">
@@ -839,7 +884,7 @@ export default function WaterMeterRisks() {
                         />
 
                         {/* Action buttons */}
-                        <div className="col-span-2 flex items-center gap-1 flex-wrap">
+                        <div className="col-span-2 flex items-center gap-2 flex-wrap">
                           {t.status !== "completed" && (
                             <Button
                               size="sm"
@@ -884,35 +929,43 @@ export default function WaterMeterRisks() {
                             />
                             <span className="underline">Adjuntar</span>
                           </label>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-8"
-                              >
-                                Eliminar
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  ¿Eliminar tarea?
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Esta acción no se puede deshacer.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => deleteTask(t.id)}
-                                >
-                                  Eliminar
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          <div className="ml-auto flex items-center">
+                            <AlertDialog>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                                      aria-label="Eliminar tarea"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">Eliminar</TooltipContent>
+                              </Tooltip>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    ¿Eliminar tarea?
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Esta acción no se puede deshacer.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteTask(t.id)}
+                                  >
+                                    Eliminar
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
                         </div>
                       </div>
                     </div>
