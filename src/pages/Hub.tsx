@@ -1,10 +1,20 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { Loader2, Droplets, Shield, Bell } from "lucide-react";
+import { Loader2, Droplets, Shield, Settings, HelpCircle, LogOut, ChevronDown } from "lucide-react";
 import { ModuleCard } from "@/components/hub/ModuleCard";
+import { PamNotificationBell } from "@/modules/pam/components/notifications/PamNotificationBell";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Module {
   id: string;
@@ -61,7 +71,7 @@ const MODULES: Module[] = [
 
 export default function Hub() {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const { organizationId, loading: orgLoading } = useOrganization();
   const { profile, loading: profileLoading } = useUserProfile();
 
@@ -123,6 +133,10 @@ export default function Hub() {
 
   const userRoleLabel = roleLabelMap[userRole] || 'USUARIO';
 
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
   const currentDate = new Date().toLocaleDateString('es-ES', {
     day: '2-digit',
     month: '2-digit',
@@ -166,27 +180,65 @@ export default function Hub() {
               <span>SISTEMA OPERATIVO</span>
             </div>
 
-            <button
-              type="button"
-              className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors"
-              aria-label="Notificaciones"
-            >
-              <Bell className="w-4 h-4" />
-            </button>
+            {/* Notificaciones PLS */}
+            <PamNotificationBell />
 
-            <div className="flex items-center gap-3">
-              <div className="hidden sm:flex flex-col items-end leading-tight">
-                <span className="text-sm font-semibold text-gray-900 max-w-[180px] truncate">
-                  {userDisplayName}
-                </span>
-                <span className="text-[11px] font-semibold tracking-wide text-[#ae3f34] uppercase">
-                  {userRoleLabel}
-                </span>
-              </div>
-              <div className="h-9 w-9 rounded-full bg-gradient-to-br from-orange-100 to-amber-200 flex items-center justify-center text-xs font-bold text-[#ae3f34] border-2 border-white shadow-sm">
-                {userInitials}
-              </div>
-            </div>
+            {/* Menú de usuario */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="flex items-center gap-2 h-10 px-2 rounded-lg border border-transparent hover:border-gray-200 hover:bg-gray-50"
+                >
+                  <div className="hidden sm:flex flex-col items-end leading-tight">
+                    <span className="text-sm font-semibold text-gray-900 max-w-[180px] truncate">
+                      {userDisplayName}
+                    </span>
+                    <span className="text-[11px] font-semibold tracking-wide text-[#ae3f34] uppercase">
+                      {userRoleLabel}
+                    </span>
+                  </div>
+                  <div className="h-9 w-9 rounded-full bg-gradient-to-br from-orange-100 to-amber-200 flex items-center justify-center text-xs font-bold text-[#ae3f34] border-2 border-white shadow-sm flex-shrink-0">
+                    {userInitials}
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-gray-500 hidden sm:block" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{userDisplayName}</p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user?.email}
+                    </p>
+                    <p className="text-xs leading-none text-muted-foreground mt-1">
+                      {userRoleLabel}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild className="cursor-pointer">
+                  <Link to="/configuracion" className="flex items-center">
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Configuración</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="cursor-pointer">
+                  <Link to="/ayuda" className="flex items-center">
+                    <HelpCircle className="mr-2 h-4 w-4" />
+                    <span>Centro de ayuda</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleSignOut}
+                  className="cursor-pointer text-destructive"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Cerrar sesión</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
