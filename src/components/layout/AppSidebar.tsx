@@ -23,6 +23,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { PamNotificationBell } from "@/modules/pam/components/notifications/PamNotificationBell";
 
 interface NavItem {
   icon: typeof Droplets;
@@ -255,23 +256,26 @@ export function AppSidebar({ onClose, isCollapsed = false, onToggleCollapse }: A
                 </h1>
               </div>
             </Link>
-            {onToggleCollapse && (
-              <Tooltip delayDuration={150}>
-                <TooltipTrigger asChild>
-                  <button
-                    type="button"
-                    onClick={onToggleCollapse}
-                    className="hidden lg:inline-flex items-center justify-center rounded-lg p-1.5 cursor-w-resize text-white/70 hover:text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-0"
-                    aria-label="Cerrar barra lateral"
-                  >
-                    <PanelLeft className="w-4 h-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="right" className="text-xs">
-                  <span>Cerrar barra lateral</span>
-                </TooltipContent>
-              </Tooltip>
-            )}
+            <div className="flex items-center gap-1">
+              <PamNotificationBell />
+              {onToggleCollapse && (
+                <Tooltip delayDuration={150}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={onToggleCollapse}
+                      className="hidden lg:inline-flex items-center justify-center rounded-lg p-1.5 cursor-w-resize text-white/70 hover:text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-0"
+                      aria-label="Cerrar barra lateral"
+                    >
+                      <PanelLeft className="w-4 h-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="text-xs">
+                    <span>Cerrar barra lateral</span>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
           </>
         ) : (
           /* Cuando está colapsado: el propio logo actúa como toggle y al hover cambia a icono menú */

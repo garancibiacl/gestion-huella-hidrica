@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { usePamWeekSelector } from "../hooks/usePamWeekSelector";
 import { usePamTasks } from "../hooks/usePamTasks";
 import type { PamTaskStatus } from "../types/pam.types";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { PamEvidenceUploadDialog } from "../components/worker/PamEvidenceUploadDialog";
 
 const STATUS_LABELS: Record<PamTaskStatus, string> = {
   PENDING: "Pendiente",
@@ -27,7 +28,11 @@ export default function PamWorkerTasksPage() {
     setStatusFilter,
     refetch,
     updateTaskStatus,
+    uploadEvidence,
   } = usePamTasks({ weekYear: week.weekYear, weekNumber: week.weekNumber });
+
+  const [evidenceDialogOpen, setEvidenceDialogOpen] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   const groupedByDate = useMemo(() => {
     return tasks.reduce<Record<string, typeof tasks>>((acc, task) => {
@@ -43,6 +48,17 @@ export default function PamWorkerTasksPage() {
   const handleAcknowledge = async (taskId: string, currentStatus: PamTaskStatus) => {
     if (currentStatus !== "PENDING") return;
     await updateTaskStatus(taskId, "IN_PROGRESS");
+  };
+
+  const handleOpenEvidenceDialog = (taskId: string) => {
+    setSelectedTaskId(taskId);
+    setEvidenceDialogOpen(true);
+  };
+
+  const handleEvidenceSaved = async (params: { taskId: string; fileUrl: string; notes?: string }) => {
+    await uploadEvidence(params);
+    setEvidenceDialogOpen(false);
+    setSelectedTaskId(null);
   };
 
   return (
@@ -181,11 +197,11 @@ export default function PamWorkerTasksPage() {
                       >
                         Acusar recibo
                       </Button>
-                      {/* Placeholder: luego conectamos dialog de evidencia */}
                       <Button
                         size="sm"
                         variant="outline"
                         disabled={task.status === "PENDING"}
+                        onClick={() => handleOpenEvidenceDialog(task.id)}
                       >
                         Subir evidencia
                       </Button>
@@ -197,6 +213,13 @@ export default function PamWorkerTasksPage() {
           ))}
         </div>
       )}
+
+      <PamEvidenceUploadDialog
+        taskId={selectedTaskId}
+        open={evidenceDialogOpen}
+        onOpenChange={setEvidenceDialogOpen}
+        onEvidenceSaved={handleEvidenceSaved}
+      />
     </div>
   );
 }

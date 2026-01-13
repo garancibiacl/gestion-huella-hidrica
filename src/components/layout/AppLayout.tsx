@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { usePageTracking } from '@/hooks/usePageTracking';
 import { FullPageLoader } from '@/components/ui/full-page-loader';
 import { cn } from '@/lib/utils';
+import { PamNotificationBell } from '@/modules/pam/components/notifications/PamNotificationBell';
 
 export function AppLayout() {
   const { user, loading } = useAuth();
@@ -65,16 +66,19 @@ export function AppLayout() {
       </AnimatePresence>
 
       {/* Mobile Header */}
-      <header className="fixed top-0 left-0 right-0 h-16 bg-card border-b border-border flex items-center px-4 lg:hidden z-30">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setSidebarOpen(true)}
-          className="mr-4"
-        >
-          <Menu className="w-5 h-5" />
-        </Button>
-        <span className="font-semibold">Buses JM</span>
+      <header className="fixed top-0 left-0 right-0 h-16 bg-card border-b border-border flex items-center justify-between px-4 lg:hidden z-30">
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSidebarOpen(true)}
+            className="mr-4"
+          >
+            <Menu className="w-5 h-5" />
+          </Button>
+          <span className="font-semibold">Buses JM</span>
+        </div>
+        <PamNotificationBell />
       </header>
 
       {/* Main Content */}
