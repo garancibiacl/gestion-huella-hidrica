@@ -37,8 +37,8 @@ export default function PamAdminWeekUploadPage() {
           setSyncErrors([]);
           if (importedWeek) {
             week.setWeek(importedWeek.weekYear, importedWeek.weekNumber);
-            await refetchPreview();
           }
+          await refetchPreview();
           toast({
             title: 'Sincronización PLS completada',
             description: `${tasksCreated} tareas importadas desde Google Sheets`,
@@ -75,7 +75,7 @@ export default function PamAdminWeekUploadPage() {
   const handleSync = async () => {
     setSyncErrors([]);
     setLastSyncResult(null);
-    await syncPam(true);
+    await syncPam({ force: true, weekYear: week.weekYear, weekNumber: week.weekNumber });
   };
 
   const formatLastSync = (timestamp: number) => {
