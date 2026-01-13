@@ -113,15 +113,26 @@ export function parsePamSheet(csvText: string): {
   const headers = rows[0].map((h) => normalizeString(h));
   const dataRows = rows.slice(1);
 
+  // Primero buscamos explícitamente columnas de email ("email" / "mail").
+  // Si no existen, usamos columnas de responsable/asignado como fallback.
+  const emailColumnIndex = headers.findIndex(
+    (h) => h.includes("email") || h.includes("mail")
+  );
+  const responsableFallbackIndex = headers.findIndex(
+    (h) => h.includes("responsable") || h.includes("asignado")
+  );
+
   const colIdx = {
     semana: headers.findIndex((h) => h.includes("semana") || h.includes("week")),
     año: headers.findIndex((h) => h.includes("ano") || h.includes("year")),
     fecha: headers.findIndex((h) => h.includes("fecha") || h.includes("date")),
-    responsable: headers.findIndex(
-      (h) => h.includes("responsable") || h.includes("email") || h.includes("asignado")
-    ),
+    responsable:
+      emailColumnIndex >= 0 ? emailColumnIndex : responsableFallbackIndex,
     descripcion: headers.findIndex(
       (h) => h.includes("descripcion") || h.includes("description") || h.includes("tarea")
+    ),
+    titulo: headers.findIndex(
+      (h) => h.includes("titulo") || h.includes("actividad")
     ),
     ubicacion: headers.findIndex(
       (h) => h.includes("ubicacion") || h.includes("location") || h.includes("lugar")
@@ -140,7 +151,9 @@ export function parsePamSheet(csvText: string): {
     const weekYear = parseYear(colIdx.año >= 0 ? row[colIdx.año] : undefined);
     const date = parseDate(colIdx.fecha >= 0 ? row[colIdx.fecha] : undefined);
     const assigneeEmailRaw = colIdx.responsable >= 0 ? row[colIdx.responsable]?.trim() : "";
-    const description = colIdx.descripcion >= 0 ? row[colIdx.descripcion]?.trim() : "";
+    const rawDescription = colIdx.descripcion >= 0 ? row[colIdx.descripcion]?.trim() : "";
+    const titleFallback = colIdx.titulo >= 0 ? row[colIdx.titulo]?.trim() : "";
+    const description = rawDescription || titleFallback;
     const location = colIdx.ubicacion >= 0 ? row[colIdx.ubicacion]?.trim() : "";
     const riskType = colIdx.riesgo >= 0 ? row[colIdx.riesgo]?.trim() : "";
 

@@ -5,7 +5,10 @@ import { useOrganization } from '@/hooks/useOrganization';
 import { parsePamSheet, importPamWeek } from '../services/pamImporter';
 
 // URL pública del Google Sheet PLS (formato CSV)
-const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT26cNiPTdWJUOwEEatSpqFveSrpV58B8B95h3zHVHmuRvcuQprCmq5qMcD-xedw_kmyq1SLpdjbcmT/pub?gid=1635467450&single=true&output=csv';
+// Basada en la nueva hoja publicada compartida por el usuario:
+// https://docs.google.com/spreadsheets/d/e/2PACX-1vSm6kI2pKhHhLX5kwP2AWWwbc1fYr9h96k9OqumbRqJtcxSKeW7VUbhtDmXQuyksQ/pubhtml
+// Para el importador usamos la versión CSV del mismo publish endpoint:
+const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSm6kI2pKhHhLX5kwP2AWWwbc1fYr9h96k9OqumbRqJtcxSKeW7VUbhtDmXQuyksQ/pub?output=csv';
 const LAST_SYNC_KEY = 'last_pls_sync';
 const LAST_HASH_KEY = 'last_pls_hash';
 const MIN_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
