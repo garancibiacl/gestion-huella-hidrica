@@ -7,7 +7,7 @@ import { parsePamSheet, importPamWeek } from '../services/pamImporter';
 // URL pública del Google Sheet PLS (formato CSV)
 // Debe coincidir con el Sheet que se abre desde la pantalla de Planificación semanal PLS.
 const CSV_URL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vT26cNiPTdWJUOwEEatSpqFveSrpV58B8B95h3zHVHmuRvcuQprCmq5qMcD-xedw_kmyq1SLpdjbcmT/pub?output=csv&gid=1635467450&single=true";
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vSm6kI2pKhHhLX5kwP2AWWwbc1fYr9h96k9OqumbRqJtcxSKeW7VUbhtDmXQuyksQ/pub?output=csv";
 const LAST_SYNC_KEY = "last_pls_sync";
 const LAST_HASH_KEY = "last_pls_hash";
 const MIN_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
