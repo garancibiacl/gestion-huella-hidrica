@@ -1,6 +1,21 @@
 # Guía de Despliegue - Módulo PAM
 
-## Prerrequisitos
+## 🚀 Lovable Cloud (Automático)
+
+Si estás usando **Lovable Cloud**, todo está automatizado:
+
+✅ **Migraciones** → Se aplican automáticamente al guardar  
+✅ **Tipos TypeScript** → Se regeneran automáticamente  
+✅ **Dependencias** → Ya están instaladas (xlsx, jspdf, jspdf-autotable)  
+✅ **Edge Functions** → Se despliegan automáticamente  
+
+**Solo necesitas:** Configurar roles de usuario (ver Paso 8)
+
+---
+
+## Despliegue Manual (Si no usas Lovable Cloud)
+
+### Prerrequisitos
 
 - Proyecto Supabase activo
 - Supabase CLI instalado: `npm install -g supabase`
@@ -130,25 +145,27 @@ npm run preview
 
 ## Paso 8: Configurar Roles de Usuario
 
-### Crear perfiles de prueba
+### Crear roles de prueba
+
+⚠️ **Importante:** Los roles se almacenan en `user_roles`, NO en `profiles`.
 
 ```sql
 -- En Supabase SQL Editor
 
 -- Usuario Worker
-UPDATE profiles 
-SET role = 'worker' 
-WHERE email = 'worker@empresa.cl';
+INSERT INTO user_roles (user_id, role) 
+SELECT user_id, 'worker' FROM profiles WHERE email = 'worker@empresa.cl'
+ON CONFLICT (user_id, role) DO NOTHING;
 
 -- Usuario Prevencionista
-UPDATE profiles 
-SET role = 'prevencionista' 
-WHERE email = 'preventer@empresa.cl';
+INSERT INTO user_roles (user_id, role) 
+SELECT user_id, 'prevencionista' FROM profiles WHERE email = 'preventer@empresa.cl'
+ON CONFLICT (user_id, role) DO NOTHING;
 
 -- Usuario Admin
-UPDATE profiles 
-SET role = 'admin' 
-WHERE email = 'admin@empresa.cl';
+INSERT INTO user_roles (user_id, role) 
+SELECT user_id, 'admin' FROM profiles WHERE email = 'admin@empresa.cl'
+ON CONFLICT (user_id, role) DO NOTHING;
 ```
 
 ## Troubleshooting

@@ -42,9 +42,9 @@ CREATE POLICY "Users can view comments on their tasks"
       AND (
         pt.assignee_user_id = auth.uid()
         OR EXISTS (
-          SELECT 1 FROM profiles p
-          WHERE p.user_id = auth.uid()
-          AND p.role IN ('admin', 'prevencionista')
+          SELECT 1 FROM user_roles ur
+          WHERE ur.user_id = auth.uid()
+          AND ur.role IN ('admin', 'prevencionista')
         )
       )
     )
@@ -59,9 +59,9 @@ CREATE POLICY "Users can create comments on their tasks"
       AND (
         pt.assignee_user_id = auth.uid()
         OR EXISTS (
-          SELECT 1 FROM profiles p
-          WHERE p.user_id = auth.uid()
-          AND p.role IN ('admin', 'prevencionista')
+          SELECT 1 FROM user_roles ur
+          WHERE ur.user_id = auth.uid()
+          AND ur.role IN ('admin', 'prevencionista')
         )
       )
     )
@@ -168,7 +168,9 @@ CREATE POLICY "Users can view metrics from their organization"
   ON pam_metrics_cache FOR SELECT
   USING (
     organization_id IN (
-      SELECT organization_id FROM profiles WHERE user_id = auth.uid()
+      SELECT p.organization_id 
+      FROM profiles p
+      WHERE p.user_id = auth.uid()
     )
   );
 

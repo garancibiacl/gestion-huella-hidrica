@@ -148,49 +148,35 @@
 4. **`IMPLEMENTATION_SUMMARY.md`** (este documento)
    - Resumen ejecutivo de implementación
 
-## 🔧 Acciones Pendientes (Requieren Ejecución Manual)
+## 🚀 Estado en Lovable Cloud
 
-### 1. Aplicar Migraciones de Base de Datos
+✅ **Todo está desplegado y funcionando automáticamente:**
+- Migraciones aplicadas
+- Tipos TypeScript regenerados
+- Dependencias instaladas (xlsx, jspdf, jspdf-autotable)
+- Edge Functions desplegadas
 
-```bash
-cd /Users/imac/Desktop/Git/gestion-huella-hidrica
-supabase db push
-```
+## 🔧 Única Acción Requerida: Configurar Roles de Usuario
 
-O manualmente en Supabase Dashboard → SQL Editor:
-- Ejecutar contenido de `supabase/migrations/20240113_enhance_pam_schema.sql`
-
-### 2. Regenerar Tipos TypeScript
-
-```bash
-supabase gen types typescript --project-id <your-project-id> > src/integrations/supabase/types.ts
-```
-
-Esto resolverá los errores de TypeScript actuales.
-
-### 3. Instalar Dependencias de Exportación
-
-```bash
-npm install xlsx jspdf jspdf-autotable
-# o
-pnpm add xlsx jspdf jspdf-autotable
-```
-
-### 4. Desplegar Edge Function
-
-```bash
-supabase functions deploy import-pam-week
-```
-
-### 5. Configurar Roles de Usuario
+⚠️ **Importante:** Los roles se almacenan en `user_roles`, NO en `profiles`.
 
 En Supabase SQL Editor:
 
 ```sql
--- Asignar roles a usuarios de prueba
-UPDATE profiles SET role = 'admin' WHERE email = 'admin@empresa.cl';
-UPDATE profiles SET role = 'prevencionista' WHERE email = 'preventer@empresa.cl';
-UPDATE profiles SET role = 'worker' WHERE email = 'worker@empresa.cl';
+-- Usuario Worker
+INSERT INTO user_roles (user_id, role) 
+SELECT user_id, 'worker' FROM profiles WHERE email = 'worker@empresa.cl'
+ON CONFLICT (user_id, role) DO NOTHING;
+
+-- Usuario Prevencionista
+INSERT INTO user_roles (user_id, role) 
+SELECT user_id, 'prevencionista' FROM profiles WHERE email = 'preventer@empresa.cl'
+ON CONFLICT (user_id, role) DO NOTHING;
+
+-- Usuario Admin
+INSERT INTO user_roles (user_id, role) 
+SELECT user_id, 'admin' FROM profiles WHERE email = 'admin@empresa.cl'
+ON CONFLICT (user_id, role) DO NOTHING;
 ```
 
 ## 📊 Estructura de Archivos Creados/Modificados

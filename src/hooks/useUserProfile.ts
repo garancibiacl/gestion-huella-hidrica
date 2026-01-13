@@ -4,9 +4,14 @@ import { useAuth } from '@/hooks/useAuth';
 import type { Database } from '@/integrations/supabase/types';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
+type AppRole = Database['public']['Enums']['app_role'];
+
+interface ProfileWithRole extends Profile {
+  role: AppRole | null;
+}
 
 interface UseUserProfileResult {
-  profile: Profile | null;
+  profile: ProfileWithRole | null;
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
@@ -14,7 +19,7 @@ interface UseUserProfileResult {
 
 export function useUserProfile(): UseUserProfileResult {
   const { user } = useAuth();
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<ProfileWithRole | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,15 +34,24 @@ export function useUserProfile(): UseUserProfileResult {
     setError(null);
 
     try {
-      const { data, error: fetchError } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', user.id)
         .single();
 
-      if (fetchError) throw fetchError;
+      if (profileError) throw profileError;
 
-      setProfile(data);
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      setProfile({
+        ...profileData,
+        role: roleData?.role || null,
+      });
     } catch (err) {
       console.error('Error fetching profile:', err);
       setError(err instanceof Error ? err.message : 'Error al cargar perfil');
