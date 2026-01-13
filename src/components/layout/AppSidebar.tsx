@@ -18,6 +18,11 @@ import {
   PanelRightOpen,
   Flame,
   ClipboardList,
+  CheckSquare,
+  TrendingUp,
+  FileText,
+  LayoutDashboard,
+  Home,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
@@ -33,38 +38,28 @@ interface NavItem {
   pamAdminOnly?: boolean;
 }
 
-const navItems: NavItem[] = [
+// Navegación para Módulo Ambiental
+const environmentalNavItems: NavItem[] = [
   { icon: Droplets, label: "Agua", path: "/dashboard/agua" },
   { icon: Zap, label: "Energía Eléctrica", path: "/dashboard/energia" },
   { icon: Flame, label: "Petróleo", path: "/dashboard/petroleo" },
-  { icon: ClipboardList, label: "Mis tareas (PAM)", path: "/pam" },
   { icon: Upload, label: "Importar Datos", path: "/importar" },
   { icon: Calendar, label: "Períodos", path: "/periodos" },
   { icon: Leaf, label: "Medidas Sustentables", path: "/medidas" },
+  { icon: Activity, label: "Capa predictiva", path: "/admin/riesgos" },
   { icon: Users, label: "Usuarios", path: "/admin/usuarios", adminOnly: true },
-  {
-    icon: BarChart3,
-    label: "Analytics",
-    path: "/admin/analytics",
-    adminOnly: true,
-  },
-  {
-    icon: Activity,
-    label: "Capa predictiva",
-    path: "/admin/riesgos",
-  },
-  {
-    icon: Upload,
-    label: "PAM · Cargar semana",
-    path: "/admin/pam/upload",
-    pamAdminOnly: true,
-  },
-  {
-    icon: BarChart3,
-    label: "PAM · Seguimiento",
-    path: "/admin/pam/board",
-    pamAdminOnly: true,
-  },
+  { icon: BarChart3, label: "Analytics", path: "/admin/analytics", adminOnly: true },
+];
+
+// Navegación para Módulo PAM (Gestión de Seguridad)
+// Basado en estructura Codelco/Zyght
+const pamNavItems: NavItem[] = [
+  { icon: ClipboardList, label: "Mis actividades", path: "/pam/my-activities" },
+  { icon: LayoutDashboard, label: "Dashboard PAM", path: "/pam/dashboard", pamAdminOnly: true },
+  { icon: Upload, label: "Planificación semanal", path: "/admin/pam/upload", pamAdminOnly: true },
+  { icon: CheckSquare, label: "Estado de cumplimiento", path: "/admin/pam/board", pamAdminOnly: true },
+  { icon: TrendingUp, label: "Desempeño del PAM", path: "/pam/performance", pamAdminOnly: true },
+  { icon: FileText, label: "Reportabilidad", path: "/pam/reports", pamAdminOnly: true },
 ];
 
 interface AppSidebarProps {
@@ -183,6 +178,10 @@ export function AppSidebar({ onClose, isCollapsed = false, onToggleCollapse }: A
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuButtonRef = useRef<HTMLButtonElement | null>(null);
 
+  // Detectar si estamos en módulo PAM o Ambiental
+  const isPamModule = location.pathname.startsWith('/pam') || location.pathname.startsWith('/admin/pam');
+  const navItems = isPamModule ? pamNavItems : environmentalNavItems;
+
   // Derive user display name and initials
   const rawName =
     (user?.user_metadata && (user.user_metadata as any).full_name) ||
@@ -222,8 +221,8 @@ export function AppSidebar({ onClose, isCollapsed = false, onToggleCollapse }: A
     }
 
     // Mientras el rol se está cargando o si es prevencionista,
-    // ocultamos "Importar Datos" para evitar parpadeos
-    if ((loading || isPrevencionista) && item.path === "/importar") {
+    // ocultamos "Importar Datos" para evitar parpadeos (solo en módulo ambiental)
+    if (!isPamModule && (loading || isPrevencionista) && item.path === "/importar") {
       return false;
     }
 
@@ -238,7 +237,7 @@ export function AppSidebar({ onClose, isCollapsed = false, onToggleCollapse }: A
         {!isCollapsed ? (
           <>
             <Link
-              to="/dashboard"
+              to="/hub"
               className="flex items-center gap-3"
               onClick={onClose}
             >
@@ -252,30 +251,27 @@ export function AppSidebar({ onClose, isCollapsed = false, onToggleCollapse }: A
               </div>
               <div>
                 <h1 className="text-xs font-semibold tracking-tight">
-                  Gestión Medio Ambiental
+                  {isPamModule ? "Gestión de Seguridad" : "Gestión Medio Ambiental"}
                 </h1>
               </div>
             </Link>
-            <div className="flex items-center gap-1">
-              <PamNotificationBell />
-              {onToggleCollapse && (
-                <Tooltip delayDuration={150}>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      onClick={onToggleCollapse}
-                      className="hidden lg:inline-flex items-center justify-center rounded-lg p-1.5 cursor-w-resize text-white/70 hover:text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-0"
-                      aria-label="Cerrar barra lateral"
-                    >
-                      <PanelLeft className="w-4 h-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="text-xs">
-                    <span>Cerrar barra lateral</span>
-                  </TooltipContent>
-                </Tooltip>
-              )}
-            </div>
+            {onToggleCollapse && (
+              <Tooltip delayDuration={150}>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={onToggleCollapse}
+                    className="hidden lg:inline-flex items-center justify-center rounded-lg p-1.5 cursor-w-resize text-white/70 hover:text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-0"
+                    aria-label="Cerrar barra lateral"
+                  >
+                    <PanelLeft className="w-4 h-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="text-xs">
+                  <span>Cerrar barra lateral</span>
+                </TooltipContent>
+              </Tooltip>
+            )}
           </>
         ) : (
           /* Cuando está colapsado: el propio logo actúa como toggle y al hover cambia a icono menú */
@@ -304,19 +300,24 @@ export function AppSidebar({ onClose, isCollapsed = false, onToggleCollapse }: A
               </TooltipContent>
             </Tooltip>
           ) : (
-            <img
-              src="/images/logo.png"
-              alt="Buses JM"
-              className="h-9 w-9 rounded-xl bg-white/10 object-contain p-1"
-              loading="lazy"
-            />
+            <div className="h-10 w-10 rounded-full bg-white/10 flex items-center justify-center">
+              <img
+                src="/images/logo.png"
+                alt="Buses JM"
+                className="h-7 w-7 object-contain"
+                loading="lazy"
+              />
+            </div>
           )
         )}
       </div>
 
       {/* Navigation */}
       <TooltipProvider>
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto scrollbar-thin">
+        <nav className={cn(
+          "flex-1 py-4 space-y-1 overflow-y-auto scrollbar-thin",
+          isCollapsed ? "px-2" : "px-3"
+        )}>
           {filteredNavItems.map((item) => {
             const isActive =
               location.pathname === item.path ||
@@ -328,9 +329,9 @@ export function AppSidebar({ onClose, isCollapsed = false, onToggleCollapse }: A
                 to={item.path}
                 onClick={onClose}
                 className={cn(
-                  "relative flex items-center rounded-xl text-[13px] font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
+                  "relative flex items-center rounded-xl text-[13px] font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
                   isCollapsed
-                    ? "justify-center px-0 py-2.5"
+                    ? "justify-center px-0 py-3 w-12 h-12 mx-auto"
                     : "gap-3 px-3 py-2.5",
                   isActive
                     ? cn(
@@ -340,19 +341,17 @@ export function AppSidebar({ onClose, isCollapsed = false, onToggleCollapse }: A
                     : "text-white/80 hover:bg-white/10 hover:text-white"
                 )}
               >
-                {isActive && (
+                {isActive && !isCollapsed && (
                   <motion.div
                     layoutId="activeTab"
-                    className={cn(
-                      "absolute w-[3px] h-5 bg-white rounded-r-full",
-                      isCollapsed ? "left-1" : "left-0"
-                    )}
+                    className="absolute left-0 w-[3px] h-5 bg-white rounded-r-full"
                     transition={{ type: "spring", stiffness: 500, damping: 30 }}
                   />
                 )}
                 <item.icon
                   className={cn(
-                    "w-[18px] h-[18px] transition-colors",
+                    "transition-colors flex-shrink-0",
+                    isCollapsed ? "w-5 h-5" : "w-[18px] h-[18px]",
                     isActive ? "text-white" : "text-white/80"
                   )}
                   aria-hidden="true"
@@ -379,28 +378,33 @@ export function AppSidebar({ onClose, isCollapsed = false, onToggleCollapse }: A
         </nav>
       </TooltipProvider>
 
-      <div
-        className={cn(
-          "px-5 py-4 border-t border-white/10 relative mt-auto",
-          isCollapsed && "flex justify-center"
-        )}
-      >
-        <TooltipProvider>
-          <Tooltip delayDuration={150}>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                onClick={() => setUserMenuOpen((v) => !v)}
-                aria-expanded={userMenuOpen}
-                className={cn(
-                  "flex items-center text-left rounded-xl hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30 focus:ring-offset-0",
-                  isCollapsed
-                    ? "w-10 h-10 justify-center px-0"
-                    : "w-full h-14 gap-3 px-2"
-                )}
-                ref={userMenuButtonRef}
-              >
-                <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-[#b3382a] text-xs font-semibold shadow-sm">
+      {/* User section - Solo visible en módulo Ambiental */}
+      {!isPamModule && (
+        <div
+          className={cn(
+            "px-5 py-4 border-t border-white/10 relative mt-auto",
+            isCollapsed && "flex justify-center"
+          )}
+        >
+          <TooltipProvider>
+            <Tooltip delayDuration={150}>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => setUserMenuOpen((v) => !v)}
+                  aria-expanded={userMenuOpen}
+                  className={cn(
+                    "flex items-center text-left rounded-xl hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30 focus:ring-offset-0 transition-all",
+                    isCollapsed
+                      ? "w-12 h-12 justify-center px-0 mx-auto"
+                      : "w-full h-14 gap-3 px-2"
+                  )}
+                  ref={userMenuButtonRef}
+                >
+                <div className={cn(
+                  "rounded-full bg-white flex items-center justify-center text-[#b3382a] font-semibold shadow-sm",
+                  isCollapsed ? "w-10 h-10 text-sm" : "w-9 h-9 text-xs"
+                )}>
                   {initials}
                 </div>
                 {!isCollapsed && (
@@ -477,7 +481,8 @@ export function AppSidebar({ onClose, isCollapsed = false, onToggleCollapse }: A
             </UserMenuPortal>,
             document.body
           )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

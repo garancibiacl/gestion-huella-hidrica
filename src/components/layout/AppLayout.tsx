@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet, Navigate } from 'react-router-dom';
+import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { Menu, PanelLeft, PanelRightOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
@@ -9,11 +9,16 @@ import { usePageTracking } from '@/hooks/usePageTracking';
 import { FullPageLoader } from '@/components/ui/full-page-loader';
 import { cn } from '@/lib/utils';
 import { PamNotificationBell } from '@/modules/pam/components/notifications/PamNotificationBell';
+import { PamHeader } from '@/modules/pam/components/layout/PamHeader';
 
 export function AppLayout() {
   const { user, loading } = useAuth();
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  
+  // Detectar si estamos en módulo PAM
+  const isPamModule = location.pathname.startsWith('/pam') || location.pathname.startsWith('/admin/pam');
   
   // Track page views
   usePageTracking();
@@ -65,26 +70,39 @@ export function AppLayout() {
         )}
       </AnimatePresence>
 
-      {/* Mobile Header */}
-      <header className="fixed top-0 left-0 right-0 h-16 bg-card border-b border-border flex items-center justify-between px-4 lg:hidden z-30">
-        <div className="flex items-center">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSidebarOpen(true)}
-            className="mr-4"
-          >
-            <Menu className="w-5 h-5" />
-          </Button>
-          <span className="font-semibold">Buses JM</span>
-        </div>
-        <PamNotificationBell />
-      </header>
+      {/* Header - Condicional según módulo */}
+      {isPamModule ? (
+        /* PAM Header - Visible en móvil y desktop */
+        <PamHeader 
+          onMenuClick={() => setSidebarOpen(true)}
+          className={cn(
+            'fixed top-0 right-0 z-30',
+            sidebarCollapsed ? 'lg:left-16' : 'lg:left-64'
+          )}
+        />
+      ) : (
+        /* Header Ambiental - Solo móvil */
+        <header className="fixed top-0 left-0 right-0 h-16 bg-card border-b border-border flex items-center justify-between px-4 lg:hidden z-30">
+          <div className="flex items-center">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSidebarOpen(true)}
+              className="mr-4"
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+            <span className="font-semibold">Buses JM</span>
+          </div>
+          <PamNotificationBell />
+        </header>
+      )}
 
       {/* Main Content */}
       <main
         className={cn(
-          'flex-1 pt-16 lg:pt-0',
+          'flex-1',
+          isPamModule ? 'pt-14 lg:pt-16' : 'pt-16 lg:pt-0',
           sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'
         )}
       >

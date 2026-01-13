@@ -41,7 +41,7 @@ export default function AuthPage() {
   }
 
   if (user) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/hub" replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -82,7 +82,7 @@ export default function AuthPage() {
             description: "Bienvenido a Buses JM",
           });
         }
-        navigate("/dashboard");
+        navigate("/hub");
       }
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -149,12 +149,13 @@ export default function AuthPage() {
 
   return (
     <JmSigninSplit
-      title="Buses JM | Gestión Medioambiental"
-      subtitle="Controla consumo de agua y energía, detecta riesgos y mejora tu huella."
+      title="Plataforma JM"
+      subtitle="Gestión integrada de Medio Ambiente y Seguridad en un solo lugar."
       bullets={[
-        "Históricos por centro / faena",
-        "Alertas por consumo anómalo",
-        "Reportes para auditorías y decisiones",
+        "Todo en un solo lugar: Gestión Ambiental y Seguridad (PAM)",
+        "Seguimiento completo desde monitoreo hasta cumplimiento",
+        "Tu equipo ahorra tiempo con software integrado y fácil de usar",
+        "Experiencia consistente y profesional en todo momento",
       ]}
       supportingText="Somos especialistas en faenas mineras. Conectamos colaboradores entre V y II región."
     >
@@ -165,7 +166,7 @@ export default function AuthPage() {
           </h2>
           <p className="text-sm text-[#5B6770]">
             {isLogin
-              ? "Accede a tu panel de gestión ambiental."
+              ? "Accede a la plataforma completa de gestión integrada."
               : "Registra tu cuenta para comenzar"}
           </p>
         </div>

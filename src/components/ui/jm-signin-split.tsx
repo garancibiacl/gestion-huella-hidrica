@@ -1,4 +1,4 @@
-import { CheckCircle2, Mountain, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Layers, TrendingUp, Users } from "lucide-react";
 import type { ReactNode } from "react";
 
 interface JmSigninSplitProps {
@@ -9,7 +9,7 @@ interface JmSigninSplitProps {
   children: ReactNode;
 }
 
-const iconMap = [ShieldCheck, CheckCircle2, Mountain];
+const iconMap = [Layers, TrendingUp, Users, CheckCircle2];
 
 export function JmSigninSplit({
   title,

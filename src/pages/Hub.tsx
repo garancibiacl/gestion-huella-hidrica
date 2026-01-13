@@ -3,36 +3,55 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Loader2, Droplets, Shield, BarChart3, Settings } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
+import { Loader2, Droplets, Shield } from "lucide-react";
+import { ModuleCard } from "@/components/hub/ModuleCard";
+import { WelcomeHeader } from "@/components/hub/WelcomeHeader";
+import { AdminQuickActions } from "@/components/hub/AdminQuickActions";
 
-interface ModuleCard {
+interface Module {
   id: string;
   title: string;
   description: string;
   icon: React.ReactNode;
+  features: string[];
   path: string;
   roles: string[];
+  gradient: string;
+  accentColor: string;
 }
 
-const MODULES: ModuleCard[] = [
+const MODULES: Module[] = [
   {
     id: "environmental",
     title: "Gestión Ambiental",
-    description: "Monitoreo de huella hídrica, energética y de combustibles",
+    description: "Controla consumo de agua y energía, detecta riesgos y mejora tu huella.",
     icon: <Droplets className="w-8 h-8" />,
+    features: [
+      "Monitoreo de Agua, Energía y Petróleo",
+      "Alertas y gestión de riesgos ambientales",
+      "Paneles e informes de cumplimiento",
+      "Históricos por centro / faena",
+    ],
     path: "/dashboard/agua",
     roles: ["admin", "prevencionista", "worker"],
+    gradient: "bg-gradient-to-br from-emerald-500 to-teal-600",
+    accentColor: "#10b981",
   },
   {
     id: "pam",
     title: "Gestión de Seguridad",
-    description: "Plan de Acción de Mejora - Tareas y cumplimiento HSE",
+    description: "Planificación, asignación y seguimiento semanal de tareas de seguridad y medioambientales (PAM).",
     icon: <Shield className="w-8 h-8" />,
+    features: [
+      "Carga semanal desde Excel",
+      "Asignación automática por responsable",
+      "Seguimiento, evidencias y reportes",
+      "Dashboard ejecutivo y cumplimiento",
+    ],
     path: "/pam/my-activities",
     roles: ["admin", "prevencionista", "worker"],
+    gradient: "bg-gradient-to-br from-red-500 to-orange-600",
+    accentColor: "#ef4444",
   },
 ];
 
@@ -81,79 +100,54 @@ export default function Hub() {
     );
   }
 
+  const userName = profile?.full_name?.split(' ')[0] || user.email?.split('@')[0] || 'Usuario';
+  const userRole = profile?.role || 'worker';
+
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto p-6 space-y-8">
-        <PageHeader
-          title={`Bienvenido, ${profile?.full_name || user.email}`}
-          description="Selecciona el módulo con el que deseas trabajar"
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 bg-grid-gray-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10" />
+      
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+        {/* Welcome Header */}
+        <WelcomeHeader
+          userName={userName}
+          userRole={userRole}
+          lastConnection={profile?.updated_at ? new Date(profile.updated_at).toLocaleDateString('es-ES', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          }) : undefined}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {availableModules.map((module) => (
-            <Card
+        {/* Module Cards Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {availableModules.map((module, index) => (
+            <ModuleCard
               key={module.id}
-              className="hover:shadow-lg transition-shadow cursor-pointer group"
-              onClick={() => navigate(module.path)}
-            >
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="p-3 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                    {module.icon}
-                  </div>
-                </div>
-                <CardTitle className="text-xl mt-4">{module.title}</CardTitle>
-                <CardDescription className="text-sm">
-                  {module.description}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Button className="w-full" variant="outline">
-                  Acceder
-                </Button>
-              </CardContent>
-            </Card>
+              id={module.id}
+              title={module.title}
+              description={module.description}
+              icon={module.icon}
+              features={module.features}
+              path={module.path}
+              gradient={module.gradient}
+              accentColor={module.accentColor}
+              delay={index * 0.1}
+            />
           ))}
         </div>
 
-        {profile?.role === "admin" && (
-          <Card className="border-dashed">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <Settings className="w-6 h-6 text-muted-foreground" />
-                <div>
-                  <CardTitle className="text-lg">Administración</CardTitle>
-                  <CardDescription>
-                    Gestiona usuarios, configuración y reportes del sistema
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate("/admin/usuarios")}
-              >
-                Usuarios
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate("/admin/analytics")}
-              >
-                Analytics
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate("/configuracion")}
-              >
-                Configuración
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+        {/* Admin Quick Actions */}
+        {profile?.role === "admin" && <AdminQuickActions />}
+
+        {/* Footer Info */}
+        <div className="mt-16 text-center text-sm text-gray-500">
+          <p>Plataforma JM · Gestión Integrada de Medio Ambiente y Seguridad</p>
+          <p className="mt-1">Somos especialistas en faenas mineras. Conectamos colaboradores entre V y II región.</p>
+        </div>
       </div>
     </div>
   );

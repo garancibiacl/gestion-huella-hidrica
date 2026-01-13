@@ -24,6 +24,8 @@ import PamWorkerTasksPage from "./modules/pam/pages/PamWorkerTasksPage";
 import PamAdminWeekUploadPage from "./modules/pam/pages/PamAdminWeekUploadPage";
 import PamAdminBoardPage from "./modules/pam/pages/PamAdminBoardPage";
 import PamDashboardPage from "./modules/pam/pages/PamDashboardPage";
+import PamPerformancePage from "./modules/pam/pages/PamPerformancePage";
+import PamReportsPage from "./modules/pam/pages/PamReportsPage";
 
 const queryClient = new QueryClient();
 
@@ -54,6 +56,8 @@ const App = () => (
               <Route path="/admin/riesgos" element={<AdminRisk />} />
               <Route path="/pam/my-activities" element={<PamWorkerTasksPage />} />
               <Route path="/pam/dashboard" element={<PamDashboardPage />} />
+              <Route path="/pam/performance" element={<PamPerformancePage />} />
+              <Route path="/pam/reports" element={<PamReportsPage />} />
               <Route path="/admin/pam/upload" element={<PamAdminWeekUploadPage />} />
               <Route path="/admin/pam/board" element={<PamAdminBoardPage />} />
               <Route path="/reportes/agua/preview" element={<WaterReportPreview />} />
