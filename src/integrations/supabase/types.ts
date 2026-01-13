@@ -982,7 +982,7 @@ export type Database = {
     }
     Enums: {
       action_status: "propuesta" | "evaluacion" | "implementada"
-      app_role: "admin" | "prevencionista"
+      app_role: "admin" | "prevencionista" | "worker"
       pam_task_status: "PENDING" | "IN_PROGRESS" | "DONE" | "OVERDUE"
       water_format: "botella" | "bidon_20l"
     }
@@ -1113,7 +1113,7 @@ export const Constants = {
   public: {
     Enums: {
       action_status: ["propuesta", "evaluacion", "implementada"],
-      app_role: ["admin", "prevencionista"],
+      app_role: ["admin", "prevencionista", "worker"],
       pam_task_status: ["PENDING", "IN_PROGRESS", "DONE", "OVERDUE"],
       water_format: ["botella", "bidon_20l"],
     },
