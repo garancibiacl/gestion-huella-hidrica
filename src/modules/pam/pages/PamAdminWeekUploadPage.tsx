@@ -278,7 +278,6 @@ export default function PamAdminWeekUploadPage() {
                 <thead className="bg-muted sticky top-0">
                   <tr>
                     <th className="text-left p-2 font-medium text-xs w-[28px]"></th>
-                    <th className="text-left p-2 font-medium text-xs">Semana</th>
                     <th className="text-left p-2 font-medium text-xs">Fecha inicio</th>
                     <th className="text-left p-2 font-medium text-xs">Fecha fin</th>
                     <th className="text-left p-2 font-medium text-xs">Responsable</th>
@@ -303,7 +302,6 @@ export default function PamAdminWeekUploadPage() {
                             <Pencil className="w-4 h-4 text-amber-600" />
                           ) : null}
                         </td>
-                        <td className="p-2 text-xs">W{String(task.week_number).padStart(2, '0')}</td>
                         <td className="p-2 text-xs">{task.date?.slice(0, 10)}</td>
                         <td className="p-2 text-xs">{task.end_date?.slice(0, 10) || "-"}</td>
                         <td className="p-2 text-xs">{task.assignee_name}</td>

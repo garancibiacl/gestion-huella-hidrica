@@ -122,8 +122,6 @@ export function parsePamSheet(csvText: string): {
   tasks: PamTaskImportRow[];
   errors: string[];
 } {
-  const ALLOWED_EMAIL_DOMAIN = "@busesjm.com";
-
   const rows = parseCSV(csvText);
   if (rows.length < 2) {
     return { tasks: [], errors: ["El archivo está vacío o no tiene datos"] };
@@ -208,12 +206,6 @@ export function parsePamSheet(csvText: string): {
     }
     if (!assigneeEmail || !assigneeEmail.includes("@")) {
       errors.push(`Fila ${rowNum}: Email de responsable inválido o faltante`);
-      continue;
-    }
-    if (!assigneeEmail.endsWith(ALLOWED_EMAIL_DOMAIN)) {
-      errors.push(
-        `Fila ${rowNum}: Email inválido (debe terminar en ${ALLOWED_EMAIL_DOMAIN}): ${assigneeEmailRaw}`
-      );
       continue;
     }
     if (!description) {
