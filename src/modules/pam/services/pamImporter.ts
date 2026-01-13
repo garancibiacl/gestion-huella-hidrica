@@ -26,11 +26,14 @@ function parseWeekNumber(value: string | undefined): number | null {
 }
 
 function getWeekNumberFromDate(dateStr: string): number {
-  const date = new Date(dateStr + "T00:00:00");
-  const startOfYear = new Date(date.getFullYear(), 0, 1);
-  const diff = date.getTime() - startOfYear.getTime();
-  const oneWeek = 7 * 24 * 60 * 60 * 1000;
-  return Math.ceil((diff / oneWeek) + 1);
+  // Calcular semana ISO 8601 (igual que usePamWeekSelector)
+  const date = new Date(dateStr + "T00:00:00Z");
+  const target = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const dayNr = (target.getUTCDay() + 6) % 7;
+  target.setUTCDate(target.getUTCDate() - dayNr + 3);
+  const firstThursday = new Date(Date.UTC(target.getUTCFullYear(), 0, 4));
+  const weekNumber = 1 + Math.round(((target.getTime() - firstThursday.getTime()) / 86400000 - 3) / 7);
+  return weekNumber;
 }
 
 function parseYear(value: string | undefined): number | null {
