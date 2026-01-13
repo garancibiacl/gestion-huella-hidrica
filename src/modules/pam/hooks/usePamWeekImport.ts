@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useToast } from "@/components/ui/use-toast";
-import { parsePamSheet, importPamWeek, type PamTaskImportRow } from "../services/plsImporter";
+import { parsePamSheet, importPamWeek, type PamTaskImportRow } from "../services/pamImporter";
 
 export interface UsePamWeekImportResult {
   isProcessing: boolean;

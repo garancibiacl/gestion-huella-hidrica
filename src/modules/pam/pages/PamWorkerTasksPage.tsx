@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { usePamWeekSelector } from "../hooks/usePamWeekSelector";
 import { usePamTasks } from "../hooks/usePamTasks";
-import type { PamTaskStatus } from "../types/pls.types";
+import type { PamTaskStatus } from "../types/pam.types";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

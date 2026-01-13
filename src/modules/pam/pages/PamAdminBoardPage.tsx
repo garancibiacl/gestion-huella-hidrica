@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRole } from "@/hooks/useRole";
 import { usePamWeekSelector } from "../hooks/usePamWeekSelector";
 import { usePamBoard } from "../hooks/usePamBoard";
-import type { PamTaskStatus } from "../types/pls.types";
+import type { PamTaskStatus } from "../types/pam.types";
 import { Loader2, Users, LayoutGrid, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 const STATUS_LABELS: Record<PamTaskStatus, string> = {

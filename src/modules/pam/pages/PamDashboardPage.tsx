@@ -97,7 +97,7 @@ export default function PamDashboardPage() {
     
     // Fetch tasks for export
     const { data: tasks } = await supabase
-      .from('pls_tasks')
+      .from('pam_tasks')
       .select('*')
       .eq('organization_id', organizationId)
       .eq('week_year', week.weekYear)
@@ -119,7 +119,7 @@ export default function PamDashboardPage() {
     
     // Fetch tasks for export
     const { data: tasks } = await supabase
-      .from('pls_tasks')
+      .from('pam_tasks')
       .select('*')
       .eq('organization_id', organizationId)
       .eq('week_year', week.weekYear)
