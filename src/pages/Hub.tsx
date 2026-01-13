@@ -300,7 +300,7 @@ export default function Hub() {
 
         {/* Footer */}
         <div className="mt-16 text-center text-sm text-gray-500 space-y-4">
-          <p className="font-medium">PLATAFORMA INTEGRADA JM © 2024</p>
+          <p className="font-medium">PLATAFORMA INTEGRADA JM © 2026</p>
         </div>
       </div>
     </div>

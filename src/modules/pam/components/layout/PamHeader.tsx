@@ -242,6 +242,11 @@ export function PamHeader({ onMenuClick, className }: PamHeaderProps) {
                   <span>Centro de ayuda</span>
                 </Link>
               </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/hub" className="cursor-pointer">
+                  <span className="ml-6 text-sm">Volver al panel de módulos</span>
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive">
                 <LogOut className="mr-2 h-4 w-4" />
