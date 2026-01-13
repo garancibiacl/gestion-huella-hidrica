@@ -26,13 +26,19 @@ function parseWeekNumber(value: string | undefined): number | null {
 }
 
 function getWeekNumberFromDate(dateStr: string): number {
-  // Calcular semana ISO 8601 (igual que usePamWeekSelector)
-  const date = new Date(dateStr + "T00:00:00Z");
-  const target = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-  const dayNr = (target.getUTCDay() + 6) % 7;
-  target.setUTCDate(target.getUTCDate() - dayNr + 3);
-  const firstThursday = new Date(Date.UTC(target.getUTCFullYear(), 0, 4));
-  const weekNumber = 1 + Math.round(((target.getTime() - firstThursday.getTime()) / 86400000 - 3) / 7);
+  // Calcular semana ISO 8601 de forma correcta
+  const date = new Date(dateStr + "T12:00:00Z"); // Usar mediodía para evitar problemas de zona horaria
+  
+  // Copiar fecha y ajustar al jueves de esa semana
+  const thursday = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  thursday.setUTCDate(thursday.getUTCDate() + 4 - (thursday.getUTCDay() || 7));
+  
+  // Obtener el primer día del año del jueves
+  const yearStart = new Date(Date.UTC(thursday.getUTCFullYear(), 0, 1));
+  
+  // Calcular número de semana
+  const weekNumber = Math.ceil((((thursday.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  
   return weekNumber;
 }
 
