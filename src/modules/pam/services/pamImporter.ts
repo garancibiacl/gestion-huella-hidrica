@@ -3,12 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 export interface PamTaskImportRow {
   weekNumber: number;
   weekYear: number;
-  date: string; // ISO date YYYY-MM-DD
+  date: string; // ISO date YYYY-MM-DD (Fecha Inicio)
+  endDate?: string; // ISO date YYYY-MM-DD (Fecha Fin)
   assigneeEmail: string;
   assigneeName?: string;
   description: string;
   location?: string;
   riskType?: string;
+  contractor?: string; // Proceso/Empresa Contratista
 }
 
 export interface PamImportResult {
@@ -142,7 +144,8 @@ export function parsePamSheet(csvText: string): {
   const colIdx = {
     semana: headers.findIndex((h) => h.includes("semana") || h.includes("week")),
     año: headers.findIndex((h) => h.includes("ano") || h.includes("year")),
-    fecha: headers.findIndex((h) => h.includes("fecha") || h.includes("date")),
+    fecha: headers.findIndex((h) => h.includes("fecha inicio") || (h.includes("fecha") && !h.includes("fin"))),
+    fechaFin: headers.findIndex((h) => h.includes("fecha fin")),
     responsable:
       emailColumnIndex >= 0 ? emailColumnIndex : responsableFallbackIndex,
     descripcion: headers.findIndex(
@@ -155,6 +158,7 @@ export function parsePamSheet(csvText: string): {
       (h) => h.includes("ubicacion") || h.includes("location") || h.includes("lugar") || h.includes("gerencia")
     ),
     riesgo: headers.findIndex((h) => h.includes("riesgo") || h.includes("risk") || h.includes("tipo de control")),
+    contratista: headers.findIndex((h) => h.includes("proceso") || h.includes("empresa") || h.includes("contratista")),
   };
 
   const tasks: PamTaskImportRow[] = [];
@@ -165,12 +169,14 @@ export function parsePamSheet(csvText: string): {
     const rowNum = i + 2;
 
     const date = parseDate(colIdx.fecha >= 0 ? row[colIdx.fecha] : undefined);
+    const endDate = parseDate(colIdx.fechaFin >= 0 ? row[colIdx.fechaFin] : undefined);
     const assigneeEmailRaw = colIdx.responsable >= 0 ? row[colIdx.responsable]?.trim() : "";
     const rawDescription = colIdx.descripcion >= 0 ? row[colIdx.descripcion]?.trim() : "";
     const titleFallback = colIdx.titulo >= 0 ? row[colIdx.titulo]?.trim() : "";
     const description = rawDescription || titleFallback;
     const location = colIdx.ubicacion >= 0 ? row[colIdx.ubicacion]?.trim() : "";
     const riskType = colIdx.riesgo >= 0 ? row[colIdx.riesgo]?.trim() : "";
+    const contractor = colIdx.contratista >= 0 ? row[colIdx.contratista]?.trim() : "";
 
     const assigneeEmail = assigneeEmailRaw.toLowerCase();
 
@@ -219,10 +225,12 @@ export function parsePamSheet(csvText: string): {
       weekNumber,
       weekYear,
       date,
+      endDate: endDate || undefined,
       assigneeEmail,
       description,
       location: location || undefined,
       riskType: riskType || undefined,
+      contractor: contractor || undefined,
     });
   }
 
@@ -333,11 +341,13 @@ export async function importPamWeek(params: {
         week_number: task.weekNumber,
         week_year: task.weekYear,
         date: task.date,
+        end_date: task.endDate || null,
         assignee_user_id: userInfo?.userId || null,
         assignee_name: userInfo?.fullName || task.assigneeEmail,
         description: task.description,
         location: task.location || null,
         risk_type: task.riskType || null,
+        contractor: task.contractor || null,
         status: "PENDING" as const,
         has_evidence: false,
       };
