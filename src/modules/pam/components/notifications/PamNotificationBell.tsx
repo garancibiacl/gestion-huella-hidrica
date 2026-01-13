@@ -24,7 +24,7 @@ export function PamNotificationBell() {
   const handleNotificationClick = async (notificationId: string, taskId: string | null) => {
     await markAsRead(notificationId);
     if (taskId) {
-      navigate("/pam");
+      navigate("/pls");
       setOpen(false);
     }
   };
@@ -50,7 +50,7 @@ export function PamNotificationBell() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80">
         <DropdownMenuLabel className="flex items-center justify-between">
-          <span>Notificaciones PAM</span>
+          <span>Notificaciones PLS</span>
           {unreadCount > 0 && (
             <Button variant="ghost" size="sm" onClick={handleMarkAllAsRead} className="h-auto p-1 text-xs">
               Marcar todas como leídas

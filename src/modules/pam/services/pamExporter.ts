@@ -34,7 +34,7 @@ export function exportPamToExcel(
   const wb = XLSX.utils.book_new();
 
   const summaryData = [
-    ['Reporte PAM - Gestión de Seguridad'],
+    ['Reporte PLS - Gestión de Seguridad'],
     ['Organización', organizationName],
     ['Semana', `${weekNumber}, ${weekYear}`],
     ['Fecha de generación', new Date().toLocaleDateString()],
@@ -66,7 +66,7 @@ export function exportPamToExcel(
   const wsTasks = XLSX.utils.json_to_sheet(tasksData);
   XLSX.utils.book_append_sheet(wb, wsTasks, 'Tareas');
 
-  XLSX.writeFile(wb, `PAM_Semana_${weekNumber}_${weekYear}.xlsx`);
+  XLSX.writeFile(wb, `PLS_Semana_${weekNumber}_${weekYear}.xlsx`);
 }
 
 export function exportPamToPDF(
@@ -79,7 +79,7 @@ export function exportPamToPDF(
   const doc = new jsPDF();
 
   doc.setFontSize(18);
-  doc.text('Reporte PAM - Gestión de Seguridad', 14, 20);
+  doc.text('Reporte PLS - Gestión de Seguridad', 14, 20);
 
   doc.setFontSize(11);
   doc.text(`Organización: ${organizationName}`, 14, 30);
@@ -134,5 +134,5 @@ export function exportPamToPDF(
     },
   });
 
-  doc.save(`PAM_Semana_${weekNumber}_${weekYear}.pdf`);
+  doc.save(`PLS_Semana_${weekNumber}_${weekYear}.pdf`);
 }

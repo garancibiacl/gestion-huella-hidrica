@@ -17,8 +17,8 @@ export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   
-  // Detectar si estamos en módulo PAM
-  const isPamModule = location.pathname.startsWith('/pam') || location.pathname.startsWith('/admin/pam');
+  // Detectar si estamos en módulo PLS
+  const isPamModule = location.pathname.startsWith('/pls') || location.pathname.startsWith('/admin/pls');
   
   // Track page views
   usePageTracking();
@@ -72,7 +72,7 @@ export function AppLayout() {
 
       {/* Header - Condicional según módulo */}
       {isPamModule ? (
-        /* PAM Header - Visible en móvil y desktop */
+        /* PLS Header - Visible en móvil y desktop */
         <PamHeader 
           onMenuClick={() => setSidebarOpen(true)}
           className={cn(

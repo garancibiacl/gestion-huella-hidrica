@@ -54,12 +54,12 @@ const App = () => (
               <Route path="/admin/usuarios" element={<AdminUsers />} />
               <Route path="/admin/analytics" element={<AdminAnalytics />} />
               <Route path="/admin/riesgos" element={<AdminRisk />} />
-              <Route path="/pam/my-activities" element={<PamWorkerTasksPage />} />
-              <Route path="/pam/dashboard" element={<PamDashboardPage />} />
-              <Route path="/pam/performance" element={<PamPerformancePage />} />
-              <Route path="/pam/reports" element={<PamReportsPage />} />
-              <Route path="/admin/pam/upload" element={<PamAdminWeekUploadPage />} />
-              <Route path="/admin/pam/board" element={<PamAdminBoardPage />} />
+              <Route path="/pls/my-activities" element={<PamWorkerTasksPage />} />
+              <Route path="/pls/dashboard" element={<PamDashboardPage />} />
+              <Route path="/pls/performance" element={<PamPerformancePage />} />
+              <Route path="/pls/reports" element={<PamReportsPage />} />
+              <Route path="/admin/pls/upload" element={<PamAdminWeekUploadPage />} />
+              <Route path="/admin/pls/board" element={<PamAdminBoardPage />} />
               <Route path="/reportes/agua/preview" element={<WaterReportPreview />} />
             </Route>
             <Route path="*" element={<NotFound />} />

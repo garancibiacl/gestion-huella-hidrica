@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { usePamWeekSelector } from "../hooks/usePamWeekSelector";
 import { usePamTasks } from "../hooks/usePamTasks";
-import type { PamTaskStatus } from "../types/pam.types";
+import type { PamTaskStatus } from "../types/pls.types";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -64,7 +64,7 @@ export default function PamWorkerTasksPage() {
   return (
     <div className="p-4 md:p-6 space-y-4">
       <PageHeader
-        title="Mis tareas PAM"
+        title="Mis tareas PLS"
         description={week.label}
       />
 
@@ -157,7 +157,7 @@ export default function PamWorkerTasksPage() {
       {!isLoading && !error && tasks.length === 0 && (
         <Card className="p-6">
           <p className="text-sm text-muted-foreground">
-            No tienes tareas PAM asignadas para este rango.
+            No tienes tareas PLS asignadas para este rango.
           </p>
         </Card>
       )}

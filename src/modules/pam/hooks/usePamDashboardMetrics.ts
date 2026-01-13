@@ -67,7 +67,7 @@ export function usePamDashboardMetrics({
     setError(null);
 
     try {
-      const { data, error: fetchError } = await supabase.rpc('get_pam_dashboard_metrics', {
+      const { data, error: fetchError } = await supabase.rpc('get_pls_dashboard_metrics', {
         p_organization_id: organizationId,
         p_week_year: weekYear || null,
         p_week_number: weekNumber || null,
@@ -104,7 +104,7 @@ export function usePamDashboardMetrics({
         });
       }
     } catch (err) {
-      console.error('Error fetching PAM dashboard metrics:', err);
+      console.error('Error fetching PLS dashboard metrics:', err);
       setError(err instanceof Error ? err.message : 'Error al cargar métricas');
       setMetrics(null);
     } finally {

@@ -164,7 +164,7 @@ export function PamHeader({ onMenuClick, className }: PamHeaderProps) {
                       className="cursor-pointer"
                     >
                       <Link
-                        to={`/pam/my-activities?task=${notification.task_id}`}
+                        to={`/pls/my-activities?task=${notification.task_id}`}
                         className="flex flex-col gap-1 p-3"
                       >
                         <div className="flex items-start justify-between gap-2">
@@ -188,7 +188,7 @@ export function PamHeader({ onMenuClick, className }: PamHeaderProps) {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link
-                      to="/pam/notifications"
+                      to="/pls/notifications"
                       className="text-center text-sm text-primary"
                     >
                       Ver todas las notificaciones

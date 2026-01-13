@@ -51,15 +51,15 @@ const environmentalNavItems: NavItem[] = [
   { icon: BarChart3, label: "Analytics", path: "/admin/analytics", adminOnly: true },
 ];
 
-// Navegación para Módulo PAM (Gestión de Seguridad)
+// Navegación para Módulo PLS (Gestión de Seguridad)
 // Basado en estructura Codelco/Zyght
 const pamNavItems: NavItem[] = [
-  { icon: ClipboardList, label: "Mis actividades", path: "/pam/my-activities" },
-  { icon: LayoutDashboard, label: "Dashboard PAM", path: "/pam/dashboard", pamAdminOnly: true },
-  { icon: Upload, label: "Planificación semanal", path: "/admin/pam/upload", pamAdminOnly: true },
-  { icon: CheckSquare, label: "Estado de cumplimiento", path: "/admin/pam/board", pamAdminOnly: true },
-  { icon: TrendingUp, label: "Desempeño del PAM", path: "/pam/performance", pamAdminOnly: true },
-  { icon: FileText, label: "Reportabilidad", path: "/pam/reports", pamAdminOnly: true },
+  { icon: ClipboardList, label: "Mis actividades", path: "/pls/my-activities" },
+  { icon: LayoutDashboard, label: "Dashboard PLS", path: "/pls/dashboard", pamAdminOnly: true },
+  { icon: Upload, label: "Planificación semanal", path: "/admin/pls/upload", pamAdminOnly: true },
+  { icon: CheckSquare, label: "Estado de cumplimiento", path: "/admin/pls/board", pamAdminOnly: true },
+  { icon: TrendingUp, label: "Desempeño del PLS", path: "/pls/performance", pamAdminOnly: true },
+  { icon: FileText, label: "Reportabilidad", path: "/pls/reports", pamAdminOnly: true },
 ];
 
 interface AppSidebarProps {
@@ -178,8 +178,8 @@ export function AppSidebar({ onClose, isCollapsed = false, onToggleCollapse }: A
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuButtonRef = useRef<HTMLButtonElement | null>(null);
 
-  // Detectar si estamos en módulo PAM o Ambiental
-  const isPamModule = location.pathname.startsWith('/pam') || location.pathname.startsWith('/admin/pam');
+  // Detectar si estamos en módulo PLS o Ambiental
+  const isPamModule = location.pathname.startsWith('/pls') || location.pathname.startsWith('/admin/pls');
   const navItems = isPamModule ? pamNavItems : environmentalNavItems;
 
   // Derive user display name and initials
@@ -215,7 +215,7 @@ export function AppSidebar({ onClose, isCollapsed = false, onToggleCollapse }: A
       return false;
     }
 
-    // Ítems PAM admin: visibles para admin y prevencionista
+    // Ítems PLS admin: visibles para admin y prevencionista
     if (item.pamAdminOnly && !(isAdmin || isPrevencionista)) {
       return false;
     }

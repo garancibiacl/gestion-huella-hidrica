@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useToast } from "@/components/ui/use-toast";
-import { parsePamSheet, importPamWeek, type PamTaskImportRow } from "../services/pamImporter";
+import { parsePamSheet, importPamWeek, type PamTaskImportRow } from "../services/plsImporter";
 
 export interface UsePamWeekImportResult {
   isProcessing: boolean;
@@ -55,7 +55,7 @@ export function usePamWeekImport(): UsePamWeekImportResult {
         });
       }
     } catch (error: any) {
-      console.error("Error processing PAM file", error);
+      console.error("Error processing PLS file", error);
       toast({
         title: "Error al procesar archivo",
         description: error instanceof Error ? error.message : "Error desconocido",
@@ -92,7 +92,7 @@ export function usePamWeekImport(): UsePamWeekImportResult {
         setTasksCreated(result.tasksCreated);
         toast({
           title: "Importación exitosa",
-          description: `Se crearon ${result.tasksCreated} tareas PAM.`,
+          description: `Se crearon ${result.tasksCreated} tareas PLS.`,
         });
       } else {
         setImportErrors(result.errors);
@@ -103,7 +103,7 @@ export function usePamWeekImport(): UsePamWeekImportResult {
         });
       }
     } catch (error: any) {
-      console.error("Error importing PAM week", error);
+      console.error("Error importing PLS week", error);
       const errorMsg = error instanceof Error ? error.message : "Error desconocido al importar";
       setImportErrors([errorMsg]);
       toast({

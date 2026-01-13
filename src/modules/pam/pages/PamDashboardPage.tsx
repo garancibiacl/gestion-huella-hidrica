@@ -97,7 +97,7 @@ export default function PamDashboardPage() {
     
     // Fetch tasks for export
     const { data: tasks } = await supabase
-      .from('pam_tasks')
+      .from('pls_tasks')
       .select('*')
       .eq('organization_id', organizationId)
       .eq('week_year', week.weekYear)
@@ -119,7 +119,7 @@ export default function PamDashboardPage() {
     
     // Fetch tasks for export
     const { data: tasks } = await supabase
-      .from('pam_tasks')
+      .from('pls_tasks')
       .select('*')
       .eq('organization_id', organizationId)
       .eq('week_year', week.weekYear)
@@ -167,7 +167,7 @@ export default function PamDashboardPage() {
     <div className="p-4 md:p-6 space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <PageHeader
-          title="Dashboard Ejecutivo PAM"
+          title="Dashboard Ejecutivo PLS"
           description={`Semana ${week.weekNumber}, ${week.weekYear}`}
         />
         <div className="flex items-center gap-2">

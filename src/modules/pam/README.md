@@ -1,4 +1,4 @@
-# Módulo PAM - Gestión de Seguridad
+# Módulo PLS - Gestión de Seguridad
 
 Sistema de gestión de tareas de seguridad y salud ocupacional (Plan de Acción de Mejora).
 

@@ -4,10 +4,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@/hooks/useOrganization';
 import { parsePamSheet, importPamWeek } from '../services/pamImporter';
 
-// URL pública del Google Sheet PAM (formato CSV)
+// URL pública del Google Sheet PLS (formato CSV)
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT26cNiPTdWJUOwEEatSpqFveSrpV58B8B95h3zHVHmuRvcuQprCmq5qMcD-xedw_kmyq1SLpdjbcmT/pub?gid=1635467450&single=true&output=csv';
-const LAST_SYNC_KEY = 'last_pam_sync';
-const LAST_HASH_KEY = 'last_pam_hash';
+const LAST_SYNC_KEY = 'last_pls_sync';
+const LAST_HASH_KEY = 'last_pls_hash';
 const MIN_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
 interface PamSyncResult {
@@ -45,7 +45,7 @@ async function performPamSync(
   force: boolean = false
 ): Promise<PamSyncResult> {
   try {
-    console.log('Starting PAM sync...', { userId, organizationId, force });
+    console.log('Starting PLS sync...', { userId, organizationId, force });
 
     const response = await fetch(CSV_URL);
     if (!response.ok) {
@@ -61,7 +61,7 @@ async function performPamSync(
     const lastHash = localStorage.getItem(LAST_HASH_KEY);
 
     if (!force && lastHash === currentHash) {
-      console.log('PAM sheet content unchanged, skipping sync.');
+      console.log('PLS sheet content unchanged, skipping sync.');
       return { success: true, tasksCreated: 0, errors: [] };
     }
 
@@ -72,7 +72,7 @@ async function performPamSync(
     const { tasks, errors: parseErrors } = parsePamSheet(csvText);
 
     if (parseErrors.length > 0) {
-      console.warn('PAM parse errors:', parseErrors);
+      console.warn('PLS parse errors:', parseErrors);
       return { 
         success: false, 
         tasksCreated: 0, 
@@ -81,7 +81,7 @@ async function performPamSync(
     }
 
     if (tasks.length === 0) {
-      console.log('No tasks to import from PAM sheet');
+      console.log('No tasks to import from PLS sheet');
       return { success: true, tasksCreated: 0, errors: [] };
     }
 
@@ -96,7 +96,7 @@ async function performPamSync(
       sourceFilename: 'Google Sheets (auto-sync)',
     });
 
-    console.log('PAM sync complete:', result);
+    console.log('PLS sync complete:', result);
 
     return {
       success: result.success,
@@ -106,7 +106,7 @@ async function performPamSync(
       importedWeekNumber,
     };
   } catch (error) {
-    console.error('PAM sync error:', error);
+    console.error('PLS sync error:', error);
     return { 
       success: false, 
       tasksCreated: 0, 
@@ -139,7 +139,7 @@ export function usePamSync(options: UsePamSyncOptions = {}) {
     if (!user?.id || !organizationId || syncInProgress.current) return;
 
     if (!force && !shouldSync()) {
-      console.log('PAM sync skipped (too soon)');
+      console.log('PLS sync skipped (too soon)');
       return;
     }
 

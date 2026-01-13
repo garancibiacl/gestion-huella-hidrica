@@ -152,7 +152,7 @@ export default function AuthPage() {
       title="Plataforma JM"
       subtitle="Gestión integrada de Medio Ambiente y Seguridad en un solo lugar."
       bullets={[
-        "Todo en un solo lugar: Gestión Ambiental y Seguridad (PAM)",
+        "Todo en un solo lugar: Gestión Ambiental y Seguridad (PLS)",
         "Seguimiento completo desde monitoreo hasta cumplimiento",
         "Tu equipo ahorra tiempo con software integrado y fácil de usar",
         "Experiencia consistente y profesional en todo momento",

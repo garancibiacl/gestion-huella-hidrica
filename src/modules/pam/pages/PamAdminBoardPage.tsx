@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRole } from "@/hooks/useRole";
 import { usePamWeekSelector } from "../hooks/usePamWeekSelector";
 import { usePamBoard } from "../hooks/usePamBoard";
-import type { PamTaskStatus } from "../types/pam.types";
+import type { PamTaskStatus } from "../types/pls.types";
 import { Loader2, Users, LayoutGrid, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 const STATUS_LABELS: Record<PamTaskStatus, string> = {
@@ -40,7 +40,7 @@ export default function PamAdminBoardPage() {
 
   return (
     <div className="p-4 md:p-6 space-y-4">
-      <PageHeader title="Seguimiento PAM" description={week.label} />
+      <PageHeader title="Seguimiento PLS" description={week.label} />
 
       <div className="flex items-center gap-2 flex-wrap">
         <Button variant="outline" size="sm" onClick={week.goToPreviousWeek}>
@@ -72,7 +72,7 @@ export default function PamAdminBoardPage() {
       {!isLoading && !error && tasks.length === 0 && (
         <Card className="p-6">
           <p className="text-sm text-muted-foreground">
-            No hay tareas PAM para esta semana.
+            No hay tareas PLS para esta semana.
           </p>
         </Card>
       )}

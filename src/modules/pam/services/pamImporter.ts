@@ -234,9 +234,9 @@ export async function importPamWeek(params: {
       };
     }
 
-    // 2. Crear o actualizar pam_weeks_plan (sin usar upsert para evitar dependencia de índices únicos)
+    // 2. Crear o actualizar pls_weeks_plan (sin usar upsert para evitar dependencia de índices únicos)
     const { data: existingWeekPlan, error: fetchWeekPlanError } = await supabase
-      .from("pam_weeks_plan")
+      .from("pls_weeks_plan")
       .select("id")
       .eq("organization_id", organizationId)
       .eq("week_number", weekNumber)
@@ -250,7 +250,7 @@ export async function importPamWeek(params: {
     if (existingWeekPlan?.id) {
       // Actualizar metadatos del plan existente
       const { data: updatedWeekPlan, error: updateWeekPlanError } = await supabase
-        .from("pam_weeks_plan")
+        .from("pls_weeks_plan")
         .update({
           uploaded_by: uploadedByUserId,
           source_filename: sourceFilename || null,
@@ -265,7 +265,7 @@ export async function importPamWeek(params: {
     } else {
       // Crear nuevo plan de semana
       const { data: insertedWeekPlan, error: insertWeekPlanError } = await supabase
-        .from("pam_weeks_plan")
+        .from("pls_weeks_plan")
         .insert({
           organization_id: organizationId,
           week_number: weekNumber,
@@ -283,7 +283,7 @@ export async function importPamWeek(params: {
 
     // 3. Eliminar tareas existentes de esa semana
     const { error: deleteError } = await supabase
-      .from("pam_tasks")
+      .from("pls_tasks")
       .delete()
       .eq("week_plan_id", weekPlanId);
 
@@ -308,7 +308,7 @@ export async function importPamWeek(params: {
       };
     });
 
-    const { error: insertError } = await supabase.from("pam_tasks").insert(taskRecords);
+    const { error: insertError } = await supabase.from("pls_tasks").insert(taskRecords);
 
     if (insertError) throw insertError;
 
@@ -319,7 +319,7 @@ export async function importPamWeek(params: {
       weekPlanId,
     };
   } catch (error: any) {
-    console.error("Error importing PAM week", error);
+    console.error("Error importing PLS week", error);
 
     let message = "Error desconocido al importar";
 

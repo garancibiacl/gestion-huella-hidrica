@@ -40,7 +40,7 @@ export default function PamAdminWeekUploadPage() {
             await refetchPreview();
           }
           toast({
-            title: 'Sincronización PAM completada',
+            title: 'Sincronización PLS completada',
             description: `${tasksCreated} tareas importadas desde Google Sheets`,
           });
         } else {
@@ -99,7 +99,7 @@ export default function PamAdminWeekUploadPage() {
   return (
     <div className="p-4 md:p-6 space-y-6">
       <PageHeader
-        title="Planificación semanal PAM"
+        title="Planificación semanal PLS"
         description="Sincronización automática con Google Sheets"
       />
 
@@ -108,7 +108,7 @@ export default function PamAdminWeekUploadPage() {
         <div className="space-y-4">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-2">
-              <h3 className="font-semibold">Google Sheets - Planificación PAM</h3>
+              <h3 className="font-semibold">Google Sheets - Planificación PLS</h3>
               <p className="text-sm text-muted-foreground">
                 La planificación se sincroniza automáticamente desde Google Sheets.
                 Los cambios en la hoja se reflejarán automáticamente en la aplicación.
@@ -206,7 +206,7 @@ export default function PamAdminWeekUploadPage() {
           </div>
           <div className="flex flex-col items-end gap-1 text-xs text-muted-foreground">
             <span className="text-[11px] uppercase tracking-wide bg-muted px-2 py-0.5 rounded-full">
-              Fuente: Google Sheets PAM
+              Fuente: Google Sheets PLS
             </span>
             <div className="flex items-center gap-2">
               <Button
@@ -241,7 +241,7 @@ export default function PamAdminWeekUploadPage() {
           </div>
         ) : tasks.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4">
-            No hay tareas PAM planificadas para esta semana.
+            No hay tareas PLS planificadas para esta semana.
           </p>
         ) : (
           <div className="border rounded-lg overflow-hidden">

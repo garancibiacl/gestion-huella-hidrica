@@ -55,11 +55,11 @@ export function usePamBoard(weekYear: number, weekNumber: number): UsePamBoardRe
       const data = await getAllPamTasksForWeek(weekYear, weekNumber);
       setTasks(data);
     } catch (err: any) {
-      console.error("Error loading PAM board", err);
-      const message = err instanceof Error ? err.message : "Error desconocido al cargar tablero PAM.";
+      console.error("Error loading PLS board", err);
+      const message = err instanceof Error ? err.message : "Error desconocido al cargar tablero PLS.";
       setError(message);
       toast({
-        title: "Error al cargar tablero PAM",
+        title: "Error al cargar tablero PLS",
         description: message,
         variant: "destructive",
       });

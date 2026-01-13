@@ -28,7 +28,7 @@ export async function importPamWeekFromGoogleSheets({
     }
 
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-    const functionUrl = `${supabaseUrl}/functions/v1/import-pam-week`;
+    const functionUrl = `${supabaseUrl}/functions/v1/import-pls-week`;
 
     const response = await fetch(functionUrl, {
       method: 'POST',
@@ -53,7 +53,7 @@ export async function importPamWeekFromGoogleSheets({
     return result;
 
   } catch (error) {
-    console.error('Error importing PAM week:', error);
+    console.error('Error importing PLS week:', error);
     return {
       success: false,
       imported_count: 0,

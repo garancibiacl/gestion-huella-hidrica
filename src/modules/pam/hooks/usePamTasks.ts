@@ -71,11 +71,11 @@ export function usePamTasks(options: UsePamTasksOptions): UsePamTasksResult {
       setRawTasks(data);
       applyFilters(data, scope, statusFilter);
     } catch (err: any) {
-      console.error("Error loading PAM tasks", err);
-      const message = err instanceof Error ? err.message : "Error desconocido al cargar tareas PAM.";
+      console.error("Error loading PLS tasks", err);
+      const message = err instanceof Error ? err.message : "Error desconocido al cargar tareas PLS.";
       setError(message);
       toast({
-        title: "Error al cargar tareas PAM",
+        title: "Error al cargar tareas PLS",
         description: message,
         variant: "destructive",
       });

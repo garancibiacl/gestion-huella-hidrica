@@ -40,7 +40,7 @@ const MODULES: Module[] = [
   {
     id: "pam",
     title: "Gestión de Seguridad",
-    description: "Planificación, asignación y seguimiento semanal de tareas de seguridad y medioambientales (PAM).",
+    description: "Planificación, asignación y seguimiento semanal de tareas de seguridad y medioambientales (PLS).",
     icon: <Shield className="w-8 h-8" />,
     features: [
       "Carga semanal desde Excel",
@@ -48,7 +48,7 @@ const MODULES: Module[] = [
       "Seguimiento, evidencias y reportes",
       "Dashboard ejecutivo y cumplimiento",
     ],
-    path: "/pam/my-activities",
+    path: "/pls/my-activities",
     roles: ["admin", "prevencionista", "worker"],
     gradient: "bg-gradient-to-br from-red-500 to-orange-600",
     accentColor: "#ef4444",

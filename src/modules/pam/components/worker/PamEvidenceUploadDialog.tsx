@@ -67,7 +67,7 @@ export function PamEvidenceUploadDialog({
 
       handleClose();
     } catch (error: any) {
-      console.error("Error al subir evidencia PAM", error);
+      console.error("Error al subir evidencia PLS", error);
       toast({
         title: "Error al subir evidencia",
         description:
@@ -88,9 +88,9 @@ export function PamEvidenceUploadDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
           <div className="space-y-2">
-            <Label htmlFor="pam-evidence-file">Archivo</Label>
+            <Label htmlFor="pls-evidence-file">Archivo</Label>
             <Input
-              id="pam-evidence-file"
+              id="pls-evidence-file"
               type="file"
               accept="image/*,application/pdf"
               onChange={(e) => {
@@ -101,9 +101,9 @@ export function PamEvidenceUploadDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="pam-evidence-notes">Notas (opcional)</Label>
+            <Label htmlFor="pls-evidence-notes">Notas (opcional)</Label>
             <Textarea
-              id="pam-evidence-notes"
+              id="pls-evidence-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}

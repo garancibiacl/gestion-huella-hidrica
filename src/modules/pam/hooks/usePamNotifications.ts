@@ -36,7 +36,7 @@ export function usePamNotifications(): UsePamNotificationsResult {
       setNotifications(notifs);
       setUnreadCount(count);
     } catch (error) {
-      console.error("Error loading PAM notifications", error);
+      console.error("Error loading PLS notifications", error);
     } finally {
       setIsLoading(false);
     }
@@ -52,17 +52,17 @@ export function usePamNotifications(): UsePamNotificationsResult {
     if (!user) return;
 
     const channel = supabase
-      .channel("pam_notifications_changes")
+      .channel("pls_notifications_changes")
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
-          table: "pam_notifications",
+          table: "pls_notifications",
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          console.log("PAM notification change detected", payload);
+          console.log("PLS notification change detected", payload);
           load();
         }
       )
