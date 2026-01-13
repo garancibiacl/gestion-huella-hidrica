@@ -25,6 +25,14 @@ function parseWeekNumber(value: string | undefined): number | null {
   return isNaN(num) || num < 1 || num > 53 ? null : num;
 }
 
+function getWeekNumberFromDate(dateStr: string): number {
+  const date = new Date(dateStr + "T00:00:00");
+  const startOfYear = new Date(date.getFullYear(), 0, 1);
+  const diff = date.getTime() - startOfYear.getTime();
+  const oneWeek = 7 * 24 * 60 * 60 * 1000;
+  return Math.ceil((diff / oneWeek) + 1);
+}
+
 function parseYear(value: string | undefined): number | null {
   if (!value) return null;
   const num = parseInt(String(value).trim(), 10);
@@ -135,9 +143,9 @@ export function parsePamSheet(csvText: string): {
       (h) => h.includes("titulo") || h.includes("actividad")
     ),
     ubicacion: headers.findIndex(
-      (h) => h.includes("ubicacion") || h.includes("location") || h.includes("lugar")
+      (h) => h.includes("ubicacion") || h.includes("location") || h.includes("lugar") || h.includes("gerencia")
     ),
-    riesgo: headers.findIndex((h) => h.includes("riesgo") || h.includes("risk") || h.includes("tipo")),
+    riesgo: headers.findIndex((h) => h.includes("riesgo") || h.includes("risk") || h.includes("tipo de control")),
   };
 
   const tasks: PamTaskImportRow[] = [];
@@ -147,8 +155,6 @@ export function parsePamSheet(csvText: string): {
     const row = dataRows[i];
     const rowNum = i + 2;
 
-    const weekNumber = parseWeekNumber(colIdx.semana >= 0 ? row[colIdx.semana] : undefined);
-    const weekYear = parseYear(colIdx.año >= 0 ? row[colIdx.año] : undefined);
     const date = parseDate(colIdx.fecha >= 0 ? row[colIdx.fecha] : undefined);
     const assigneeEmailRaw = colIdx.responsable >= 0 ? row[colIdx.responsable]?.trim() : "";
     const rawDescription = colIdx.descripcion >= 0 ? row[colIdx.descripcion]?.trim() : "";
@@ -159,8 +165,17 @@ export function parsePamSheet(csvText: string): {
 
     const assigneeEmail = assigneeEmailRaw.toLowerCase();
 
+    // Calcular weekNumber desde la fecha si no hay columna "Semana"
+    let weekNumber = parseWeekNumber(colIdx.semana >= 0 ? row[colIdx.semana] : undefined);
+    const weekYear = parseYear(colIdx.año >= 0 ? row[colIdx.año] : undefined);
+
+    // Si no hay columna de semana pero sí hay fecha, calcular la semana desde la fecha
+    if (!weekNumber && date) {
+      weekNumber = getWeekNumberFromDate(date);
+    }
+
     if (!weekNumber) {
-      errors.push(`Fila ${rowNum}: Semana inválida o faltante`);
+      errors.push(`Fila ${rowNum}: Semana inválida o faltante (y no se pudo calcular desde fecha)`);
       continue;
     }
     if (!weekYear) {
