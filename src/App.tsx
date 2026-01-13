@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Auth from "./pages/Auth";
+import Hub from "./pages/Hub";
 import WaterDashboard from "./pages/WaterDashboard";
 import WaterReportPreview from "./pages/WaterReportPreview";
 import ElectricDashboard from "./pages/ElectricDashboard";
@@ -22,6 +23,7 @@ import NotFound from "./pages/NotFound";
 import PamWorkerTasksPage from "./modules/pam/pages/PamWorkerTasksPage";
 import PamAdminWeekUploadPage from "./modules/pam/pages/PamAdminWeekUploadPage";
 import PamAdminBoardPage from "./modules/pam/pages/PamAdminBoardPage";
+import PamDashboardPage from "./modules/pam/pages/PamDashboardPage";
 
 const queryClient = new QueryClient();
 
@@ -33,8 +35,9 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Navigate to="/dashboard/agua" replace />} />
+            <Route path="/" element={<Navigate to="/hub" replace />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/hub" element={<Hub />} />
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<Navigate to="/dashboard/agua" replace />} />
               <Route path="/dashboard/agua" element={<WaterDashboard />} />
@@ -49,7 +52,8 @@ const App = () => (
               <Route path="/admin/usuarios" element={<AdminUsers />} />
               <Route path="/admin/analytics" element={<AdminAnalytics />} />
               <Route path="/admin/riesgos" element={<AdminRisk />} />
-              <Route path="/pam" element={<PamWorkerTasksPage />} />
+              <Route path="/pam/my-activities" element={<PamWorkerTasksPage />} />
+              <Route path="/pam/dashboard" element={<PamDashboardPage />} />
               <Route path="/admin/pam/upload" element={<PamAdminWeekUploadPage />} />
               <Route path="/admin/pam/board" element={<PamAdminBoardPage />} />
               <Route path="/reportes/agua/preview" element={<WaterReportPreview />} />
