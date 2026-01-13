@@ -152,10 +152,17 @@ export default function PamAdminWeekUploadPage() {
         <div className="space-y-2 text-sm">
           <p className="font-medium">Formato del Google Sheet:</p>
           <p className="text-muted-foreground">
-            Columnas requeridas: <strong>Semana, Año, Fecha, Responsable (email), Descripción</strong>
+            Columnas requeridas: 
+            <strong>
+              Título de la actividad, Responsable, Email, Fecha inicio (o Fecha), Descripción
+            </strong>
           </p>
           <p className="text-muted-foreground">
-            Columnas opcionales: <strong>Ubicación, Tipo de riesgo</strong>
+            Columnas opcionales: 
+            <strong>
+              Tipo de control, Gerencia (se usa como ubicación en el preview), Proceso/Empresa
+              Contratista (Opcional)
+            </strong>
           </p>
         </div>
       </Card>
@@ -271,10 +278,10 @@ export default function PamAdminWeekUploadPage() {
                 <thead className="bg-muted sticky top-0">
                   <tr>
                     <th className="text-left p-2 font-medium text-xs w-[28px]"></th>
-                    <th className="text-left p-2 font-medium text-xs">Fecha</th>
+                    <th className="text-left p-2 font-medium text-xs">Fecha inicio</th>
                     <th className="text-left p-2 font-medium text-xs">Responsable</th>
-                    <th className="text-left p-2 font-medium text-xs">Descripción</th>
-                    <th className="text-left p-2 font-medium text-xs">Ubicación</th>
+                    <th className="text-left p-2 font-medium text-xs">Título de la actividad / Descripción</th>
+                    <th className="text-left p-2 font-medium text-xs">Gerencia</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">

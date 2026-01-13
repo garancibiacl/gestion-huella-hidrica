@@ -168,13 +168,18 @@ export function parsePamSheet(csvText: string): {
 
     const assigneeEmail = assigneeEmailRaw.toLowerCase();
 
-    // Calcular weekNumber desde la fecha si no hay columna "Semana"
+    // Calcular weekNumber desde la columna "Semana" o, si no existe, desde la fecha
     let weekNumber = parseWeekNumber(colIdx.semana >= 0 ? row[colIdx.semana] : undefined);
-    const weekYear = parseYear(colIdx.año >= 0 ? row[colIdx.año] : undefined);
+    let weekYear = parseYear(colIdx.año >= 0 ? row[colIdx.año] : undefined);
 
     // Si no hay columna de semana pero sí hay fecha, calcular la semana desde la fecha
     if (!weekNumber && date) {
       weekNumber = getWeekNumberFromDate(date);
+    }
+
+    // Si no hay columna de año pero sí hay fecha, derivar el año desde la fecha
+    if (!weekYear && date) {
+      weekYear = parseInt(date.slice(0, 4), 10);
     }
 
     if (!weekNumber) {
