@@ -65,6 +65,28 @@ Deno.serve(async (req) => {
 
     console.log('Requesting user:', requestingUser.id, requestingUser.email)
 
+    const { data: requestingProfile, error: requestingProfileError } = await supabaseAdmin
+      .from('profiles')
+      .select('organization_id')
+      .eq('user_id', requestingUser.id)
+      .maybeSingle()
+
+    if (requestingProfileError) {
+      console.error('Error getting requesting profile:', requestingProfileError.message)
+      return new Response(JSON.stringify({ error: 'Error reading requesting user profile' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (!requestingProfile?.organization_id) {
+      console.error('Requesting user has no organization_id')
+      return new Response(JSON.stringify({ error: 'Requesting user has no organization assigned' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     // Check if requesting user is admin
     const { data: roleData, error: roleError } = await supabaseAdmin
       .from('user_roles')
@@ -116,6 +138,29 @@ Deno.serve(async (req) => {
     }
 
     console.log('User created successfully:', newUser.user?.id)
+
+    // Ensure new user has a profile with the same organization_id as the requesting admin
+    if (newUser.user) {
+      const { error: profileUpsertError } = await supabaseAdmin
+        .from('profiles')
+        .upsert(
+          {
+            user_id: newUser.user.id,
+            email,
+            full_name: full_name ?? null,
+            organization_id: requestingProfile.organization_id,
+          },
+          { onConflict: 'user_id' },
+        )
+
+      if (profileUpsertError) {
+        console.error('Error upserting profile:', profileUpsertError.message)
+        return new Response(JSON.stringify({ error: 'User created but failed to assign organization' }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    }
 
     // Wait for trigger to create the default role, then update if different
     if (role && newUser.user) {

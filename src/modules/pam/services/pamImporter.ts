@@ -91,21 +91,31 @@ function parseCSV(csvText: string): string[][] {
   return rows;
 }
 
+function normalizeString(str: string): string {
+  return str
+    .toLowerCase()
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, ""); // Elimina tildes y acentos
+}
+
 export function parsePamSheet(csvText: string): {
   tasks: PamTaskImportRow[];
   errors: string[];
 } {
+  const ALLOWED_EMAIL_DOMAIN = "@busesjm.com";
+
   const rows = parseCSV(csvText);
   if (rows.length < 2) {
     return { tasks: [], errors: ["El archivo está vacío o no tiene datos"] };
   }
 
-  const headers = rows[0].map((h) => h.toLowerCase().trim());
+  const headers = rows[0].map((h) => normalizeString(h));
   const dataRows = rows.slice(1);
 
   const colIdx = {
     semana: headers.findIndex((h) => h.includes("semana") || h.includes("week")),
-    año: headers.findIndex((h) => h.includes("año") || h.includes("year")),
+    año: headers.findIndex((h) => h.includes("ano") || h.includes("year")),
     fecha: headers.findIndex((h) => h.includes("fecha") || h.includes("date")),
     responsable: headers.findIndex(
       (h) => h.includes("responsable") || h.includes("email") || h.includes("asignado")
@@ -129,10 +139,12 @@ export function parsePamSheet(csvText: string): {
     const weekNumber = parseWeekNumber(colIdx.semana >= 0 ? row[colIdx.semana] : undefined);
     const weekYear = parseYear(colIdx.año >= 0 ? row[colIdx.año] : undefined);
     const date = parseDate(colIdx.fecha >= 0 ? row[colIdx.fecha] : undefined);
-    const assigneeEmail = colIdx.responsable >= 0 ? row[colIdx.responsable]?.trim() : "";
+    const assigneeEmailRaw = colIdx.responsable >= 0 ? row[colIdx.responsable]?.trim() : "";
     const description = colIdx.descripcion >= 0 ? row[colIdx.descripcion]?.trim() : "";
     const location = colIdx.ubicacion >= 0 ? row[colIdx.ubicacion]?.trim() : "";
     const riskType = colIdx.riesgo >= 0 ? row[colIdx.riesgo]?.trim() : "";
+
+    const assigneeEmail = assigneeEmailRaw.toLowerCase();
 
     if (!weekNumber) {
       errors.push(`Fila ${rowNum}: Semana inválida o faltante`);
@@ -150,6 +162,12 @@ export function parsePamSheet(csvText: string): {
       errors.push(`Fila ${rowNum}: Email de responsable inválido o faltante`);
       continue;
     }
+    if (!assigneeEmail.endsWith(ALLOWED_EMAIL_DOMAIN)) {
+      errors.push(
+        `Fila ${rowNum}: Email inválido (debe terminar en ${ALLOWED_EMAIL_DOMAIN}): ${assigneeEmailRaw}`
+      );
+      continue;
+    }
     if (!description) {
       errors.push(`Fila ${rowNum}: Descripción faltante`);
       continue;
@@ -159,7 +177,7 @@ export function parsePamSheet(csvText: string): {
       weekNumber,
       weekYear,
       date,
-      assigneeEmail: assigneeEmail.toLowerCase(),
+      assigneeEmail,
       description,
       location: location || undefined,
       riskType: riskType || undefined,
@@ -216,30 +234,58 @@ export async function importPamWeek(params: {
       };
     }
 
-    // 2. Crear o actualizar pam_weeks_plan
-    const { data: weekPlan, error: weekPlanError } = await supabase
+    // 2. Crear o actualizar pam_weeks_plan (sin usar upsert para evitar dependencia de índices únicos)
+    const { data: existingWeekPlan, error: fetchWeekPlanError } = await supabase
       .from("pam_weeks_plan")
-      .upsert(
-        {
+      .select("id")
+      .eq("organization_id", organizationId)
+      .eq("week_number", weekNumber)
+      .eq("week_year", weekYear)
+      .maybeSingle();
+
+    if (fetchWeekPlanError) throw fetchWeekPlanError;
+
+    let weekPlanId: string;
+
+    if (existingWeekPlan?.id) {
+      // Actualizar metadatos del plan existente
+      const { data: updatedWeekPlan, error: updateWeekPlanError } = await supabase
+        .from("pam_weeks_plan")
+        .update({
+          uploaded_by: uploadedByUserId,
+          source_filename: sourceFilename || null,
+        })
+        .eq("id", existingWeekPlan.id)
+        .select("id")
+        .single();
+
+      if (updateWeekPlanError) throw updateWeekPlanError;
+      if (!updatedWeekPlan) throw new Error("No se pudo actualizar el plan de semana");
+      weekPlanId = updatedWeekPlan.id;
+    } else {
+      // Crear nuevo plan de semana
+      const { data: insertedWeekPlan, error: insertWeekPlanError } = await supabase
+        .from("pam_weeks_plan")
+        .insert({
           organization_id: organizationId,
           week_number: weekNumber,
           week_year: weekYear,
           uploaded_by: uploadedByUserId,
           source_filename: sourceFilename || null,
-        },
-        { onConflict: "week_number,week_year" }
-      )
-      .select("id")
-      .single();
+        })
+        .select("id")
+        .single();
 
-    if (weekPlanError) throw weekPlanError;
-    if (!weekPlan) throw new Error("No se pudo crear el plan de semana");
+      if (insertWeekPlanError) throw insertWeekPlanError;
+      if (!insertedWeekPlan) throw new Error("No se pudo crear el plan de semana");
+      weekPlanId = insertedWeekPlan.id;
+    }
 
     // 3. Eliminar tareas existentes de esa semana
     const { error: deleteError } = await supabase
       .from("pam_tasks")
       .delete()
-      .eq("week_plan_id", weekPlan.id);
+      .eq("week_plan_id", weekPlanId);
 
     if (deleteError) throw deleteError;
 
@@ -248,7 +294,7 @@ export async function importPamWeek(params: {
       const userInfo = emailToUserId.get(task.assigneeEmail)!;
       return {
         organization_id: organizationId,
-        week_plan_id: weekPlan.id,
+        week_plan_id: weekPlanId,
         week_number: task.weekNumber,
         week_year: task.weekYear,
         date: task.date,
@@ -270,14 +316,32 @@ export async function importPamWeek(params: {
       success: true,
       tasksCreated: taskRecords.length,
       errors: [],
-      weekPlanId: weekPlan.id,
+      weekPlanId,
     };
   } catch (error: any) {
     console.error("Error importing PAM week", error);
+
+    let message = "Error desconocido al importar";
+
+    if (error instanceof Error) {
+      message = error.message;
+    } else if (error && typeof error === "object") {
+      // Intentar extraer mensaje de objetos de error de Supabase
+      if (typeof error.message === "string") {
+        message = error.message;
+      } else {
+        try {
+          message = JSON.stringify(error);
+        } catch {
+          // mantener mensaje por defecto
+        }
+      }
+    }
+
     return {
       success: false,
       tasksCreated: 0,
-      errors: [error instanceof Error ? error.message : "Error desconocido al importar"],
+      errors: [message],
     };
   }
 }
