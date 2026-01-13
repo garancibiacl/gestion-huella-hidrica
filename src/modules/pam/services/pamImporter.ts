@@ -216,7 +216,7 @@ export async function importPamWeek(params: {
   const { weekNumber, weekYear } = firstTask;
 
   try {
-    // 1. Verificar que todos los responsables existen
+    // 1. Obtener perfiles existentes (sin bloquear si faltan algunos)
     const uniqueEmails = [...new Set(tasks.map((t) => t.assigneeEmail))];
     const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
@@ -236,16 +236,8 @@ export async function importPamWeek(params: {
       }
     });
 
-    const missingEmails = uniqueEmails.filter((email) => !emailToUserId.has(email));
-    if (missingEmails.length > 0) {
-      return {
-        success: false,
-        tasksCreated: 0,
-        errors: [
-          `Los siguientes emails no existen en la organización: ${missingEmails.join(", ")}`,
-        ],
-      };
-    }
+    // Nota: Ya no bloqueamos si faltan emails. Las tareas se crearán con assignee_id null
+    // para los correos que no existan en profiles.
 
     // 2. Crear o actualizar pam_weeks_plan (sin usar upsert para evitar dependencia de índices únicos)
     const { data: existingWeekPlan, error: fetchWeekPlanError } = await supabase
@@ -304,15 +296,16 @@ export async function importPamWeek(params: {
 
     // 4. Crear nuevas tareas
     const taskRecords = tasks.map((task) => {
-      const userInfo = emailToUserId.get(task.assigneeEmail)!;
+      const userInfo = emailToUserId.get(task.assigneeEmail);
+
       return {
         organization_id: organizationId,
         week_plan_id: weekPlanId,
         week_number: task.weekNumber,
         week_year: task.weekYear,
         date: task.date,
-        assignee_user_id: userInfo.userId,
-        assignee_name: userInfo.fullName || task.assigneeEmail,
+        assignee_user_id: userInfo?.userId || null,
+        assignee_name: userInfo?.fullName || task.assigneeEmail,
         description: task.description,
         location: task.location || null,
         risk_type: task.riskType || null,
