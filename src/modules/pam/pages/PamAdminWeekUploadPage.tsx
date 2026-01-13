@@ -13,7 +13,7 @@ import { Loader2, RefreshCw, CheckCircle2, AlertTriangle, ExternalLink, PlusCirc
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 
-const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT26cNiPTdWJUOwEEatSpqFveSrpV58B8B95h3zHVHmuRvcuQprCmq5qMcD-xedw_kmyq1SLpdjbcmT/pubhtml?gid=1635467450&single=true';
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSm6kI2pKhHhLX5kwP2AWWwbc1fYr9h96k9OqumbRqJtcxSKeW7VUbhtDmXQuyksQ/pubhtml';
 
 export default function PamAdminWeekUploadPage() {
   const { isAdmin, isPrevencionista, loading } = useRole();
