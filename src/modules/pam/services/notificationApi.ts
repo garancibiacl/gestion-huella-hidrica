@@ -13,7 +13,7 @@ export async function getPamNotifications(limit = 50): Promise<PamNotification[]
     throw new Error("No se pudieron cargar las notificaciones.");
   }
 
-  return (data || []) as PamNotification[];
+  return (data || []) as unknown as PamNotification[];
 }
 
 export async function getUnreadPamNotificationsCount(): Promise<number> {
