@@ -3,7 +3,7 @@ import type { PamNotification } from "../types/notification.types";
 
 export async function getPamNotifications(limit = 50): Promise<PamNotification[]> {
   const { data, error } = await supabase
-    .from("pls_notifications" as any)
+    .from("pam_notifications")
     .select("*")
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -18,7 +18,7 @@ export async function getPamNotifications(limit = 50): Promise<PamNotification[]
 
 export async function getUnreadPamNotificationsCount(): Promise<number> {
   const { count, error } = await supabase
-    .from("pls_notifications" as any)
+    .from("pam_notifications")
     .select("*", { count: "exact", head: true })
     .eq("is_read", false);
 
@@ -31,7 +31,7 @@ export async function getUnreadPamNotificationsCount(): Promise<number> {
 }
 
 export async function markPamNotificationAsRead(notificationId: string): Promise<void> {
-  const { error } = await supabase.rpc("mark_pls_notification_read" as any, {
+  const { error } = await supabase.rpc("mark_pam_notification_read", {
     notification_id: notificationId,
   });
 
@@ -42,7 +42,7 @@ export async function markPamNotificationAsRead(notificationId: string): Promise
 }
 
 export async function markAllPamNotificationsAsRead(): Promise<void> {
-  const { error } = await supabase.rpc("mark_all_pls_notifications_read" as any);
+  const { error } = await supabase.rpc("mark_all_pam_notifications_read");
 
   if (error) {
     console.error("Error marking all notifications as read", error);
