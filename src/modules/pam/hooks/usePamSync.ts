@@ -83,12 +83,28 @@ async function performPamSync(
     // Parse CSV
     const { tasks: parsedTasks, errors: parseErrors } = parsePamSheet(csvText);
 
+    // Log detailed parsing info
+    console.log("PLS parse results:", {
+      totalParsedTasks: parsedTasks.length,
+      parseErrors: parseErrors.length,
+      tasksByWeek: parsedTasks.reduce((acc, t) => {
+        const key = `W${String(t.weekNumber).padStart(2, '0')}-${t.weekYear}`;
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>),
+    });
+
     if (parseErrors.length > 0) {
-      console.warn("PLS parse errors:", parseErrors);
+      console.warn("PLS parse errors (continuing anyway):", parseErrors);
+      // IMPORTANTE: Ya no bloqueamos si hay errores de parsing parciales
+      // Solo bloqueamos si NO hay tareas válidas
+    }
+
+    if (parsedTasks.length === 0) {
       return {
         success: false,
         tasksCreated: 0,
-        errors: parseErrors,
+        errors: parseErrors.length > 0 ? parseErrors : ["No se encontraron tareas válidas"],
       };
     }
 
