@@ -331,9 +331,11 @@ export type Database = {
         Row: {
           assignee_name: string | null
           assignee_user_id: string | null
+          contractor: string | null
           created_at: string
           date: string
           description: string
+          end_date: string | null
           has_evidence: boolean
           id: string
           location: string | null
@@ -348,9 +350,11 @@ export type Database = {
         Insert: {
           assignee_name?: string | null
           assignee_user_id?: string | null
+          contractor?: string | null
           created_at?: string
           date: string
           description: string
+          end_date?: string | null
           has_evidence?: boolean
           id?: string
           location?: string | null
@@ -365,9 +369,11 @@ export type Database = {
         Update: {
           assignee_name?: string | null
           assignee_user_id?: string | null
+          contractor?: string | null
           created_at?: string
           date?: string
           description?: string
+          end_date?: string | null
           has_evidence?: boolean
           id?: string
           location?: string | null
