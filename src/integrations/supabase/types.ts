@@ -330,7 +330,7 @@ export type Database = {
       pam_tasks: {
         Row: {
           assignee_name: string | null
-          assignee_user_id: string
+          assignee_user_id: string | null
           created_at: string
           date: string
           description: string
@@ -347,7 +347,7 @@ export type Database = {
         }
         Insert: {
           assignee_name?: string | null
-          assignee_user_id: string
+          assignee_user_id?: string | null
           created_at?: string
           date: string
           description: string
@@ -364,7 +364,7 @@ export type Database = {
         }
         Update: {
           assignee_name?: string | null
-          assignee_user_id?: string
+          assignee_user_id?: string | null
           created_at?: string
           date?: string
           description?: string
