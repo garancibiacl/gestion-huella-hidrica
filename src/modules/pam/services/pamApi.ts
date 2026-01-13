@@ -1,12 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { PamTask, PamTaskEvidenceInsert, PamTaskStatus } from "../types/pls.types";
+import type { PamTask, PamTaskEvidenceInsert, PamTaskStatus } from "../types/pam.types";
 
 export async function getPamTasksForWeek(
   weekYear: number,
   weekNumber: number
 ): Promise<PamTask[]> {
   const { data, error } = await supabase
-    .from("pls_tasks")
+    .from("pam_tasks")
     .select("*")
     .eq("week_year", weekYear)
     .eq("week_number", weekNumber)
@@ -25,7 +25,7 @@ export async function updatePamTaskStatus(
   status: PamTaskStatus
 ): Promise<void> {
   const { error } = await supabase
-    .from("pls_tasks")
+    .from("pam_tasks")
     .update({ status })
     .eq("id", taskId);
 
@@ -38,7 +38,7 @@ export async function updatePamTaskStatus(
 export async function createPamTaskEvidence(
   input: PamTaskEvidenceInsert
 ): Promise<void> {
-  const { error } = await supabase.from("pls_task_evidences").insert({
+  const { error } = await supabase.from("pam_task_evidences").insert({
     task_id: input.task_id,
     uploaded_by_user_id: input.uploaded_by_user_id,
     file_url: input.file_url,
@@ -77,7 +77,7 @@ export async function getAllPamTasksForWeek(
   weekNumber: number
 ): Promise<PamTask[]> {
   const { data, error } = await supabase
-    .from("pls_tasks")
+    .from("pam_tasks")
     .select("*")
     .eq("week_year", weekYear)
     .eq("week_number", weekNumber)

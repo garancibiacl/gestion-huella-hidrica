@@ -67,44 +67,59 @@ export function usePamDashboardMetrics({
     setError(null);
 
     try {
-      const { data, error: fetchError } = await supabase.rpc('get_pls_dashboard_metrics', {
-        p_organization_id: organizationId,
-        p_week_year: weekYear || null,
-        p_week_number: weekNumber || null,
-      });
+      // Fetch tasks directly from pam_tasks table and calculate metrics
+      let query = supabase
+        .from('pam_tasks')
+        .select('*')
+        .eq('organization_id', organizationId);
+      
+      if (weekYear && weekNumber) {
+        query = query.eq('week_year', weekYear).eq('week_number', weekNumber);
+      }
+
+      const { data: tasks, error: fetchError } = await query;
 
       if (fetchError) throw fetchError;
 
-      if (data && data.length > 0) {
-        const row = data[0];
-        setMetrics({
-          total_tasks: Number(row.total_tasks) || 0,
-          completed_tasks: Number(row.completed_tasks) || 0,
-          in_progress_tasks: Number(row.in_progress_tasks) || 0,
-          pending_tasks: Number(row.pending_tasks) || 0,
-          overdue_tasks: Number(row.overdue_tasks) || 0,
-          compliance_percentage: Number(row.compliance_percentage) || 0,
-          by_contract: row.by_contract || [],
-          by_area: row.by_area || [],
-          by_location: row.by_location || [],
-          by_role: row.by_role || [],
-        });
-      } else {
-        setMetrics({
-          total_tasks: 0,
-          completed_tasks: 0,
-          in_progress_tasks: 0,
-          pending_tasks: 0,
-          overdue_tasks: 0,
-          compliance_percentage: 0,
-          by_contract: [],
-          by_area: [],
-          by_location: [],
-          by_role: [],
-        });
-      }
+      const taskList = tasks || [];
+      const total = taskList.length;
+      const completed = taskList.filter(t => t.status === 'DONE').length;
+      const inProgress = taskList.filter(t => t.status === 'IN_PROGRESS').length;
+      const pending = taskList.filter(t => t.status === 'PENDING').length;
+      const overdue = taskList.filter(t => t.status === 'OVERDUE').length;
+      const compliance = total > 0 ? (completed / total) * 100 : 0;
+
+      // Group by location
+      const locationGroups = new Map<string, { total: number; completed: number }>();
+      taskList.forEach(task => {
+        const loc = task.location || 'Sin ubicación';
+        const current = locationGroups.get(loc) || { total: 0, completed: 0 };
+        current.total++;
+        if (task.status === 'DONE') current.completed++;
+        locationGroups.set(loc, current);
+      });
+
+      const byLocation = Array.from(locationGroups.entries()).map(([name, data]) => ({
+        name,
+        total: data.total,
+        completed: data.completed,
+        compliance: data.total > 0 ? (data.completed / data.total) * 100 : 0,
+      }));
+
+      setMetrics({
+        total_tasks: total,
+        completed_tasks: completed,
+        in_progress_tasks: inProgress,
+        pending_tasks: pending,
+        overdue_tasks: overdue,
+        compliance_percentage: compliance,
+        by_contract: [],
+        by_area: [],
+        by_location: byLocation,
+        by_role: [],
+      });
     } catch (err) {
-      console.error('Error fetching PLS dashboard metrics:', err);
+      console.error('Error fetching PAM dashboard metrics:', err);
       setError(err instanceof Error ? err.message : 'Error al cargar métricas');
       setMetrics(null);
     } finally {

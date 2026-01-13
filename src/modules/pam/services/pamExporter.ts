@@ -8,9 +8,7 @@ interface PamTask {
   description: string;
   assignee_name: string | null;
   location: string | null;
-  contract: string | null;
-  area: string | null;
-  assignee_role: string | null;
+  risk_type: string | null;
   status: string;
   has_evidence: boolean;
 }
@@ -55,10 +53,8 @@ export function exportPamToExcel(
     Fecha: task.date,
     Descripción: task.description,
     Responsable: task.assignee_name || 'Sin asignar',
-    Contrato: task.contract || '-',
-    Área: task.area || '-',
     Ubicación: task.location || '-',
-    Rol: task.assignee_role || '-',
+    'Tipo de Riesgo': task.risk_type || '-',
     Estado: task.status,
     Evidencia: task.has_evidence ? 'Sí' : 'No',
   }));
@@ -117,14 +113,14 @@ export function exportPamToPDF(
     task.date.slice(0, 10),
     task.description.slice(0, 40),
     task.assignee_name || 'Sin asignar',
-    task.contract || '-',
+    task.location || '-',
     task.status,
     task.has_evidence ? 'Sí' : 'No',
   ]);
 
   autoTable(doc, {
     startY: 25,
-    head: [['Fecha', 'Descripción', 'Responsable', 'Contrato', 'Estado', 'Evidencia']],
+    head: [['Fecha', 'Descripción', 'Responsable', 'Ubicación', 'Estado', 'Evidencia']],
     body: tasksTableData,
     theme: 'striped',
     headStyles: { fillColor: [41, 128, 185] },
