@@ -245,6 +245,133 @@ export type Database = {
         }
         Relationships: []
       }
+      pam_task_evidences: {
+        Row: {
+          file_url: string
+          id: string
+          notes: string | null
+          task_id: string
+          uploaded_at: string
+          uploaded_by_user_id: string
+        }
+        Insert: {
+          file_url: string
+          id?: string
+          notes?: string | null
+          task_id: string
+          uploaded_at?: string
+          uploaded_by_user_id: string
+        }
+        Update: {
+          file_url?: string
+          id?: string
+          notes?: string | null
+          task_id?: string
+          uploaded_at?: string
+          uploaded_by_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pam_task_evidences_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "pam_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pam_tasks: {
+        Row: {
+          assignee_name: string | null
+          assignee_user_id: string
+          created_at: string
+          date: string
+          description: string
+          has_evidence: boolean
+          id: string
+          location: string | null
+          organization_id: string
+          risk_type: string | null
+          status: Database["public"]["Enums"]["pam_task_status"]
+          updated_at: string
+          week_number: number
+          week_plan_id: string
+          week_year: number
+        }
+        Insert: {
+          assignee_name?: string | null
+          assignee_user_id: string
+          created_at?: string
+          date: string
+          description: string
+          has_evidence?: boolean
+          id?: string
+          location?: string | null
+          organization_id: string
+          risk_type?: string | null
+          status?: Database["public"]["Enums"]["pam_task_status"]
+          updated_at?: string
+          week_number: number
+          week_plan_id: string
+          week_year: number
+        }
+        Update: {
+          assignee_name?: string | null
+          assignee_user_id?: string
+          created_at?: string
+          date?: string
+          description?: string
+          has_evidence?: boolean
+          id?: string
+          location?: string | null
+          organization_id?: string
+          risk_type?: string | null
+          status?: Database["public"]["Enums"]["pam_task_status"]
+          updated_at?: string
+          week_number?: number
+          week_plan_id?: string
+          week_year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pam_tasks_week_plan_id_fkey"
+            columns: ["week_plan_id"]
+            isOneToOne: false
+            referencedRelation: "pam_weeks_plan"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pam_weeks_plan: {
+        Row: {
+          id: string
+          organization_id: string
+          source_filename: string | null
+          uploaded_at: string
+          uploaded_by: string
+          week_number: number
+          week_year: number
+        }
+        Insert: {
+          id?: string
+          organization_id: string
+          source_filename?: string | null
+          uploaded_at?: string
+          uploaded_by: string
+          week_number: number
+          week_year: number
+        }
+        Update: {
+          id?: string
+          organization_id?: string
+          source_filename?: string | null
+          uploaded_at?: string
+          uploaded_by?: string
+          week_number?: number
+          week_year?: number
+        }
+        Relationships: []
+      }
       petroleum_consumption: {
         Row: {
           center: string | null
@@ -850,10 +977,13 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_pam_admin: { Args: never; Returns: boolean }
+      is_pam_worker: { Args: never; Returns: boolean }
     }
     Enums: {
       action_status: "propuesta" | "evaluacion" | "implementada"
       app_role: "admin" | "prevencionista"
+      pam_task_status: "PENDING" | "IN_PROGRESS" | "DONE" | "OVERDUE"
       water_format: "botella" | "bidon_20l"
     }
     CompositeTypes: {
@@ -984,6 +1114,7 @@ export const Constants = {
     Enums: {
       action_status: ["propuesta", "evaluacion", "implementada"],
       app_role: ["admin", "prevencionista"],
+      pam_task_status: ["PENDING", "IN_PROGRESS", "DONE", "OVERDUE"],
       water_format: ["botella", "bidon_20l"],
     },
   },
