@@ -17,6 +17,7 @@ import {
   PanelLeft,
   PanelRightOpen,
   Flame,
+  ClipboardList,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
@@ -28,12 +29,14 @@ interface NavItem {
   label: string;
   path: string;
   adminOnly?: boolean;
+  pamAdminOnly?: boolean;
 }
 
 const navItems: NavItem[] = [
   { icon: Droplets, label: "Agua", path: "/dashboard/agua" },
   { icon: Zap, label: "Energía Eléctrica", path: "/dashboard/energia" },
   { icon: Flame, label: "Petróleo", path: "/dashboard/petroleo" },
+  { icon: ClipboardList, label: "Mis tareas (PAM)", path: "/pam" },
   { icon: Upload, label: "Importar Datos", path: "/importar" },
   { icon: Calendar, label: "Períodos", path: "/periodos" },
   { icon: Leaf, label: "Medidas Sustentables", path: "/medidas" },
@@ -48,6 +51,18 @@ const navItems: NavItem[] = [
     icon: Activity,
     label: "Capa predictiva",
     path: "/admin/riesgos",
+  },
+  {
+    icon: Upload,
+    label: "PAM · Cargar semana",
+    path: "/admin/pam/upload",
+    pamAdminOnly: true,
+  },
+  {
+    icon: BarChart3,
+    label: "PAM · Seguimiento",
+    path: "/admin/pam/board",
+    pamAdminOnly: true,
   },
 ];
 
@@ -197,6 +212,11 @@ export function AppSidebar({ onClose, isCollapsed = false, onToggleCollapse }: A
   const filteredNavItems = navItems.filter((item) => {
     // Ítems solo admin
     if (item.adminOnly && !isAdmin) {
+      return false;
+    }
+
+    // Ítems PAM admin: visibles para admin y prevencionista
+    if (item.pamAdminOnly && !(isAdmin || isPrevencionista)) {
       return false;
     }
 

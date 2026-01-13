@@ -19,6 +19,9 @@ import AdminUsers from "./pages/AdminUsers";
 import AdminAnalytics from "./pages/AdminAnalytics";
 import AdminRisk from "./pages/AdminRisk";
 import NotFound from "./pages/NotFound";
+import PamWorkerTasksPage from "./modules/pam/pages/PamWorkerTasksPage";
+import PamAdminWeekUploadPage from "./modules/pam/pages/PamAdminWeekUploadPage";
+import PamAdminBoardPage from "./modules/pam/pages/PamAdminBoardPage";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +49,9 @@ const App = () => (
               <Route path="/admin/usuarios" element={<AdminUsers />} />
               <Route path="/admin/analytics" element={<AdminAnalytics />} />
               <Route path="/admin/riesgos" element={<AdminRisk />} />
+              <Route path="/pam" element={<PamWorkerTasksPage />} />
+              <Route path="/admin/pam/upload" element={<PamAdminWeekUploadPage />} />
+              <Route path="/admin/pam/board" element={<PamAdminBoardPage />} />
               <Route path="/reportes/agua/preview" element={<WaterReportPreview />} />
             </Route>
             <Route path="*" element={<NotFound />} />

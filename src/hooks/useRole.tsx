@@ -44,6 +44,7 @@ export function useRole() {
 
   const isAdmin = role === 'admin';
   const isPrevencionista = role === 'prevencionista';
+  const isWorker = role === 'worker';
 
-  return { role, isAdmin, isPrevencionista, loading };
+  return { role, isAdmin, isPrevencionista, isWorker, loading };
 }

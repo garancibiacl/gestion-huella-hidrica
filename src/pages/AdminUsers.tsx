@@ -91,7 +91,7 @@ export default function AdminUsers() {
     full_name: '', 
     email: '', 
     password: '', 
-    role: 'prevencionista' as AppRole 
+    role: 'worker' as AppRole 
   });
   const [creating, setCreating] = useState(false);
   
@@ -399,6 +399,8 @@ export default function AdminUsers() {
         return <Badge className="bg-primary/10 text-primary border-primary/20">Admin</Badge>;
       case 'prevencionista':
         return <Badge className="bg-success/10 text-success border-success/20">Prevencionista</Badge>;
+      case 'worker':
+        return <Badge className="bg-blue-100 text-blue-700 border-blue-200">Worker</Badge>;
       default:
         return <Badge variant="outline">Sin rol</Badge>;
     }
@@ -408,6 +410,7 @@ export default function AdminUsers() {
     total: users.length,
     admins: users.filter(u => u.role === 'admin').length,
     prevencionistas: users.filter(u => u.role === 'prevencionista').length,
+    workers: users.filter(u => u.role === 'worker').length,
   };
 
   return (
@@ -418,7 +421,7 @@ export default function AdminUsers() {
       />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -466,6 +469,23 @@ export default function AdminUsers() {
             <div>
               <p className="text-sm text-muted-foreground">Prevencionistas</p>
               <p className="text-2xl font-bold">{stats.prevencionistas}</p>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="stat-card"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
+              <Users className="w-6 h-6 text-blue-700" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Workers</p>
+              <p className="text-2xl font-bold">{stats.workers}</p>
             </div>
           </div>
         </motion.div>
@@ -559,9 +579,6 @@ export default function AdminUsers() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {getRoleBadge(user.role)}
-                    </TableCell>
-                    <TableCell>
                       <Select
                         value={user.role || ''}
                         onValueChange={(value) => updateUserRole(user.id, value as AppRole)}
@@ -585,6 +602,12 @@ export default function AdminUsers() {
                             <div className="flex items-center gap-2">
                               <UserCog className="w-4 h-4" />
                               Prevencionista
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="worker">
+                            <div className="flex items-center gap-2">
+                              <Users className="w-4 h-4" />
+                              Worker
                             </div>
                           </SelectItem>
                         </SelectContent>
@@ -828,6 +851,12 @@ export default function AdminUsers() {
                   <SelectValue placeholder="Seleccionar rol" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="worker">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4" />
+                      Worker (Operativo)
+                    </div>
+                  </SelectItem>
                   <SelectItem value="prevencionista">
                     <div className="flex items-center gap-2">
                       <UserCog className="w-4 h-4" />
