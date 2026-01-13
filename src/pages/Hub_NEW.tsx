@@ -5,6 +5,7 @@ import { useOrganization } from "@/hooks/useOrganization";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { Loader2, Droplets, Shield, Bell } from "lucide-react";
 import { ModuleCard } from "@/components/hub/ModuleCard";
+import { AdminQuickActions } from "@/components/hub/AdminQuickActions";
 
 interface Module {
   id: string;
@@ -24,13 +25,12 @@ const MODULES: Module[] = [
   {
     id: "environmental",
     title: "Gestión Ambiental",
-    description: "Controla consumo de agua y energía, detecta riesgos y mejora tu huella.",
+    description: "Control exhaustivo de indicadores críticos de consumo y monitoreo de impacto ambiental en tiempo real.",
     icon: <Droplets className="w-8 h-8" />,
     features: [
       "Monitoreo de Agua, Energía y Petróleo",
-      "Alertas y gestión de riesgos ambientales",
-      "Paneles e informes de cumplimiento",
-      "Históricos por centro / faena",
+      "Alertas de riesgos ambientales críticos",
+      "Informes de cumplimiento normativo",
     ],
     path: "/dashboard/agua",
     roles: ["admin", "prevencionista", "worker"],
@@ -41,14 +41,13 @@ const MODULES: Module[] = [
   },
   {
     id: "pam",
-    title: "Gestión de Seguridad",
-    description: "Planificación, asignación y seguimiento semanal de tareas de seguridad y medioambientales (PLS).",
+    title: "Gestión de Tareas (PAM)",
+    description: "Planificación estratégica y seguimiento semanal del Programa Anual de tareas HSE corporativas.",
     icon: <Shield className="w-8 h-8" />,
     features: [
-      "Carga semanal desde Excel",
-      "Asignación automática por responsable",
-      "Seguimiento, evidencias y reportes",
-      "Dashboard ejecutivo y cumplimiento",
+      "Sincronización masiva desde Excel",
+      "Asignación por niveles jerárquicos",
+      "Gestión documental de evidencias",
     ],
     path: "/pls/my-activities",
     roles: ["admin", "prevencionista", "worker"],
@@ -105,9 +104,8 @@ export default function Hub() {
   }
 
   const userName = profile?.full_name?.split(' ')[0] || user.email?.split('@')[0] || 'Usuario';
-  const userDisplayName = profile?.full_name || user.email || 'Usuario JM';
   const userRole = profile?.role || 'worker';
-  
+  const userDisplayName = profile?.full_name || user.email || 'Usuario JM';
   const userInitials = userDisplayName
     .split(' ')
     .filter(Boolean)
@@ -159,7 +157,7 @@ export default function Hub() {
             </div>
           </div>
 
-          {/* Right side */}
+          {/* Right side: system status + notifications + user */}
           <div className="flex items-center gap-4 md:gap-6">
             <div className="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-100 bg-emerald-50 text-xs font-medium text-emerald-700">
               <span className="h-2 w-2 rounded-full bg-emerald-500" />
@@ -168,7 +166,7 @@ export default function Hub() {
 
             <button
               type="button"
-              className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors"
+              className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ae3f34]/70"
               aria-label="Notificaciones"
             >
               <Bell className="w-4 h-4" />
@@ -246,9 +244,44 @@ export default function Hub() {
           ))}
         </div>
 
-        {/* Footer */}
+        {/* Admin Quick Actions */}
+        {profile?.role === "admin" && <AdminQuickActions />}
+
+        {/* Footer Info */}
         <div className="mt-16 text-center text-sm text-gray-500 space-y-4">
           <p className="font-medium">PLATAFORMA INTEGRADA JM © 2024</p>
+          <div className="flex items-center justify-center space-x-8 text-xs">
+            <div className="flex items-center space-x-2">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+              </svg>
+              <span>BUSLARM SYSTEMS</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M5 2a2 2 0 00-2 2v14l3.5-2 3.5 2 3.5-2 3.5 2V4a2 2 0 00-2-2H5zm2.5 3a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm6.207.293a1 1 0 00-1.414 0l-6 6a1 1 0 101.414 1.414l6-6a1 1 0 000-1.414zM12.5 10a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" clipRule="evenodd" />
+              </svg>
+              <span>INFRASTRUCTURE HUB</span>
+            </div>
+          </div>
+          <div className="flex items-center justify-center space-x-4 text-xs pt-2">
+            <button className="flex items-center space-x-1 px-3 py-1 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors">
+              <span className="inline-block w-5 h-3 rounded-sm border border-gray-300 overflow-hidden">
+                <span className="block h-1/2 bg-red-600"></span>
+                <span className="block h-1/2 bg-white"></span>
+              </span>
+              <span>ESPAÑOL (CL)</span>
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <button className="flex items-center justify-center w-7 h-7 rounded-full border border-gray-300 hover:bg-gray-50 transition-colors">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>
