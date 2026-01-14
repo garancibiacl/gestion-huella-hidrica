@@ -347,6 +347,7 @@ export async function importPamWeek(params: {
         end_date: task.endDate || null,
         assignee_user_id: userInfo?.userId || null,
         assignee_name: userInfo?.fullName || task.assigneeEmail,
+        assignee_email: normalizedEmail,
         description: task.description,
         location: task.location || null,
         risk_type: task.riskType || null,

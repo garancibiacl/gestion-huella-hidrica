@@ -13,6 +13,7 @@ interface PamTaskPayload {
   date?: string | null;
   end_date?: string | null;
   assignee_name?: string | null;
+  assignee_email?: string | null;
   assignee_user_id?: string | null;
   description?: string | null;
   location?: string | null;
@@ -118,7 +119,7 @@ function buildRowValues(task: PamTaskPayload): string[] {
     task.risk_type ?? "",
     task.description ?? "",
     task.assignee_name ?? "",
-    "",
+    task.assignee_email ?? "",
     task.date ?? "",
     task.end_date ?? "",
     task.location ?? "",

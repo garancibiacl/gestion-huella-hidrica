@@ -9,6 +9,7 @@ interface PamSheetSyncPayload {
     date?: string | null;
     end_date?: string | null;
     assignee_name?: string | null;
+    assignee_email?: string | null;
     assignee_user_id?: string | null;
     description?: string | null;
     location?: string | null;
@@ -17,15 +18,49 @@ interface PamSheetSyncPayload {
   };
 }
 
-async function syncPamTaskToSheet(payload: PamSheetSyncPayload): Promise<void> {
-  const { data, error } = await supabase.functions.invoke("pam-sync-task-sheet", {
-    body: payload,
-  });
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
 
-  if (error || data?.error) {
-    const message = error?.message || data?.error || "Error desconocido en sincronización con Sheet.";
-    throw new Error(message);
+async function resolveAssigneeByEmail(params: {
+  organizationId: string;
+  assigneeEmail: string;
+}): Promise<{ assigneeUserId: string; assigneeName: string | null; assigneeEmail: string }> {
+  const normalizedEmail = params.assigneeEmail.trim().toLowerCase();
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("user_id, full_name, email")
+    .eq("organization_id", params.organizationId)
+    .eq("email", normalizedEmail)
+    .single();
+
+  if (error || !profile) {
+    throw new Error("El email no corresponde a un usuario activo de la organización.");
   }
+
+  return {
+    assigneeUserId: profile.user_id,
+    assigneeName: profile.full_name ?? null,
+    assigneeEmail: profile.email ?? normalizedEmail,
+  };
+}
+
+async function syncPamTaskToSheet(payload: PamSheetSyncPayload): Promise<string | null> {
+  try {
+    const { data, error } = await supabase.functions.invoke("pam-sync-task-sheet", {
+      body: payload,
+    });
+
+    if (error || data?.error) {
+      const message = error?.message || data?.error || "Error desconocido en sincronización con Sheet.";
+      return message;
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Error desconocido en sincronización con Sheet.";
+    return message;
+  }
+
+  return null;
 }
 
 export async function getPamTasksForWeek(
@@ -107,11 +142,11 @@ export async function createPamTask(params: {
   date: string;
   endDate?: string | null;
   description: string;
-  assigneeUserId?: string | null;
+  assigneeEmail: string;
   assigneeName?: string | null;
   location?: string | null;
   contractor?: string | null;
-}): Promise<void> {
+}): Promise<{ sheetSyncError?: string }> {
   const {
     organizationId,
     weekYear,
@@ -120,11 +155,21 @@ export async function createPamTask(params: {
     date,
     endDate,
     description,
-    assigneeUserId,
+    assigneeEmail,
     assigneeName,
     location,
     contractor,
   } = params;
+
+  if (!assigneeEmail.trim() || !isValidEmail(assigneeEmail)) {
+    throw new Error("Ingresa un email válido para el responsable.");
+  }
+
+  const resolvedAssignee = await resolveAssigneeByEmail({
+    organizationId,
+    assigneeEmail,
+  });
+  const assigneeNameToUse = assigneeName?.trim() || resolvedAssignee.assigneeName;
 
   const { data, error } = await supabase
     .from("pam_tasks")
@@ -135,8 +180,9 @@ export async function createPamTask(params: {
       week_plan_id: weekPlanId,
       date,
       end_date: endDate ?? null,
-      assignee_user_id: assigneeUserId ?? null,
-      assignee_name: assigneeName ?? null,
+      assignee_user_id: resolvedAssignee.assigneeUserId,
+      assignee_name: assigneeNameToUse,
+      assignee_email: resolvedAssignee.assigneeEmail,
       description,
       location: location ?? null,
       contractor: contractor ?? null,
@@ -154,7 +200,7 @@ export async function createPamTask(params: {
   }
 
   const createdTask = data as PamTask;
-  await syncPamTaskToSheet({
+  const sheetSyncError = await syncPamTaskToSheet({
     action: "create",
     task: {
       id: createdTask.id,
@@ -162,6 +208,7 @@ export async function createPamTask(params: {
       date: createdTask.date,
       end_date: createdTask.end_date,
       assignee_name: createdTask.assignee_name,
+      assignee_email: createdTask.assignee_email,
       assignee_user_id: createdTask.assignee_user_id,
       description: createdTask.description,
       location: createdTask.location,
@@ -169,23 +216,39 @@ export async function createPamTask(params: {
       risk_type: createdTask.risk_type,
     },
   });
+
+  return sheetSyncError ? { sheetSyncError } : {};
 }
 
 export async function updatePamTask(params: {
   taskId: string;
+  organizationId: string;
   date: string;
   endDate?: string | null;
   description: string;
+  assigneeEmail: string;
   assigneeName?: string | null;
   location?: string | null;
   contractor?: string | null;
-}): Promise<void> {
-  const { taskId, date, endDate, description, assigneeName, location, contractor } = params;
+}): Promise<{ sheetSyncError?: string }> {
+  const { taskId, organizationId, date, endDate, description, assigneeEmail, assigneeName, location, contractor } = params;
+
+  if (!assigneeEmail.trim() || !isValidEmail(assigneeEmail)) {
+    throw new Error("Ingresa un email válido para el responsable.");
+  }
+
+  const resolvedAssignee = await resolveAssigneeByEmail({
+    organizationId,
+    assigneeEmail,
+  });
+  const assigneeNameToUse = assigneeName?.trim() || resolvedAssignee.assigneeName;
 
   const updatePayload: Partial<PamTaskInsert> = {
     date,
     end_date: endDate ?? null,
-    assignee_name: assigneeName ?? null,
+    assignee_user_id: resolvedAssignee.assigneeUserId,
+    assignee_name: assigneeNameToUse,
+    assignee_email: resolvedAssignee.assigneeEmail,
     description,
     location: location ?? null,
     contractor: contractor ?? null,
@@ -205,7 +268,7 @@ export async function updatePamTask(params: {
   }
 
   const updatedTask = data as PamTask;
-  await syncPamTaskToSheet({
+  const sheetSyncError = await syncPamTaskToSheet({
     action: "update",
     task: {
       id: updatedTask.id,
@@ -213,6 +276,7 @@ export async function updatePamTask(params: {
       date: updatedTask.date,
       end_date: updatedTask.end_date,
       assignee_name: updatedTask.assignee_name,
+      assignee_email: updatedTask.assignee_email,
       assignee_user_id: updatedTask.assignee_user_id,
       description: updatedTask.description,
       location: updatedTask.location,
@@ -220,9 +284,11 @@ export async function updatePamTask(params: {
       risk_type: updatedTask.risk_type,
     },
   });
+
+  return sheetSyncError ? { sheetSyncError } : {};
 }
 
-export async function deletePamTask(taskId: string): Promise<void> {
+export async function deletePamTask(taskId: string): Promise<{ sheetSyncError?: string }> {
   const { error } = await supabase.from("pam_tasks").delete().eq("id", taskId);
 
   if (error) {
@@ -231,10 +297,12 @@ export async function deletePamTask(taskId: string): Promise<void> {
     throw new Error(message);
   }
 
-  await syncPamTaskToSheet({
+  const sheetSyncError = await syncPamTaskToSheet({
     action: "delete",
     task: { id: taskId },
   });
+
+  return sheetSyncError ? { sheetSyncError } : {};
 }
 
 export async function getAllPamTasksForWeek(

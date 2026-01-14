@@ -11,6 +11,7 @@ export interface PamTask {
   end_date: string | null;
   assignee_user_id: string | null;
   assignee_name: string | null;
+  assignee_email: string | null;
   description: string;
   location: string | null;
   risk_type: string | null;

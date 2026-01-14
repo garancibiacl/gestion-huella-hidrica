@@ -34,6 +34,7 @@ export default function PamAdminWeekUploadPage() {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [assignTitle, setAssignTitle] = useState("");
   const [assignResponsible, setAssignResponsible] = useState("");
+  const [assignEmail, setAssignEmail] = useState("");
   const [assignStartDate, setAssignStartDate] = useState("");
   const [assignEndDate, setAssignEndDate] = useState("");
   const [assignLocation, setAssignLocation] = useState("");
@@ -96,6 +97,8 @@ export default function PamAdminWeekUploadPage() {
     },
   });
 
+  const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
   const handleCreateManualTask = async () => {
     const firstTask = tasks[0] as any | undefined;
     const fallbackOrgId = firstTask?.organization_id as string | undefined;
@@ -129,38 +132,62 @@ export default function PamAdminWeekUploadPage() {
       return;
     }
 
+    if (!assignEmail.trim() || !isValidEmail(assignEmail)) {
+      toast({
+        variant: "destructive",
+        title: "Email inválido",
+        description: "Ingresa un email válido del responsable para notificar la tarea.",
+      });
+      return;
+    }
+
     try {
       setIsCreatingTask(true);
       if (editingTaskId) {
-        await updatePamTask({
+        const { sheetSyncError } = await updatePamTask({
           taskId: editingTaskId,
+          organizationId: orgIdToUse,
           date: assignStartDate,
           endDate: assignEndDate || null,
           description: assignTitle,
+          assigneeEmail: assignEmail,
           assigneeName: assignResponsible || null,
           location: assignLocation || null,
           contractor: assignContractor || null,
         });
+        if (sheetSyncError) {
+          toast({
+            title: "Sincronización incompleta",
+            description: "La tarea se guardó, pero falló la sincronización con Google Sheets.",
+          });
+        }
       } else {
-        await createPamTask({
+        const { sheetSyncError } = await createPamTask({
           organizationId: orgIdToUse,
           weekYear: week.weekYear,
           weekNumber: week.weekNumber,
+          weekPlanId: fallbackWeekPlanId,
           date: assignStartDate,
           endDate: assignEndDate || null,
           description: assignTitle,
-          assigneeUserId: null,
+          assigneeEmail: assignEmail,
           assigneeName: assignResponsible || null,
           location: assignLocation || null,
           contractor: assignContractor || null,
-          weekPlanId: fallbackWeekPlanId,
         });
+        if (sheetSyncError) {
+          toast({
+            title: "Sincronización incompleta",
+            description: "La tarea se guardó, pero falló la sincronización con Google Sheets.",
+          });
+        }
       }
 
       await refetchPreview();
 
       setAssignTitle("");
       setAssignResponsible("");
+      setAssignEmail("");
       setAssignStartDate("");
       setAssignEndDate("");
       setAssignLocation("");
@@ -169,6 +196,7 @@ export default function PamAdminWeekUploadPage() {
       setEditingTaskId(null);
       setAssignTitle("");
       setAssignResponsible("");
+      setAssignEmail("");
       setAssignStartDate("");
       setAssignEndDate("");
       setAssignLocation("");
@@ -200,6 +228,7 @@ export default function PamAdminWeekUploadPage() {
     setEditingTaskId(null);
     setAssignTitle("");
     setAssignResponsible("");
+    setAssignEmail("");
     setAssignStartDate("");
     setAssignEndDate("");
     setAssignLocation("");
@@ -211,6 +240,7 @@ export default function PamAdminWeekUploadPage() {
     setEditingTaskId(task.id);
     setAssignTitle(task.description || "");
     setAssignResponsible(task.assignee_name || "");
+    setAssignEmail(task.assignee_email || "");
     setAssignStartDate(task.date?.slice(0, 10) || "");
     setAssignEndDate(task.end_date?.slice(0, 10) || "");
     setAssignLocation(task.location || "");
@@ -223,11 +253,17 @@ export default function PamAdminWeekUploadPage() {
     if (!confirmed) return;
 
     try {
-      await deletePamTask(taskId);
+      const { sheetSyncError } = await deletePamTask(taskId);
       toast({
         title: "Tarea eliminada",
         description: "La tarea fue eliminada de la planificación.",
       });
+      if (sheetSyncError) {
+        toast({
+          title: "Sincronización pendiente",
+          description: "La tarea se eliminó, pero falló la sincronización con Google Sheets.",
+        });
+      }
       await refetchPreview();
     } catch (error: any) {
       toast({
@@ -418,11 +454,21 @@ export default function PamAdminWeekUploadPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-medium">Responsable (texto)</label>
+                    <label className="text-xs font-medium">Nombre responsable (opcional)</label>
                     <Input
                       value={assignResponsible}
                       onChange={(e) => setAssignResponsible(e.target.value)}
                       placeholder="Nombre del responsable"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium">Email responsable (obligatorio)</label>
+                    <Input
+                      type="email"
+                      value={assignEmail}
+                      onChange={(e) => setAssignEmail(e.target.value)}
+                      placeholder="correo@empresa.com"
+                      required
                     />
                   </div>
                   <div>

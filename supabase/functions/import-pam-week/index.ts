@@ -145,6 +145,7 @@ serve(async (req) => {
         description: row.descripcion,
         assignee_user_id: assigneeUserId || user.id,
         assignee_name: row.responsable_nombre,
+        assignee_email: row.responsable_email,
         location: row.ubicacion || null,
         contract: row.contrato || null,
         area: row.area || null,
