@@ -19,6 +19,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { createPamTask, deletePamTask, updatePamTask } from "../services/pamApi";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+import Swal from "sweetalert2";
 
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSm6kI2pKhHhLX5kwP2AWWwbc1fYr9h96k9OqumbRqJtcxSKeW7VUbhtDmXQuyksQ/pubhtml';
 
@@ -256,8 +257,20 @@ export default function PamAdminWeekUploadPage() {
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    const confirmed = window.confirm("¿Eliminar esta tarea de la planificación?");
-    if (!confirmed) return;
+    const result = await Swal.fire({
+      title: "Eliminar tarea",
+      text: "¿Eliminar esta tarea de la planificación?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#e11d48",
+      cancelButtonColor: "#6b7280",
+      reverseButtons: true,
+      focusCancel: true,
+    });
+
+    if (!result.isConfirmed) return;
 
     try {
       const { sheetSyncError } = await deletePamTask(taskId);
