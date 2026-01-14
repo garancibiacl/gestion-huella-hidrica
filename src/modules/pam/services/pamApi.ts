@@ -31,10 +31,14 @@ async function resolveAssigneeByEmail(params: {
     .from("profiles")
     .select("user_id, full_name, email")
     .eq("organization_id", params.organizationId)
-    .eq("email", normalizedEmail)
-    .single();
+    .ilike("email", normalizedEmail)
+    .maybeSingle();
 
-  if (error || !profile) {
+  if (error) {
+    throw new Error("No se pudo validar el email del responsable.");
+  }
+
+  if (!profile || !profile.user_id) {
     throw new Error("El email no corresponde a un usuario activo de la organización.");
   }
 
@@ -171,7 +175,10 @@ export async function createPamTask(params: {
     organizationId,
     assigneeEmail,
   });
-  const assigneeNameToUse = assigneeName?.trim() || resolvedAssignee.assigneeName;
+  const assigneeNameToUse =
+    resolvedAssignee.assigneeName ||
+    assigneeName?.trim() ||
+    resolvedAssignee.assigneeEmail;
 
   const { data, error } = await supabase
     .from("pam_tasks")
@@ -244,7 +251,10 @@ export async function updatePamTask(params: {
     organizationId,
     assigneeEmail,
   });
-  const assigneeNameToUse = assigneeName?.trim() || resolvedAssignee.assigneeName;
+  const assigneeNameToUse =
+    resolvedAssignee.assigneeName ||
+    assigneeName?.trim() ||
+    resolvedAssignee.assigneeEmail;
 
   const updatePayload: Partial<PamTaskInsert> = {
     date,

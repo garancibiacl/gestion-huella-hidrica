@@ -695,7 +695,7 @@ export default function PamAdminWeekUploadPage() {
                         </td>
                         <td className="p-2 text-xs">{task.date?.slice(0, 10)}</td>
                         <td className="p-2 text-xs">{task.end_date?.slice(0, 10) || "-"}</td>
-                        <td className="p-2 text-xs">{task.assignee_name}</td>
+                        <td className="p-2 text-xs">{task.assignee_name || task.assignee_email || "-"}</td>
                         <td className="p-2 text-xs">
                           <div className="flex items-center gap-2">
                             {(() => {
