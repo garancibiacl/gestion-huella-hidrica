@@ -30,7 +30,7 @@ const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_SHEETS_SCOPE = "https://www.googleapis.com/auth/spreadsheets";
 
 const SHEET_ID = Deno.env.get("PLS_SHEET_ID") ?? "";
-const SHEET_RANGE = Deno.env.get("PLS_SHEET_RANGE") ?? "PLS!A:Q";
+const SHEET_RANGE = Deno.env.get("PLS_SHEET_RANGE") ?? "PLS!A:R";
 const SERVICE_ACCOUNT_JSON = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON") ?? "";
 
 function base64UrlEncode(input: Uint8Array | string): string {
@@ -115,6 +115,7 @@ async function getAccessToken(): Promise<string> {
 function buildRowValues(task: PamTaskPayload): string[] {
   return [
     task.id ?? "",
+    "",
     task.week_year?.toString() ?? "",
     task.risk_type ?? "",
     task.description ?? "",
@@ -163,7 +164,7 @@ async function findRowByTaskId(accessToken: string, sheetName: string, taskId: s
 
 async function appendRow(accessToken: string, sheetName: string, rowValues: string[]): Promise<void> {
   const response = await fetch(
-    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(sheetName + "!A:Q")}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+    `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(sheetName + "!A:R")}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
     {
       method: "POST",
       headers: {
@@ -181,7 +182,7 @@ async function appendRow(accessToken: string, sheetName: string, rowValues: stri
 }
 
 async function updateRow(accessToken: string, sheetName: string, rowNumber: number, rowValues: string[]): Promise<void> {
-  const range = `${sheetName}!A${rowNumber}:Q${rowNumber}`;
+  const range = `${sheetName}!A${rowNumber}:R${rowNumber}`;
   const response = await fetch(
     `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
     {
@@ -221,7 +222,7 @@ async function getSheetId(accessToken: string, sheetName: string): Promise<numbe
 async function deleteRow(accessToken: string, sheetName: string, rowNumber: number): Promise<void> {
   const sheetId = await getSheetId(accessToken, sheetName);
   if (sheetId === null) {
-    const range = `${sheetName}!A${rowNumber}:Q${rowNumber}`;
+    const range = `${sheetName}!A${rowNumber}:R${rowNumber}`;
     const response = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(range)}:clear`,
       {
