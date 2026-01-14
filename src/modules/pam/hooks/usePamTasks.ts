@@ -73,9 +73,19 @@ export function usePamTasks(options: UsePamTasksOptions): UsePamTasksResult {
     try {
       console.log(`usePamTasks: Loading tasks for week ${weekYear}-W${weekNumber}, user:`, user.id);
       const data = await getPamTasksForWeek(weekYear, weekNumber);
-      console.log(`usePamTasks: Fetched ${data.length} tasks from DB:`, data);
-      setRawTasks(data);
-      applyFilters(data, scope, statusFilter);
+      const normalizedEmail = user.email?.toLowerCase().trim();
+      const assignedTasks = data.filter((task) => {
+        if (task.assignee_user_id && task.assignee_user_id === user.id) {
+          return true;
+        }
+        if (normalizedEmail && task.assignee_email?.toLowerCase().trim() === normalizedEmail) {
+          return true;
+        }
+        return false;
+      });
+      console.log(`usePamTasks: Fetched ${data.length} tasks from DB, assigned to user: ${assignedTasks.length}`, assignedTasks);
+      setRawTasks(assignedTasks);
+      applyFilters(assignedTasks, scope, statusFilter);
     } catch (err: any) {
       console.error("Error loading PLS tasks", err);
       const message = err instanceof Error ? err.message : "Error desconocido al cargar tareas PLS.";

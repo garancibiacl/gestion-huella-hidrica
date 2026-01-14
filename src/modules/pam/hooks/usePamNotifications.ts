@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import type { PamNotification } from "../types/notification.types";
 import {
   getPamNotifications,
-  getUnreadPamNotificationsCount,
   markPamNotificationAsRead,
   markAllPamNotificationsAsRead,
 } from "../services/notificationApi";
@@ -25,16 +24,27 @@ export function usePamNotifications(): UsePamNotificationsResult {
   const [isLoading, setIsLoading] = useState(true);
 
   const load = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setNotifications([]);
+      setUnreadCount(0);
+      setIsLoading(false);
+      return;
+    }
 
     try {
-      const [notifs, count] = await Promise.all([
-        getPamNotifications(50),
-        getUnreadPamNotificationsCount(),
-      ]);
+      const notifs = await getPamNotifications({ userId: user.id, limit: 100 });
+      const deduped = new Map<string, PamNotification>();
 
-      setNotifications(notifs);
-      setUnreadCount(count);
+      for (const notif of notifs) {
+        const key = `${notif.task_id ?? "no-task"}:${notif.type}`;
+        if (!deduped.has(key)) {
+          deduped.set(key, notif);
+        }
+      }
+
+      const uniqueNotifs = Array.from(deduped.values());
+      setNotifications(uniqueNotifs);
+      setUnreadCount(uniqueNotifs.filter((notif) => !notif.is_read).length);
     } catch (error) {
       console.error("Error loading PLS notifications", error);
     } finally {
@@ -43,7 +53,6 @@ export function usePamNotifications(): UsePamNotificationsResult {
   }, [user]);
 
   useEffect(() => {
-    if (!user) return;
     load();
   }, [user, load]);
 
@@ -58,7 +67,7 @@ export function usePamNotifications(): UsePamNotificationsResult {
         {
           event: "*",
           schema: "public",
-          table: "pls_notifications",
+          table: "pam_notifications",
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {

@@ -1,10 +1,15 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { PamNotification } from "../types/notification.types";
 
-export async function getPamNotifications(limit = 50): Promise<PamNotification[]> {
+export async function getPamNotifications(params: {
+  userId: string;
+  limit?: number;
+}): Promise<PamNotification[]> {
+  const { userId, limit = 50 } = params;
   const { data, error } = await supabase
     .from("pam_notifications")
     .select("*")
+    .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -16,10 +21,11 @@ export async function getPamNotifications(limit = 50): Promise<PamNotification[]
   return (data || []) as unknown as PamNotification[];
 }
 
-export async function getUnreadPamNotificationsCount(): Promise<number> {
+export async function getUnreadPamNotificationsCount(userId: string): Promise<number> {
   const { count, error } = await supabase
     .from("pam_notifications")
     .select("*", { count: "exact", head: true })
+    .eq("user_id", userId)
     .eq("is_read", false);
 
   if (error) {
