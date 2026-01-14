@@ -6,15 +6,16 @@ export interface PamTask {
   id: string;
   week_number: number;
   week_year: number;
+  week_plan_id: string;
   date: string;
   end_date: string | null;
-  assignee_user_id: string;
+  assignee_user_id: string | null;
   assignee_name: string | null;
   description: string;
   location: string | null;
   risk_type: string | null;
   contractor: string | null;
-  organization_id?: string | null;
+  organization_id: string;
   status: PamTaskStatus;
   has_evidence: boolean;
   created_at: string;

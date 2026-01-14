@@ -103,6 +103,7 @@ export async function createPamTask(params: {
   organizationId: string;
   weekYear: number;
   weekNumber: number;
+  weekPlanId: string;
   date: string;
   endDate?: string | null;
   description: string;
@@ -110,12 +111,12 @@ export async function createPamTask(params: {
   assigneeName?: string | null;
   location?: string | null;
   contractor?: string | null;
-  weekPlanId?: string | null;
 }): Promise<void> {
   const {
     organizationId,
     weekYear,
     weekNumber,
+    weekPlanId,
     date,
     endDate,
     description,
@@ -123,29 +124,26 @@ export async function createPamTask(params: {
     assigneeName,
     location,
     contractor,
-    weekPlanId,
   } = params;
-
-  const insertPayload: PamTaskInsert = {
-    organization_id: organizationId,
-    week_year: weekYear,
-    week_number: weekNumber,
-    week_plan_id: weekPlanId ?? null,
-    date,
-    end_date: endDate ?? null,
-    assignee_user_id: assigneeUserId ?? null,
-    assignee_name: assigneeName ?? null,
-    description,
-    location: location ?? null,
-    contractor: contractor ?? null,
-    status: "PENDING" as PamTaskStatus,
-    has_evidence: false,
-    risk_type: null,
-  };
 
   const { data, error } = await supabase
     .from("pam_tasks")
-    .insert(insertPayload)
+    .insert({
+      organization_id: organizationId,
+      week_year: weekYear,
+      week_number: weekNumber,
+      week_plan_id: weekPlanId,
+      date,
+      end_date: endDate ?? null,
+      assignee_user_id: assigneeUserId ?? null,
+      assignee_name: assigneeName ?? null,
+      description,
+      location: location ?? null,
+      contractor: contractor ?? null,
+      status: "PENDING" as PamTaskStatus,
+      has_evidence: false,
+      risk_type: null,
+    })
     .select()
     .single();
 
