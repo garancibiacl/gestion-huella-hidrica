@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 function getISOWeek(date: Date): { weekYear: number; weekNumber: number } {
   const target = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -21,14 +21,22 @@ export interface PamWeekSelection {
   goToNextWeek: () => void;
 }
 
+export interface PamWeekSelectorOptions {
+  useStoredWeek?: boolean;
+}
+
 const STORAGE_KEY = 'pam_selected_week';
 
-export function usePamWeekSelector(): PamWeekSelection {
+export function usePamWeekSelector(options?: PamWeekSelectorOptions): PamWeekSelection {
   const today = new Date();
   const currentWeek = getISOWeek(today);
+  const useStoredWeek = options?.useStoredWeek ?? true;
   
   // Intentar recuperar la última semana seleccionada desde localStorage
   const getInitialWeek = () => {
+    if (!useStoredWeek) {
+      return currentWeek;
+    }
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
@@ -44,6 +52,16 @@ export function usePamWeekSelector(): PamWeekSelection {
   };
 
   const [{ weekYear, weekNumber }, setWeekState] = useState(getInitialWeek);
+
+  useEffect(() => {
+    if (!useStoredWeek) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(currentWeek));
+      } catch (e) {
+        console.warn('Error saving week to localStorage:', e);
+      }
+    }
+  }, [currentWeek, useStoredWeek]);
 
   const setWeek = useCallback((year: number, week: number) => {
     const newWeek = { weekYear: year, weekNumber: week };

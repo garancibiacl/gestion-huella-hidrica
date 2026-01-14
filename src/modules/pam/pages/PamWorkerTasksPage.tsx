@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePamWeekSelector } from "../hooks/usePamWeekSelector";
 import { usePamTasks } from "../hooks/usePamTasks";
 import type { PamTaskStatus } from "../types/pam.types";
@@ -18,7 +18,7 @@ const STATUS_LABELS: Record<PamTaskStatus, string> = {
 };
 
 export default function PamWorkerTasksPage() {
-  const week = usePamWeekSelector();
+  const week = usePamWeekSelector({ useStoredWeek: false });
   const {
     tasks,
     isLoading,
@@ -34,6 +34,10 @@ export default function PamWorkerTasksPage() {
 
   const [evidenceDialogOpen, setEvidenceDialogOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+
+  useEffect(() => {
+    week.goToCurrentWeek();
+  }, [week]);
 
   const groupedByDate = useMemo(() => {
     return tasks.reduce<Record<string, typeof tasks>>((acc, task) => {
