@@ -329,7 +329,6 @@ export type Database = {
       }
       pam_tasks: {
         Row: {
-          assignee_email: string | null
           assignee_name: string | null
           assignee_user_id: string | null
           contractor: string | null
@@ -349,7 +348,6 @@ export type Database = {
           week_year: number
         }
         Insert: {
-          assignee_email?: string | null
           assignee_name?: string | null
           assignee_user_id?: string | null
           contractor?: string | null
@@ -369,7 +367,6 @@ export type Database = {
           week_year: number
         }
         Update: {
-          assignee_email?: string | null
           assignee_name?: string | null
           assignee_user_id?: string | null
           contractor?: string | null
