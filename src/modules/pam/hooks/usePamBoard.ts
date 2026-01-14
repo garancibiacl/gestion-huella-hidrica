@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
 import type { PamTask, PamTaskStatus } from "../types/pam.types";
@@ -69,67 +69,71 @@ export function usePamBoard(weekYear: number, weekNumber: number): UsePamBoardRe
   }, [user, weekYear, weekNumber, toast]);
 
   useEffect(() => {
-    if (!user) return;
     load();
-  }, [user, load]);
+  }, [load]);
 
-  const byAssignee: PamBoardByAssignee[] = [];
-  const assigneeMap = new Map<string, PamBoardByAssignee>();
+  const byAssignee = useMemo(() => {
+    const assigneeMap = new Map<string, PamBoardByAssignee>();
 
-  tasks.forEach((task) => {
-    const key = task.assignee_user_id;
-    if (!assigneeMap.has(key)) {
-      assigneeMap.set(key, {
-        assigneeUserId: key,
-        assigneeName: task.assignee_name || "Sin nombre",
-        total: 0,
-        pending: 0,
-        inProgress: 0,
-        done: 0,
-        overdue: 0,
-        completionRate: 0,
-      });
-    }
+    tasks.forEach((task) => {
+      const key = task.assignee_user_id;
+      if (!assigneeMap.has(key)) {
+        assigneeMap.set(key, {
+          assigneeUserId: key,
+          assigneeName: task.assignee_name || "Sin nombre",
+          total: 0,
+          pending: 0,
+          inProgress: 0,
+          done: 0,
+          overdue: 0,
+          completionRate: 0,
+        });
+      }
 
-    const entry = assigneeMap.get(key)!;
-    entry.total++;
+      const entry = assigneeMap.get(key)!;
+      entry.total++;
 
-    const isOverdue = calculateOverdue(task);
-    if (isOverdue && task.status !== "DONE") {
-      entry.overdue++;
-    }
-
-    switch (task.status) {
-      case "PENDING":
-        entry.pending++;
-        break;
-      case "IN_PROGRESS":
-        entry.inProgress++;
-        break;
-      case "DONE":
-        entry.done++;
-        break;
-      case "OVERDUE":
+      const isOverdue = calculateOverdue(task);
+      if (isOverdue && task.status !== "DONE") {
         entry.overdue++;
-        break;
-    }
-  });
+      }
 
-  assigneeMap.forEach((entry) => {
-    entry.completionRate = entry.total > 0 ? Math.round((entry.done / entry.total) * 100) : 0;
-    byAssignee.push(entry);
-  });
+      switch (task.status) {
+        case "PENDING":
+          entry.pending++;
+          break;
+        case "IN_PROGRESS":
+          entry.inProgress++;
+          break;
+        case "DONE":
+          entry.done++;
+          break;
+        case "OVERDUE":
+          entry.overdue++;
+          break;
+      }
+    });
 
-  byAssignee.sort((a, b) => a.assigneeName.localeCompare(b.assigneeName));
+    const result: PamBoardByAssignee[] = [];
+    assigneeMap.forEach((entry) => {
+      entry.completionRate = entry.total > 0 ? Math.round((entry.done / entry.total) * 100) : 0;
+      result.push(entry);
+    });
 
-  const byStatus: PamBoardByStatus = {
+    return result.sort((a, b) => a.assigneeName.localeCompare(b.assigneeName));
+  }, [tasks]);
+
+  const byStatus = useMemo<PamBoardByStatus>(() => ({
     pending: tasks.filter((t) => t.status === "PENDING"),
     inProgress: tasks.filter((t) => t.status === "IN_PROGRESS"),
     done: tasks.filter((t) => t.status === "DONE"),
     overdue: tasks.filter((t) => t.status === "OVERDUE"),
-  };
+  }), [tasks]);
 
-  const overdueTasks = tasks.filter((t) => calculateOverdue(t)).sort((a, b) => a.date.localeCompare(b.date));
+  const overdueTasks = useMemo(
+    () => tasks.filter((t) => calculateOverdue(t)).sort((a, b) => a.date.localeCompare(b.date)),
+    [tasks]
+  );
 
   return {
     tasks,

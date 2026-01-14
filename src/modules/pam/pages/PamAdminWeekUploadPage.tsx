@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
@@ -10,9 +10,10 @@ import { usePamWeekSelector } from "../hooks/usePamWeekSelector";
 import { usePamBoard } from "../hooks/usePamBoard";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, RefreshCw, CheckCircle2, AlertTriangle, ExternalLink, PlusCircle, Pencil } from "lucide-react";
+import { Loader2, RefreshCw, CheckCircle2, AlertTriangle, ExternalLink, PlusCircle, Pencil, Filter, Calendar } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createPamTask } from "../services/pamApi";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -24,7 +25,7 @@ export default function PamAdminWeekUploadPage() {
   const { toast } = useToast();
   const [syncErrors, setSyncErrors] = useState<string[]>([]);
   const [lastSyncResult, setLastSyncResult] = useState<{ tasksCreated: number } | null>(null);
-  const [tableFilter, setTableFilter] = useState<"all" | "recent">("all");
+  const [tableFilter, setTableFilter] = useState<"all" | "recent" | "pending" | "in_progress" | "done">("all");
   const { organizationId } = useOrganization();
 
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
@@ -42,8 +43,13 @@ export default function PamAdminWeekUploadPage() {
     week.weekNumber
   );
 
+  // Resetear filtro a "all" cuando cambia la semana
+  useEffect(() => {
+    setTableFilter("all");
+  }, [week.weekYear, week.weekNumber]);
+
   const { syncPam, isSyncing, lastSyncAt } = usePamSync({
-    enabled: true,
+    enabled: false,
     onSyncComplete: async (success, tasksCreated, errors, importedWeek) => {
       if (success) {
         if (tasksCreated > 0) {
@@ -188,14 +194,47 @@ export default function PamAdminWeekUploadPage() {
 
   const recentCutoffMs = Date.now() - 24 * 60 * 60 * 1000;
 
-  const filteredTasks =
-    tableFilter === "all"
-      ? tasks
-      : tasks.filter((t) => {
-          const createdAtMs = Date.parse(t.created_at);
-          const updatedAtMs = Date.parse(t.updated_at);
-          return createdAtMs >= recentCutoffMs || updatedAtMs >= recentCutoffMs;
-        });
+  // Generar lista de semanas agrupadas por mes
+  const currentYear = new Date().getFullYear();
+  const monthNames = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
+
+  // Agrupar semanas por mes
+  const weeksByMonth: Record<string, { value: string; label: string; weekNumber: number }[]> = {};
+  
+  for (let weekNum = 1; weekNum <= 52; weekNum++) {
+    // Calcular fecha aproximada de la semana para determinar el mes
+    const date = new Date(currentYear, 0, 1 + (weekNum - 1) * 7);
+    const monthIndex = date.getMonth();
+    const monthName = monthNames[monthIndex];
+    
+    if (!weeksByMonth[monthName]) {
+      weeksByMonth[monthName] = [];
+    }
+    
+    weeksByMonth[monthName].push({
+      value: `${currentYear}-${weekNum}`,
+      label: `Semana W${String(weekNum).padStart(2, '0')}`,
+      weekNumber: weekNum,
+    });
+  }
+
+  const currentWeekValue = `${week.weekYear}-${week.weekNumber}`;
+
+  const filteredTasks = tasks.filter((t) => {
+    if (tableFilter === "all") return true;
+    if (tableFilter === "recent") {
+      const createdAtMs = Date.parse(t.created_at);
+      const updatedAtMs = Date.parse(t.updated_at);
+      return createdAtMs >= recentCutoffMs || updatedAtMs >= recentCutoffMs;
+    }
+    if (tableFilter === "pending") return t.status === "PENDING";
+    if (tableFilter === "in_progress") return t.status === "IN_PROGRESS";
+    if (tableFilter === "done") return t.status === "DONE";
+    return true;
+  });
 
   return (
     <div className="p-4 md:p-6 space-y-6">
@@ -204,46 +243,50 @@ export default function PamAdminWeekUploadPage() {
         description="Sincronización automática con Google Sheets"
       />
 
-      {/* Info de Google Sheets */}
+      {/* Planificación PLS */}
       <Card className="p-6">
         <div className="space-y-4">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-2">
-              <h3 className="font-semibold">Google Sheets - Planificación PLS</h3>
+              <h3 className="font-semibold">Planificación PLS</h3>
               <p className="text-sm text-muted-foreground">
-                La planificación se sincroniza automáticamente desde Google Sheets.
-                Los cambios en la hoja se reflejarán automáticamente en la aplicación.
+                Sincronización automática con Google Sheets
               </p>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                {lastSyncAt && (
-                  <span>Última sincronización: {formatLastSync(lastSyncAt)}</span>
-                )}
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => window.open(SHEET_URL, '_blank')}
-            >
-              <ExternalLink className="w-4 h-4 mr-2" />
-              Abrir Sheet
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button onClick={handleSync} disabled={isSyncing}>
-              {isSyncing ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Sincronizando...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Sincronizar ahora
-                </>
+              {lastSyncResult && lastSyncResult.tasksCreated > 0 && (
+                <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-md w-fit">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  <span>Última sincronización: {lastSyncResult.tasksCreated} tareas importadas</span>
+                </div>
               )}
-            </Button>
+              {lastSyncAt && !lastSyncResult && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>Última sincronización: {formatLastSync(lastSyncAt)}</span>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(SHEET_URL, '_blank')}
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Abrir Sheet
+              </Button>
+              <Button onClick={handleSync} disabled={isSyncing} size="sm">
+                {isSyncing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Sincronizando...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Sincronizar ahora
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
         <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
@@ -331,26 +374,6 @@ export default function PamAdminWeekUploadPage() {
         </Dialog>
       </Card>
 
-      {/* Formato esperado */}
-      <Card className="p-4 bg-muted/50">
-        <div className="space-y-2 text-sm">
-          <p className="font-medium">Formato del Google Sheet:</p>
-          <p className="text-muted-foreground">
-            Columnas requeridas: 
-            <strong>
-              Título de la actividad, Responsable, Email, Fecha inicio (o Fecha), Descripción
-            </strong>
-          </p>
-          <p className="text-muted-foreground">
-            Columnas opcionales: 
-            <strong>
-              Tipo de control, Gerencia (se usa como ubicación en el preview), Proceso/Empresa
-              Contratista (Opcional)
-            </strong>
-          </p>
-        </div>
-      </Card>
-
       {/* Errores de sincronización */}
       {syncErrors.length > 0 && (
         <Alert variant="destructive">
@@ -365,18 +388,6 @@ export default function PamAdminWeekUploadPage() {
                 <li className="text-muted-foreground">... y {syncErrors.length - 10} más</li>
               )}
             </ul>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Éxito */}
-      {lastSyncResult && lastSyncResult.tasksCreated > 0 && (
-        <Alert className="border-emerald-200 bg-emerald-50">
-          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-          <AlertDescription>
-            <p className="font-medium text-emerald-900">
-              ✓ Última sincronización: {lastSyncResult.tasksCreated} tareas importadas
-            </p>
           </AlertDescription>
         </Alert>
       )}
@@ -400,27 +411,35 @@ export default function PamAdminWeekUploadPage() {
               Fuente: Google Sheets PLS
             </span>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={week.goToPreviousWeek}
+              <Calendar className="w-4 h-4 text-muted-foreground" />
+              <Select
+                value={currentWeekValue}
+                onValueChange={(value) => {
+                  const [year, weekNum] = value.split('-').map(Number);
+                  week.setWeek(year, weekNum);
+                }}
               >
-                Semana anterior
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={week.goToCurrentWeek}
-              >
-                Semana actual
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={week.goToNextWeek}
-              >
-                Próxima semana
-              </Button>
+                <SelectTrigger className="w-[220px] h-8">
+                  <SelectValue placeholder="Seleccionar semana" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[400px]">
+                  {monthNames.map((monthName) => {
+                    const monthWeeks = weeksByMonth[monthName];
+                    if (!monthWeeks || monthWeeks.length === 0) return null;
+                    
+                    return (
+                      <SelectGroup key={monthName}>
+                        <SelectLabel>{monthName} {currentYear}</SelectLabel>
+                        {monthWeeks.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
               <Button
                 variant="default"
                 size="sm"
@@ -438,27 +457,31 @@ export default function PamAdminWeekUploadPage() {
             Cargando tareas de la semana...
           </div>
         ) : tasks.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4">
-            No hay tareas PLS planificadas para esta semana.
-          </p>
+          <div className="py-8 text-center space-y-2">
+            <p className="text-sm text-muted-foreground">
+              No hay tareas PLS planificadas para {week.label}.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Sincroniza desde Google Sheets o crea una tarea manual para esta semana.
+            </p>
+          </div>
         ) : (
           <div className="border rounded-lg overflow-hidden">
-            <div className="flex items-center justify-between gap-2 px-2 py-2 border-b bg-background">
+            <div className="flex items-center justify-between gap-2 px-3 py-2 border-b bg-background">
               <div className="flex items-center gap-2">
-                <Button
-                  variant={tableFilter === "all" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setTableFilter("all")}
-                >
-                  Todas
-                </Button>
-                <Button
-                  variant={tableFilter === "recent" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setTableFilter("recent")}
-                >
-                  Recientes
-                </Button>
+                <Filter className="w-4 h-4 text-muted-foreground" />
+                <Select value={tableFilter} onValueChange={(value: any) => setTableFilter(value)}>
+                  <SelectTrigger className="w-[180px] h-8">
+                    <SelectValue placeholder="Filtrar tareas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas las tareas</SelectItem>
+                    <SelectItem value="recent">Recientes (24h)</SelectItem>
+                    <SelectItem value="pending">Pendientes</SelectItem>
+                    <SelectItem value="in_progress">En progreso</SelectItem>
+                    <SelectItem value="done">Completadas</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <span className="text-xs text-muted-foreground">
                 Mostrando {filteredTasks.length} de {tasks.length}

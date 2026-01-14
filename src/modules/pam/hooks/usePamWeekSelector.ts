@@ -21,30 +21,76 @@ export interface PamWeekSelection {
   goToNextWeek: () => void;
 }
 
+const STORAGE_KEY = 'pam_selected_week';
+
 export function usePamWeekSelector(): PamWeekSelection {
   const today = new Date();
-  const initial = getISOWeek(today);
-  const [{ weekYear, weekNumber }, setWeekState] = useState(initial);
+  const currentWeek = getISOWeek(today);
+  
+  // Intentar recuperar la última semana seleccionada desde localStorage
+  const getInitialWeek = () => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.weekYear && parsed.weekNumber) {
+          return { weekYear: parsed.weekYear, weekNumber: parsed.weekNumber };
+        }
+      }
+    } catch (e) {
+      console.warn('Error reading stored week:', e);
+    }
+    return currentWeek;
+  };
+
+  const [{ weekYear, weekNumber }, setWeekState] = useState(getInitialWeek);
 
   const setWeek = useCallback((year: number, week: number) => {
-    setWeekState({ weekYear: year, weekNumber: week });
+    const newWeek = { weekYear: year, weekNumber: week };
+    setWeekState(newWeek);
+    // Guardar en localStorage
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newWeek));
+    } catch (e) {
+      console.warn('Error saving week to localStorage:', e);
+    }
   }, []);
 
   const goToCurrentWeek = useCallback(() => {
     const current = getISOWeek(new Date());
     setWeekState(current);
+    // Guardar en localStorage
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
+    } catch (e) {
+      console.warn('Error saving week to localStorage:', e);
+    }
   }, []);
 
   const goToPreviousWeek = useCallback(() => {
     const currentDate = new Date(Date.UTC(weekYear, 0, 1));
     currentDate.setUTCDate(currentDate.getUTCDate() + (weekNumber - 1) * 7 - 7);
-    setWeekState(getISOWeek(currentDate));
+    const newWeek = getISOWeek(currentDate);
+    setWeekState(newWeek);
+    // Guardar en localStorage
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newWeek));
+    } catch (e) {
+      console.warn('Error saving week to localStorage:', e);
+    }
   }, [weekYear, weekNumber]);
 
   const goToNextWeek = useCallback(() => {
     const currentDate = new Date(Date.UTC(weekYear, 0, 1));
     currentDate.setUTCDate(currentDate.getUTCDate() + (weekNumber - 1) * 7 + 7);
-    setWeekState(getISOWeek(currentDate));
+    const newWeek = getISOWeek(currentDate);
+    setWeekState(newWeek);
+    // Guardar en localStorage
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newWeek));
+    } catch (e) {
+      console.warn('Error saving week to localStorage:', e);
+    }
   }, [weekYear, weekNumber]);
 
   const label = `Semana W${String(weekNumber).padStart(2, "0")} · ${weekYear}`;
