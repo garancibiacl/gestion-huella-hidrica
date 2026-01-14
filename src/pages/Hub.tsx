@@ -153,6 +153,7 @@ export default function Hub() {
   const userName = profile?.full_name?.split(' ')[0] || user.email?.split('@')[0] || 'Usuario';
   const userDisplayName = profile?.full_name || user.email || 'Usuario JM';
   const userRole = profile?.role || 'worker';
+  const isAdmin = userRole === 'admin';
   
   const userInitials = userDisplayName
     .split(' ')
@@ -191,11 +192,11 @@ export default function Hub() {
         <div className="mb-10 flex items-center justify-between gap-4 rounded-2xl bg-white border border-gray-100 px-6 py-4 shadow-[0_18px_45px_rgba(15,23,42,0.12)]">
           {/* Logo + Platform Name */}
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-2xl bg-[#ae3f34] flex items-center justify-center shadow-sm overflow-hidden">
+            <div className="h-10 w-10 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm overflow-hidden">
               <img
                 src="/images/logo.png"
-                alt="Plataforma JM"
-                className="h-7 w-7 object-contain"
+                alt="Buses JM"
+                className="h-8 w-8 object-contain"
                 loading="lazy"
               />
             </div>
@@ -213,7 +214,7 @@ export default function Hub() {
           <div className="flex items-center gap-4 md:gap-6">
             <div className="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-100 bg-emerald-50 text-xs font-medium text-emerald-700">
               <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              <span>SISTEMA OPERATIVO</span>
+              <span>ACTIVO</span>
             </div>
 
             {/* Notificaciones PLS */}
@@ -279,18 +280,21 @@ export default function Hub() {
         </div>
 
         {/* Welcome Section */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-light text-gray-900 mb-3">
+        <div className={isAdmin ? "text-left mb-8" : "text-center mb-12"}>
+          <h1 className={isAdmin ? "text-3xl md:text-4xl font-light text-gray-900 mb-2" : "text-4xl md:text-5xl font-light text-gray-900 mb-3"}>
             Bienvenido, <span className="font-bold text-[#ae3f34]">{userName}</span>
           </h1>
-          <p className="text-gray-600 text-lg font-medium max-w-2xl mx-auto">
-            Panel de Selección de Módulos Operativos. Elija el entorno de gestión que desea supervisar hoy.
+          <p className={isAdmin ? "text-gray-600 text-base font-medium max-w-3xl" : "text-gray-600 text-lg font-medium max-w-2xl mx-auto"}>
+            {isAdmin
+              ? "Vista administrativa para supervisión rápida de módulos y control de la plataforma."
+              : "Panel de Selección de Módulos Operativos. Elija el entorno de gestión que desea supervisar hoy."
+            }
           </p>
         </div>
 
         {/* Context Bar */}
-        <div className="max-w-3xl mx-auto mb-16">
-          <div className="flex flex-wrap items-center justify-between bg-white border border-gray-200 px-8 py-4 rounded-2xl shadow-sm">
+        <div className={isAdmin ? "max-w-5xl mx-auto mb-10" : "max-w-3xl mx-auto mb-16"}>
+          <div className={isAdmin ? "flex flex-wrap items-center justify-between bg-white border border-gray-200 px-6 py-3 rounded-2xl shadow-sm" : "flex flex-wrap items-center justify-between bg-white border border-gray-200 px-8 py-4 rounded-2xl shadow-sm"}>
             <div className="flex items-center space-x-3 text-gray-700">
               <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-red-50">
                 <Shield className="w-4 h-4 text-[#ae3f34]" />
@@ -315,7 +319,7 @@ export default function Hub() {
         </div>
 
         {/* Module Cards Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8 max-w-6xl mx-auto">
+        <div className={isAdmin ? "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-8 max-w-7xl mx-auto" : "grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8 max-w-6xl mx-auto"}>
           {availableModules.map((module, index) => (
             <ModuleCard
               key={module.id}
@@ -323,13 +327,14 @@ export default function Hub() {
               title={module.title}
               description={module.description}
               icon={module.icon}
-              features={module.features}
+              features={isAdmin ? module.features.slice(0, 2) : module.features}
               path={module.path}
               gradient={module.gradient}
               accentColor={module.accentColor}
               badge={module.badge}
               badgeColor={module.badgeColor}
               delay={index * 0.1}
+              size={isAdmin ? "compact" : "default"}
             />
           ))}
         </div>
