@@ -4,17 +4,19 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { useRole } from "@/hooks/useRole";
 import { usePamSync } from "../hooks/usePamSync";
 import { usePamWeekSelector } from "../hooks/usePamWeekSelector";
 import { usePamBoard } from "../hooks/usePamBoard";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, RefreshCw, CheckCircle2, AlertTriangle, ExternalLink, PlusCircle, Pencil, Filter, Calendar } from "lucide-react";
+import { Loader2, RefreshCw, CheckCircle2, AlertTriangle, ExternalLink, PlusCircle, Pencil, Filter, Calendar, Trash2, Edit3 } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { createPamTask } from "../services/pamApi";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { createPamTask, deletePamTask, updatePamTask } from "../services/pamApi";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -29,6 +31,7 @@ export default function PamAdminWeekUploadPage() {
   const { organizationId } = useOrganization();
 
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [assignTitle, setAssignTitle] = useState("");
   const [assignResponsible, setAssignResponsible] = useState("");
   const [assignStartDate, setAssignStartDate] = useState("");
@@ -128,19 +131,31 @@ export default function PamAdminWeekUploadPage() {
 
     try {
       setIsCreatingTask(true);
-      await createPamTask({
-        organizationId: orgIdToUse,
-        weekYear: week.weekYear,
-        weekNumber: week.weekNumber,
-        date: assignStartDate,
-        endDate: assignEndDate || null,
-        description: assignTitle.trim(),
-        assigneeUserId: null,
-        assigneeName: assignResponsible || null,
-        location: assignLocation || null,
-        contractor: assignContractor || null,
-        weekPlanId: fallbackWeekPlanId,
-      });
+      if (editingTaskId) {
+        await updatePamTask({
+          taskId: editingTaskId,
+          date: assignStartDate,
+          endDate: assignEndDate || null,
+          description: assignTitle,
+          assigneeName: assignResponsible || null,
+          location: assignLocation || null,
+          contractor: assignContractor || null,
+        });
+      } else {
+        await createPamTask({
+          organizationId: orgIdToUse,
+          weekYear: week.weekYear,
+          weekNumber: week.weekNumber,
+          date: assignStartDate,
+          endDate: assignEndDate || null,
+          description: assignTitle,
+          assigneeUserId: null,
+          assigneeName: assignResponsible || null,
+          location: assignLocation || null,
+          contractor: assignContractor || null,
+          weekPlanId: fallbackWeekPlanId,
+        });
+      }
 
       await refetchPreview();
 
@@ -151,11 +166,25 @@ export default function PamAdminWeekUploadPage() {
       setAssignLocation("");
       setAssignContractor("");
       setIsAssignDialogOpen(false);
-
-      toast({
-        title: "Tarea creada",
-        description: "La tarea fue agregada a la planificación de esta semana.",
-      });
+      setEditingTaskId(null);
+      setAssignTitle("");
+      setAssignResponsible("");
+      setAssignStartDate("");
+      setAssignEndDate("");
+      setAssignLocation("");
+      setAssignContractor("");
+      await refetchPreview();
+      if (editingTaskId) {
+        toast({
+          title: "Tarea actualizada",
+          description: "La tarea fue actualizada en la planificación de esta semana.",
+        });
+      } else {
+        toast({
+          title: "Tarea creada",
+          description: "La tarea fue agregada a la planificación de esta semana.",
+        });
+      }
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -164,6 +193,48 @@ export default function PamAdminWeekUploadPage() {
       });
     } finally {
       setIsCreatingTask(false);
+    }
+  };
+
+  const handleOpenCreateDialog = () => {
+    setEditingTaskId(null);
+    setAssignTitle("");
+    setAssignResponsible("");
+    setAssignStartDate("");
+    setAssignEndDate("");
+    setAssignLocation("");
+    setAssignContractor("");
+    setIsAssignDialogOpen(true);
+  };
+
+  const handleOpenEditTask = (task: any) => {
+    setEditingTaskId(task.id);
+    setAssignTitle(task.description || "");
+    setAssignResponsible(task.assignee_name || "");
+    setAssignStartDate(task.date?.slice(0, 10) || "");
+    setAssignEndDate(task.end_date?.slice(0, 10) || "");
+    setAssignLocation(task.location || "");
+    setAssignContractor(task.contractor || "");
+    setIsAssignDialogOpen(true);
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    const confirmed = window.confirm("¿Eliminar esta tarea de la planificación?");
+    if (!confirmed) return;
+
+    try {
+      await deletePamTask(taskId);
+      toast({
+        title: "Tarea eliminada",
+        description: "La tarea fue eliminada de la planificación.",
+      });
+      await refetchPreview();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error al eliminar",
+        description: error.message || "No se pudo eliminar la tarea.",
+      });
     }
   };
 
@@ -236,6 +307,36 @@ export default function PamAdminWeekUploadPage() {
     return true;
   });
 
+  const getStatusMeta = (status: string) => {
+    switch (status) {
+      case "PENDING":
+        return {
+          label: "Pendiente",
+          className: "bg-amber-50 text-amber-700 border border-amber-100",
+        };
+      case "IN_PROGRESS":
+        return {
+          label: "En curso",
+          className: "bg-sky-50 text-sky-700 border border-sky-100",
+        };
+      case "DONE":
+        return {
+          label: "Hecha",
+          className: "bg-emerald-50 text-emerald-700 border border-emerald-100",
+        };
+      case "OVERDUE":
+        return {
+          label: "Vencida",
+          className: "bg-rose-50 text-rose-700 border border-rose-100",
+        };
+      default:
+        return {
+          label: status,
+          className: "bg-slate-50 text-slate-700 border border-slate-100",
+        };
+    }
+  };
+
   return (
     <div className="p-4 md:p-6 space-y-6">
       <PageHeader
@@ -289,10 +390,18 @@ export default function PamAdminWeekUploadPage() {
             </div>
           </div>
         </div>
-        <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
+        <Dialog
+          open={isAssignDialogOpen}
+          onOpenChange={(open) => {
+            setIsAssignDialogOpen(open);
+            if (!open) {
+              setEditingTaskId(null);
+            }
+          }}
+        >
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>Asignar tarea PLS</DialogTitle>
+              <DialogTitle>{editingTaskId ? "Editar tarea PLS" : "Asignar tarea PLS"}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 mt-2">
               <div className="space-y-2">
@@ -366,7 +475,7 @@ export default function PamAdminWeekUploadPage() {
                     Guardando...
                   </>
                 ) : (
-                  "Crear tarea"
+                  editingTaskId ? "Guardar cambios" : "Crear tarea"
                 )}
               </Button>
             </DialogFooter>
@@ -443,7 +552,7 @@ export default function PamAdminWeekUploadPage() {
               <Button
                 variant="default"
                 size="sm"
-                onClick={() => setIsAssignDialogOpen(true)}
+                onClick={handleOpenCreateDialog}
               >
                 Asignar tarea
               </Button>
@@ -466,6 +575,7 @@ export default function PamAdminWeekUploadPage() {
             </p>
           </div>
         ) : (
+          <TooltipProvider>
           <div className="border rounded-lg overflow-hidden">
             <div className="flex items-center justify-between gap-2 px-3 py-2 border-b bg-background">
               <div className="flex items-center gap-2">
@@ -498,6 +608,7 @@ export default function PamAdminWeekUploadPage() {
                     <th className="text-left p-2 font-medium text-xs">Título de la actividad / Descripción</th>
                     <th className="text-left p-2 font-medium text-xs">Gerencia</th>
                     <th className="text-left p-2 font-medium text-xs">Proceso/Empresa Contratista</th>
+                    <th className="text-right p-2 font-medium text-xs w-[72px]">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -519,9 +630,56 @@ export default function PamAdminWeekUploadPage() {
                         <td className="p-2 text-xs">{task.date?.slice(0, 10)}</td>
                         <td className="p-2 text-xs">{task.end_date?.slice(0, 10) || "-"}</td>
                         <td className="p-2 text-xs">{task.assignee_name}</td>
-                        <td className="p-2 text-xs">{task.description}</td>
+                        <td className="p-2 text-xs">
+                          <div className="flex items-center gap-2">
+                            {(() => {
+                              const meta = getStatusMeta(task.status);
+                              return (
+                                <Badge
+                                  variant="outline"
+                                  className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${meta.className}`}
+                                >
+                                  {meta.label}
+                                </Badge>
+                              );
+                            })()}
+                            <span className="truncate" title={task.description}>
+                              {task.description}
+                            </span>
+                          </div>
+                        </td>
                         <td className="p-2 text-xs text-muted-foreground">{task.location || "-"}</td>
                         <td className="p-2 text-xs text-muted-foreground">{task.contractor || "-"}</td>
+                        <td className="p-2 text-xs">
+                          <div className="flex items-center justify-end gap-1">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                  onClick={() => handleOpenEditTask(task)}
+                                >
+                                  <Edit3 className="w-4 h-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top">Editar tarea</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-muted-foreground hover:text-red-600"
+                                  onClick={() => handleDeleteTask(task.id)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top">Eliminar tarea</TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </td>
                       </tr>
                     );
                   })}
@@ -536,6 +694,7 @@ export default function PamAdminWeekUploadPage() {
               </table>
             </div>
           </div>
+          </TooltipProvider>
         )}
       </Card>
     </div>

@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { Loader2, Droplets, Shield, Settings, HelpCircle, LogOut, ChevronDown } from "lucide-react";
+import { Loader2, Droplets, Shield, Settings, HelpCircle, LogOut, ChevronDown, BarChart3, Users } from "lucide-react";
 import { ModuleCard } from "@/components/hub/ModuleCard";
 import { PamNotificationBell } from "@/modules/pam/components/notifications/PamNotificationBell";
 import { Button } from "@/components/ui/button";
@@ -66,6 +66,42 @@ const MODULES: Module[] = [
     accentColor: "#ae3f34",
     badge: "ACTUALIZADO",
     badgeColor: "bg-red-50 text-red-700 border-red-200",
+  },
+  {
+    id: "admin-analytics",
+    title: "Analytics de Plataforma",
+    description: "Métricas de uso, tráfico y rendimiento de la plataforma HSE.",
+    icon: <BarChart3 className="w-8 h-8" />,
+    features: [
+      "Visitas y usuarios únicos",
+      "Páginas más vistas",
+      "Dispositivos y países",
+      "Tendencias por período",
+    ],
+    path: "/hub/analytics",
+    roles: ["admin"],
+    gradient: "bg-gradient-to-br from-indigo-500 to-sky-600",
+    accentColor: "#4f46e5",
+    badge: "ADMIN",
+    badgeColor: "bg-indigo-50 text-indigo-700 border-indigo-200",
+  },
+  {
+    id: "admin-users",
+    title: "Gestión de Usuarios",
+    description: "Administra cuentas, roles y accesos de toda la organización.",
+    icon: <Users className="w-8 h-8" />,
+    features: [
+      "Crear y editar usuarios",
+      "Asignar roles y permisos",
+      "Resumen de cuentas activas",
+      "Panel de administración centralizada",
+    ],
+    path: "/hub/users",
+    roles: ["admin"],
+    gradient: "bg-gradient-to-br from-slate-600 to-slate-800",
+    accentColor: "#0f172a",
+    badge: "ADMIN",
+    badgeColor: "bg-slate-50 text-slate-800 border-slate-200",
   },
 ];
 

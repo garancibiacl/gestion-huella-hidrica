@@ -129,12 +129,9 @@ export function PamHeader({ onMenuClick, className }: PamHeaderProps) {
               >
                 <Bell className="h-5 w-5" />
                 {unreadCount > 0 && (
-                  <Badge
-                    variant="destructive"
-                    className="absolute -right-1 -top-1 h-5 min-w-[20px] rounded-full px-1 text-[10px] font-semibold"
-                  >
+                  <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold text-red-600 shadow-md">
                     {unreadCount > 9 ? '9+' : unreadCount}
-                  </Badge>
+                  </span>
                 )}
                 <span className="sr-only">
                   Notificaciones ({unreadCount} sin leer)

@@ -124,6 +124,45 @@ export async function createPamTask(params: {
   }
 }
 
+export async function updatePamTask(params: {
+  taskId: string;
+  date: string;
+  endDate?: string | null;
+  description: string;
+  assigneeName?: string | null;
+  location?: string | null;
+  contractor?: string | null;
+}): Promise<void> {
+  const { taskId, date, endDate, description, assigneeName, location, contractor } = params;
+
+  const updatePayload: any = {
+    date,
+    end_date: endDate ?? null,
+    assignee_name: assigneeName ?? null,
+    description,
+    location: location ?? null,
+    contractor: contractor ?? null,
+  };
+
+  const { error } = await supabase.from("pam_tasks").update(updatePayload).eq("id", taskId);
+
+  if (error) {
+    console.error("Error updating PLS task", error);
+    const message = typeof error.message === "string" ? error.message : "No se pudo actualizar la tarea PLS. Inténtalo nuevamente.";
+    throw new Error(message);
+  }
+}
+
+export async function deletePamTask(taskId: string): Promise<void> {
+  const { error } = await supabase.from("pam_tasks").delete().eq("id", taskId);
+
+  if (error) {
+    console.error("Error deleting PLS task", error);
+    const message = typeof error.message === "string" ? error.message : "No se pudo eliminar la tarea PLS. Inténtalo nuevamente.";
+    throw new Error(message);
+  }
+}
+
 export async function getAllPamTasksForWeek(
   weekYear: number,
   weekNumber: number

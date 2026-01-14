@@ -7,6 +7,8 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Auth from "./pages/Auth";
 import Hub from "./pages/Hub";
+import HubAnalytics from "./pages/HubAnalytics";
+import HubUsers from "./pages/HubUsers";
 import WaterDashboard from "./pages/WaterDashboard";
 import WaterReportPreview from "./pages/WaterReportPreview";
 import ElectricDashboard from "./pages/ElectricDashboard";
@@ -40,6 +42,8 @@ const App = () => (
             <Route path="/" element={<Navigate to="/hub" replace />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/hub" element={<Hub />} />
+            <Route path="/hub/analytics" element={<HubAnalytics />} />
+            <Route path="/hub/users" element={<HubUsers />} />
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<Navigate to="/dashboard/agua" replace />} />
               <Route path="/dashboard/agua" element={<WaterDashboard />} />

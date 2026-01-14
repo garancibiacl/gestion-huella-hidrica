@@ -13,7 +13,8 @@ import {
   Calendar,
   AlertTriangle,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Check,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -534,7 +535,6 @@ export default function AdminUsers() {
                 <TableHead className="hidden md:table-cell">Email</TableHead>
                 <TableHead className="hidden sm:table-cell">Registro</TableHead>
                 <TableHead>Rol</TableHead>
-                <TableHead>Cambiar rol</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
@@ -639,7 +639,7 @@ export default function AdminUsers() {
               </AnimatePresence>
               {paginatedUsers.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                     No se encontraron usuarios
                   </TableCell>
                 </TableRow>
