@@ -14,12 +14,13 @@ import { useToast } from "@/components/ui/use-toast";
 import { Loader2, RefreshCw, CheckCircle2, AlertTriangle, ExternalLink, PlusCircle, Pencil, Filter, Calendar, Trash2, Edit3 } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { createPamTask, deletePamTask, updatePamTask } from "../services/pamApi";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import Swal from "sweetalert2";
+import { PamWeekSelector } from "../components/week/PamWeekSelector";
 
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSm6kI2pKhHhLX5kwP2AWWwbc1fYr9h96k9OqumbRqJtcxSKeW7VUbhtDmXQuyksQ/pubhtml';
 
@@ -321,35 +322,6 @@ export default function PamAdminWeekUploadPage() {
 
   const recentCutoffMs = Date.now() - 24 * 60 * 60 * 1000;
 
-  // Generar lista de semanas agrupadas por mes
-  const currentYear = new Date().getFullYear();
-  const monthNames = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-  ];
-
-  // Agrupar semanas por mes
-  const weeksByMonth: Record<string, { value: string; label: string; weekNumber: number }[]> = {};
-  
-  for (let weekNum = 1; weekNum <= 52; weekNum++) {
-    // Calcular fecha aproximada de la semana para determinar el mes
-    const date = new Date(currentYear, 0, 1 + (weekNum - 1) * 7);
-    const monthIndex = date.getMonth();
-    const monthName = monthNames[monthIndex];
-    
-    if (!weeksByMonth[monthName]) {
-      weeksByMonth[monthName] = [];
-    }
-    
-    weeksByMonth[monthName].push({
-      value: `${currentYear}-${weekNum}`,
-      label: `Semana W${String(weekNum).padStart(2, '0')}`,
-      weekNumber: weekNum,
-    });
-  }
-
-  const currentWeekValue = `${week.weekYear}-${week.weekNumber}`;
-
   const filteredTasks = tasks.filter((t) => {
     if (tableFilter === "all") return true;
     if (tableFilter === "recent") {
@@ -607,34 +579,7 @@ export default function PamAdminWeekUploadPage() {
             </span>
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-muted-foreground" />
-              <Select
-                value={currentWeekValue}
-                onValueChange={(value) => {
-                  const [year, weekNum] = value.split('-').map(Number);
-                  week.setWeek(year, weekNum);
-                }}
-              >
-                <SelectTrigger className="w-[220px] h-8">
-                  <SelectValue placeholder="Seleccionar semana" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[400px]">
-                  {monthNames.map((monthName) => {
-                    const monthWeeks = weeksByMonth[monthName];
-                    if (!monthWeeks || monthWeeks.length === 0) return null;
-                    
-                    return (
-                      <SelectGroup key={monthName}>
-                        <SelectLabel>{monthName} {currentYear}</SelectLabel>
-                        {monthWeeks.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+              <PamWeekSelector week={week} triggerClassName="w-[220px] h-8" />
               <Button
                 variant="default"
                 size="sm"

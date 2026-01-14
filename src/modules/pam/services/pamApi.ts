@@ -86,6 +86,21 @@ export async function getPamTasksForWeek(
   return (data || []) as PamTask[];
 }
 
+export async function getPamTaskById(taskId: string): Promise<PamTask | null> {
+  const { data, error } = await supabase
+    .from("pam_tasks")
+    .select("*")
+    .eq("id", taskId)
+    .single();
+
+  if (error) {
+    console.error("Error fetching PLS task by id", error);
+    throw new Error("No se pudo cargar la tarea seleccionada.");
+  }
+
+  return data as PamTask;
+}
+
 export async function updatePamTaskStatus(
   taskId: string,
   status: PamTaskStatus

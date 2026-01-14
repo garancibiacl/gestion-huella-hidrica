@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { usePamWeekSelector } from "../hooks/usePamWeekSelector";
 import { usePamTasks } from "../hooks/usePamTasks";
 import type { PamTaskStatus } from "../types/pam.types";
@@ -8,7 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Loader2, Filter, Calendar } from "lucide-react";
 import { PamEvidenceUploadDialog } from "../components/worker/PamEvidenceUploadDialog";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getPamTaskById } from "../services/pamApi";
+import { useToast } from "@/components/ui/use-toast";
+import { PamWeekSelector } from "../components/week/PamWeekSelector";
 
 const STATUS_LABELS: Record<PamTaskStatus, string> = {
   PENDING: "Pendiente",
@@ -19,6 +23,8 @@ const STATUS_LABELS: Record<PamTaskStatus, string> = {
 
 export default function PamWorkerTasksPage() {
   const week = usePamWeekSelector({ useStoredWeek: false });
+  const [searchParams] = useSearchParams();
+  const { toast } = useToast();
   const {
     tasks,
     isLoading,
@@ -34,10 +40,41 @@ export default function PamWorkerTasksPage() {
 
   const [evidenceDialogOpen, setEvidenceDialogOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const hasInitializedWeek = useRef(false);
 
   useEffect(() => {
-    week.goToCurrentWeek();
-  }, [week]);
+    const taskId = searchParams.get("task");
+    if (!taskId && !hasInitializedWeek.current) {
+      week.goToCurrentWeek();
+      hasInitializedWeek.current = true;
+    }
+  }, [searchParams, week.goToCurrentWeek]);
+
+  useEffect(() => {
+    const taskId = searchParams.get("task");
+    if (!taskId) return;
+
+    const loadTaskWeek = async () => {
+      try {
+        const task = await getPamTaskById(taskId);
+        if (task) {
+          week.setWeek(task.week_year, task.week_number);
+          setScope("week");
+          setStatusFilter("ALL");
+          setSelectedTaskId(task.id);
+          hasInitializedWeek.current = true;
+        }
+      } catch (loadError) {
+        toast({
+          variant: "destructive",
+          title: "No se pudo abrir la tarea",
+          description: loadError instanceof Error ? loadError.message : "Error desconocido.",
+        });
+      }
+    };
+
+    loadTaskWeek();
+  }, [searchParams, setScope, setStatusFilter, toast, week]);
 
   const groupedByDate = useMemo(() => {
     return tasks.reduce<Record<string, typeof tasks>>((acc, task) => {
@@ -66,33 +103,6 @@ export default function PamWorkerTasksPage() {
     setSelectedTaskId(null);
   };
 
-  // Generar lista de semanas agrupadas por mes
-  const currentYear = new Date().getFullYear();
-  const monthNames = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-  ];
-
-  const weeksByMonth: Record<string, { value: string; label: string; weekNumber: number }[]> = {};
-  
-  for (let weekNum = 1; weekNum <= 52; weekNum++) {
-    const date = new Date(currentYear, 0, 1 + (weekNum - 1) * 7);
-    const monthIndex = date.getMonth();
-    const monthName = monthNames[monthIndex];
-    
-    if (!weeksByMonth[monthName]) {
-      weeksByMonth[monthName] = [];
-    }
-    
-    weeksByMonth[monthName].push({
-      value: `${currentYear}-${weekNum}`,
-      label: `Semana W${String(weekNum).padStart(2, '0')}`,
-      weekNumber: weekNum,
-    });
-  }
-
-  const currentWeekValue = `${week.weekYear}-${week.weekNumber}`;
-
   return (
     <div className="p-4 md:p-6 space-y-4">
       <PageHeader
@@ -104,34 +114,7 @@ export default function PamWorkerTasksPage() {
         <div className="flex flex-wrap items-center gap-3 justify-between">
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-muted-foreground" />
-            <Select
-              value={currentWeekValue}
-              onValueChange={(value) => {
-                const [year, weekNum] = value.split('-').map(Number);
-                week.setWeek(year, weekNum);
-              }}
-            >
-              <SelectTrigger className="w-[220px] h-9">
-                <SelectValue placeholder="Seleccionar semana" />
-              </SelectTrigger>
-              <SelectContent className="max-h-[400px]">
-                {monthNames.map((monthName) => {
-                  const monthWeeks = weeksByMonth[monthName];
-                  if (!monthWeeks || monthWeeks.length === 0) return null;
-                  
-                  return (
-                    <SelectGroup key={monthName}>
-                      <SelectLabel>{monthName} {currentYear}</SelectLabel>
-                      {monthWeeks.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  );
-                })}
-              </SelectContent>
-            </Select>
+            <PamWeekSelector week={week} triggerClassName="w-[220px] h-9" />
           </div>
 
           <div className="flex items-center gap-2">
