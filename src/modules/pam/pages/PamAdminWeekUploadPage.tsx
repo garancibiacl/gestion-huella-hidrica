@@ -16,11 +16,12 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { createPamTask, deletePamTask, updatePamTask } from "../services/pamApi";
+import { createPamTask, deletePamTask, updatePamTask, updatePamTaskEvidenceFlag, updatePamTaskStatus } from "../services/pamApi";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import Swal from "sweetalert2";
 import { PamWeekSelector } from "../components/week/PamWeekSelector";
+import { createPamNotification } from "../services/notificationApi";
 
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSm6kI2pKhHhLX5kwP2AWWwbc1fYr9h96k9OqumbRqJtcxSKeW7VUbhtDmXQuyksQ/pubhtml';
 
@@ -291,6 +292,85 @@ export default function PamAdminWeekUploadPage() {
         variant: "destructive",
         title: "Error al eliminar",
         description: error.message || "No se pudo eliminar la tarea.",
+      });
+    }
+  };
+
+  const handleApproveEvidence = async (task: any) => {
+    const result = await Swal.fire({
+      title: "Aprobar evidencia",
+      text: "¿Confirmas que la evidencia es válida y la tarea puede marcarse como completada?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Sí, completar",
+      cancelButtonText: "Cancelar",
+      reverseButtons: true,
+      confirmButtonColor: "#b3382a",
+      cancelButtonColor: "#9ca3af",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await updatePamTaskStatus(task.id, "DONE");
+      toast({
+        title: "Tarea completada",
+        description: "La evidencia fue aprobada.",
+      });
+      await refetchPreview();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error al aprobar",
+        description: error?.message || "No se pudo aprobar la evidencia.",
+      });
+    }
+  };
+
+  const handleRejectEvidence = async (task: any) => {
+    const result = await Swal.fire({
+      title: "Rechazar evidencia",
+      input: "textarea",
+      inputLabel: "Comentario para el responsable",
+      inputPlaceholder: "Indica qué falta o qué debe corregir.",
+      inputAttributes: {
+        "aria-label": "Comentario de rechazo",
+      },
+      showCancelButton: true,
+      confirmButtonText: "Rechazar",
+      cancelButtonText: "Cancelar",
+      reverseButtons: true,
+      confirmButtonColor: "#b3382a",
+      cancelButtonColor: "#9ca3af",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await updatePamTaskStatus(task.id, "IN_PROGRESS");
+      await updatePamTaskEvidenceFlag(task.id, false);
+      if (task.assignee_user_id) {
+        await createPamNotification({
+          user_id: task.assignee_user_id,
+          organization_id: task.organization_id,
+          task_id: task.id,
+          type: "task_assigned",
+          title: "Evidencia rechazada",
+          message: result.value
+            ? `Tu evidencia fue rechazada: ${result.value}`
+            : "Tu evidencia fue rechazada. Por favor, sube una nueva evidencia.",
+        });
+      }
+      toast({
+        title: "Evidencia rechazada",
+        description: "Se solicitó nueva evidencia.",
+      });
+      await refetchPreview();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error al rechazar",
+        description: error?.message || "No se pudo rechazar la evidencia.",
       });
     }
   };
@@ -683,6 +763,36 @@ export default function PamAdminWeekUploadPage() {
                         <td className="p-2 text-xs text-muted-foreground">{task.contractor || "-"}</td>
                         <td className="p-2 text-xs">
                           <div className="flex items-center justify-end gap-1">
+                            {task.has_evidence && (
+                              <>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 text-emerald-600 hover:text-emerald-700"
+                                      onClick={() => handleApproveEvidence(task)}
+                                    >
+                                      <CheckCircle2 className="w-4 h-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">Aprobar evidencia</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 text-amber-600 hover:text-amber-700"
+                                      onClick={() => handleRejectEvidence(task)}
+                                    >
+                                      <AlertTriangle className="w-4 h-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">Rechazar evidencia</TooltipContent>
+                                </Tooltip>
+                              </>
+                            )}
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button

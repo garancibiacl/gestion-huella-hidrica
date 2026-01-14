@@ -116,6 +116,18 @@ export async function updatePamTaskStatus(
   }
 }
 
+export async function updatePamTaskEvidenceFlag(taskId: string, hasEvidence: boolean): Promise<void> {
+  const { error } = await supabase
+    .from("pam_tasks")
+    .update({ has_evidence: hasEvidence })
+    .eq("id", taskId);
+
+  if (error) {
+    console.error("Error updating PLS evidence flag", error);
+    throw new Error("No se pudo actualizar el estado de evidencia.");
+  }
+}
+
 export async function createPamTaskEvidence(
   input: PamTaskEvidenceInsert
 ): Promise<void> {

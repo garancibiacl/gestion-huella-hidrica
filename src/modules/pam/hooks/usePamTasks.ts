@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
 import type { PamTask, PamTaskStatus } from "../types/pam.types";
-import { createPamTaskEvidence, getPamTasksForWeek, updatePamTaskStatus } from "../services/pamApi";
+import { createPamTaskEvidence, getPamTasksForWeek, updatePamTaskEvidenceFlag, updatePamTaskStatus } from "../services/pamApi";
 
 export type PamTaskScopeFilter = "today" | "week";
 
@@ -144,8 +144,18 @@ export function usePamTasks(options: UsePamTasksOptions): UsePamTasksResult {
           file_url: fileUrl,
           notes: notes ?? null,
         });
+        const currentTask = rawTasks.find((task) => task.id === taskId);
+        const shouldAdvanceStatus = currentTask?.status === "PENDING";
+        if (shouldAdvanceStatus) {
+          await updatePamTaskStatus(taskId, "IN_PROGRESS");
+        }
+        await updatePamTaskEvidenceFlag(taskId, true);
         setRawTasks((prev) =>
-          prev.map((task) => (task.id === taskId ? { ...task, has_evidence: true } : task))
+          prev.map((task) =>
+            task.id === taskId
+              ? { ...task, has_evidence: true, status: shouldAdvanceStatus ? "IN_PROGRESS" : task.status }
+              : task
+          )
         );
         toast({
           title: "Evidencia subida",
@@ -162,7 +172,7 @@ export function usePamTasks(options: UsePamTasksOptions): UsePamTasksResult {
         });
       }
     },
-    [toast, user]
+    [toast, user, rawTasks]
   );
 
   return {

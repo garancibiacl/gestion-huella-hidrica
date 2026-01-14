@@ -1,6 +1,15 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { PamNotification } from "../types/notification.types";
 
+interface PamNotificationInsert {
+  user_id: string;
+  organization_id: string;
+  task_id?: string | null;
+  type: string;
+  title: string;
+  message: string;
+}
+
 export async function getPamNotifications(params: {
   userId: string;
   limit?: number;
@@ -53,5 +62,14 @@ export async function markAllPamNotificationsAsRead(): Promise<void> {
   if (error) {
     console.error("Error marking all notifications as read", error);
     throw new Error("No se pudieron marcar todas las notificaciones como leídas.");
+  }
+}
+
+export async function createPamNotification(payload: PamNotificationInsert): Promise<void> {
+  const { error } = await supabase.from("pam_notifications").insert(payload);
+
+  if (error) {
+    console.error("Error creating PLS notification", error);
+    throw new Error("No se pudo crear la notificación.");
   }
 }
