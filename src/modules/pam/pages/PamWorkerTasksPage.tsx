@@ -6,8 +6,9 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, Filter, Calendar } from "lucide-react";
 import { PamEvidenceUploadDialog } from "../components/worker/PamEvidenceUploadDialog";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const STATUS_LABELS: Record<PamTaskStatus, string> = {
   PENDING: "Pendiente",
@@ -61,81 +62,94 @@ export default function PamWorkerTasksPage() {
     setSelectedTaskId(null);
   };
 
+  // Generar lista de semanas agrupadas por mes
+  const currentYear = new Date().getFullYear();
+  const monthNames = [
+    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+  ];
+
+  const weeksByMonth: Record<string, { value: string; label: string; weekNumber: number }[]> = {};
+  
+  for (let weekNum = 1; weekNum <= 52; weekNum++) {
+    const date = new Date(currentYear, 0, 1 + (weekNum - 1) * 7);
+    const monthIndex = date.getMonth();
+    const monthName = monthNames[monthIndex];
+    
+    if (!weeksByMonth[monthName]) {
+      weeksByMonth[monthName] = [];
+    }
+    
+    weeksByMonth[monthName].push({
+      value: `${currentYear}-${weekNum}`,
+      label: `Semana W${String(weekNum).padStart(2, '0')}`,
+      weekNumber: weekNum,
+    });
+  }
+
+  const currentWeekValue = `${week.weekYear}-${week.weekNumber}`;
+
   return (
     <div className="p-4 md:p-6 space-y-4">
       <PageHeader
         title="Mis tareas PLS"
-        description={week.label}
+        description="Tareas asignadas a ti"
       />
 
-      <div className="flex flex-wrap items-center gap-2 justify-between">
-        <div className="inline-flex rounded-full border bg-background p-1 text-xs">
-          <button
-            type="button"
-            onClick={() => setScope("today")}
-            className={`px-3 py-1.5 rounded-full ${
-              scope === "today" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-            }`}
-          >
-            Hoy
-          </button>
-          <button
-            type="button"
-            onClick={() => setScope("week")}
-            className={`px-3 py-1.5 rounded-full ${
-              scope === "week" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-            }`}
-          >
-            Esta semana
-          </button>
-        </div>
+      <Card className="p-4">
+        <div className="flex flex-wrap items-center gap-3 justify-between">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-muted-foreground" />
+            <Select
+              value={currentWeekValue}
+              onValueChange={(value) => {
+                const [year, weekNum] = value.split('-').map(Number);
+                week.setWeek(year, weekNum);
+              }}
+            >
+              <SelectTrigger className="w-[220px] h-9">
+                <SelectValue placeholder="Seleccionar semana" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[400px]">
+                {monthNames.map((monthName) => {
+                  const monthWeeks = weeksByMonth[monthName];
+                  if (!monthWeeks || monthWeeks.length === 0) return null;
+                  
+                  return (
+                    <SelectGroup key={monthName}>
+                      <SelectLabel>{monthName} {currentYear}</SelectLabel>
+                      {monthWeeks.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={week.goToPreviousWeek}
-          >
-            Semana anterior
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={week.goToCurrentWeek}
-          >
-            Semana actual
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={week.goToNextWeek}
-          >
-            Próxima semana
-          </Button>
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-muted-foreground" />
+            <Select
+              value={statusFilter}
+              onValueChange={(value: any) => setStatusFilter(value)}
+            >
+              <SelectTrigger className="w-[180px] h-9">
+                <SelectValue placeholder="Filtrar por estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Todas las tareas</SelectItem>
+                <SelectItem value="PENDING">Pendientes</SelectItem>
+                <SelectItem value="IN_PROGRESS">En progreso</SelectItem>
+                <SelectItem value="DONE">Completadas</SelectItem>
+                <SelectItem value="OVERDUE">Vencidas</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Button
-          type="button"
-          size="sm"
-          variant={statusFilter === "ALL" ? "default" : "outline"}
-          onClick={() => setStatusFilter("ALL")}
-        >
-          Todas
-        </Button>
-        {(["PENDING", "IN_PROGRESS", "DONE", "OVERDUE"] as PamTaskStatus[]).map((status) => (
-          <Button
-            key={status}
-            type="button"
-            size="sm"
-            variant={statusFilter === status ? "default" : "outline"}
-            onClick={() => setStatusFilter(status)}
-          >
-            {STATUS_LABELS[status]}
-          </Button>
-        ))}
-      </div>
+      </Card>
 
       {isLoading && (
         <div className="flex items-center justify-center py-20">

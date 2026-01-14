@@ -56,18 +56,24 @@ export function usePamTasks(options: UsePamTasksOptions): UsePamTasksResult {
         return true;
       });
 
+      console.log(`usePamTasks: After filtering (scope: ${currentScope}, status: ${currentStatus}): ${filtered.length} tasks`, filtered);
       setTasks(filtered);
     },
     []
   );
 
   const load = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      console.log("usePamTasks: No user, skipping load");
+      return;
+    }
     setIsLoading(true);
     setError(null);
 
     try {
+      console.log(`usePamTasks: Loading tasks for week ${weekYear}-W${weekNumber}, user:`, user.id);
       const data = await getPamTasksForWeek(weekYear, weekNumber);
+      console.log(`usePamTasks: Fetched ${data.length} tasks from DB:`, data);
       setRawTasks(data);
       applyFilters(data, scope, statusFilter);
     } catch (err: any) {
