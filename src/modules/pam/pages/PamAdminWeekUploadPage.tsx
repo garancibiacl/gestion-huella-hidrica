@@ -39,6 +39,7 @@ export default function PamAdminWeekUploadPage() {
   const [assignEndDate, setAssignEndDate] = useState("");
   const [assignLocation, setAssignLocation] = useState("");
   const [assignContractor, setAssignContractor] = useState("");
+  const [assignStatus, setAssignStatus] = useState<"PENDING" | "IN_PROGRESS" | "DONE">("PENDING");
   const [isCreatingTask, setIsCreatingTask] = useState(false);
 
   const week = usePamWeekSelector();
@@ -152,6 +153,7 @@ export default function PamAdminWeekUploadPage() {
           description: assignTitle,
           assigneeEmail: assignEmail,
           assigneeName: assignResponsible || null,
+          status: assignStatus,
           location: assignLocation || null,
           contractor: assignContractor || null,
         });
@@ -172,6 +174,7 @@ export default function PamAdminWeekUploadPage() {
           description: assignTitle,
           assigneeEmail: assignEmail,
           assigneeName: assignResponsible || null,
+          status: assignStatus,
           location: assignLocation || null,
           contractor: assignContractor || null,
         });
@@ -192,6 +195,7 @@ export default function PamAdminWeekUploadPage() {
       setAssignEndDate("");
       setAssignLocation("");
       setAssignContractor("");
+      setAssignStatus("PENDING");
       setIsAssignDialogOpen(false);
       setEditingTaskId(null);
       setAssignTitle("");
@@ -201,6 +205,7 @@ export default function PamAdminWeekUploadPage() {
       setAssignEndDate("");
       setAssignLocation("");
       setAssignContractor("");
+      setAssignStatus("PENDING");
       await refetchPreview();
       if (editingTaskId) {
         toast({
@@ -233,6 +238,7 @@ export default function PamAdminWeekUploadPage() {
     setAssignEndDate("");
     setAssignLocation("");
     setAssignContractor("");
+    setAssignStatus("PENDING");
     setIsAssignDialogOpen(true);
   };
 
@@ -245,6 +251,7 @@ export default function PamAdminWeekUploadPage() {
     setAssignEndDate(task.end_date?.slice(0, 10) || "");
     setAssignLocation(task.location || "");
     setAssignContractor(task.contractor || "");
+    setAssignStatus(task.status || "PENDING");
     setIsAssignDialogOpen(true);
   };
 
@@ -470,6 +477,19 @@ export default function PamAdminWeekUploadPage() {
                       placeholder="correo@empresa.com"
                       required
                     />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium">Estado de la tarea</label>
+                    <Select value={assignStatus} onValueChange={(value) => setAssignStatus(value as typeof assignStatus)}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue placeholder="Seleccionar estado" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PENDING">Pendiente</SelectItem>
+                        <SelectItem value="IN_PROGRESS">En proceso</SelectItem>
+                        <SelectItem value="DONE">Completada</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <label className="text-xs font-medium">Fecha inicio</label>

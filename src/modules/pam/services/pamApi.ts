@@ -144,6 +144,7 @@ export async function createPamTask(params: {
   description: string;
   assigneeEmail: string;
   assigneeName?: string | null;
+  status?: PamTaskStatus;
   location?: string | null;
   contractor?: string | null;
 }): Promise<{ sheetSyncError?: string }> {
@@ -157,6 +158,7 @@ export async function createPamTask(params: {
     description,
     assigneeEmail,
     assigneeName,
+    status,
     location,
     contractor,
   } = params;
@@ -186,7 +188,7 @@ export async function createPamTask(params: {
       description,
       location: location ?? null,
       contractor: contractor ?? null,
-      status: "PENDING" as PamTaskStatus,
+      status: status ?? "PENDING",
       has_evidence: false,
       risk_type: null,
     })
@@ -228,10 +230,11 @@ export async function updatePamTask(params: {
   description: string;
   assigneeEmail: string;
   assigneeName?: string | null;
+  status?: PamTaskStatus;
   location?: string | null;
   contractor?: string | null;
 }): Promise<{ sheetSyncError?: string }> {
-  const { taskId, organizationId, date, endDate, description, assigneeEmail, assigneeName, location, contractor } = params;
+  const { taskId, organizationId, date, endDate, description, assigneeEmail, assigneeName, status, location, contractor } = params;
 
   if (!assigneeEmail.trim() || !isValidEmail(assigneeEmail)) {
     throw new Error("Ingresa un email válido para el responsable.");
@@ -252,6 +255,7 @@ export async function updatePamTask(params: {
     description,
     location: location ?? null,
     contractor: contractor ?? null,
+    status: status ?? undefined,
   };
 
   const { data, error } = await supabase
