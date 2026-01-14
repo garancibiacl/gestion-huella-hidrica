@@ -246,24 +246,32 @@ export async function importPamWeek(params: {
 
   try {
     // 1. Obtener perfiles existentes (sin bloquear si faltan algunos)
-    const uniqueEmails = [...new Set(tasks.map((t) => t.assigneeEmail))];
+    const uniqueEmails = [...new Set(tasks.map((t) => t.assigneeEmail.toLowerCase().trim()))];
+    
+    console.log("PLS import: Buscando perfiles para emails:", uniqueEmails);
+    
+    // Obtener TODOS los perfiles de la organización para hacer match case-insensitive
     const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
       .select("user_id, email, full_name")
-      .eq("organization_id", organizationId)
-      .in("email", uniqueEmails);
+      .eq("organization_id", organizationId);
 
     if (profilesError) throw profilesError;
+
+    console.log("PLS import: Perfiles encontrados en org:", profiles?.map(p => ({ email: p.email, user_id: p.user_id })));
 
     const emailToUserId = new Map<string, { userId: string; fullName: string | null }>();
     (profiles || []).forEach((p) => {
       if (p.email) {
-        emailToUserId.set(p.email.toLowerCase(), {
+        // Normalizar email a minúsculas para matching
+        emailToUserId.set(p.email.toLowerCase().trim(), {
           userId: p.user_id,
           fullName: p.full_name,
         });
       }
     });
+    
+    console.log("PLS import: Mapa email->userId:", Object.fromEntries(emailToUserId));
 
     // Nota: Ya no bloqueamos si faltan emails. Las tareas se crearán con assignee_id null
     // para los correos que no existan en profiles.
@@ -325,7 +333,10 @@ export async function importPamWeek(params: {
 
     // 4. Crear nuevas tareas
     const taskRecords = tasks.map((task) => {
-      const userInfo = emailToUserId.get(task.assigneeEmail);
+      const normalizedEmail = task.assigneeEmail.toLowerCase().trim();
+      const userInfo = emailToUserId.get(normalizedEmail);
+      
+      console.log(`PLS import: Tarea "${task.description.slice(0, 30)}..." - email: "${normalizedEmail}" -> userId: ${userInfo?.userId || "NULL"}`);
 
       return {
         organization_id: organizationId,
