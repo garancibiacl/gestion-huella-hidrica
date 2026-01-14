@@ -83,6 +83,7 @@ export async function createPamTask(params: {
   assigneeName?: string | null;
   location?: string | null;
   contractor?: string | null;
+  weekPlanId?: string | null;
 }): Promise<void> {
   const {
     organizationId,
@@ -95,12 +96,14 @@ export async function createPamTask(params: {
     assigneeName,
     location,
     contractor,
+    weekPlanId,
   } = params;
 
   const insertPayload: any = {
     organization_id: organizationId,
     week_year: weekYear,
     week_number: weekNumber,
+    week_plan_id: weekPlanId ?? undefined,
     date,
     end_date: endDate ?? null,
     assignee_user_id: assigneeUserId ?? null,
@@ -116,7 +119,8 @@ export async function createPamTask(params: {
 
   if (error) {
     console.error("Error creating manual PLS task", error);
-    throw new Error("No se pudo crear la tarea PLS. Inténtalo nuevamente.");
+    const message = typeof error.message === "string" ? error.message : "No se pudo crear la tarea PLS. Inténtalo nuevamente.";
+    throw new Error(message);
   }
 }
 

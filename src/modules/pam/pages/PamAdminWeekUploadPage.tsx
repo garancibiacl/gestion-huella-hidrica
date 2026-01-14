@@ -75,11 +75,25 @@ export default function PamAdminWeekUploadPage() {
   });
 
   const handleCreateManualTask = async () => {
-    if (!organization?.id) {
+    const firstTask = tasks[0] as any | undefined;
+    const fallbackOrgId = firstTask?.organization_id as string | undefined;
+    const fallbackWeekPlanId = firstTask?.week_plan_id as string | undefined;
+    const organizationId = organization?.id || fallbackOrgId;
+
+    if (!organizationId) {
       toast({
         variant: "destructive",
         title: "Organización no encontrada",
         description: "No se pudo determinar la organización actual.",
+      });
+      return;
+    }
+
+    if (!fallbackWeekPlanId) {
+      toast({
+        variant: "destructive",
+        title: "Plan de semana no encontrado",
+        description: "Primero sincroniza esta semana desde Google Sheets antes de crear tareas manuales.",
       });
       return;
     }
@@ -96,7 +110,7 @@ export default function PamAdminWeekUploadPage() {
     try {
       setIsCreatingTask(true);
       await createPamTask({
-        organizationId: organization.id,
+        organizationId,
         weekYear: week.weekYear,
         weekNumber: week.weekNumber,
         date: assignStartDate,
@@ -106,6 +120,7 @@ export default function PamAdminWeekUploadPage() {
         assigneeName: assignResponsible || null,
         location: assignLocation || null,
         contractor: assignContractor || null,
+        weekPlanId: fallbackWeekPlanId,
       });
 
       await refetchPreview();

@@ -14,6 +14,7 @@ export interface PamTask {
   location: string | null;
   risk_type: string | null;
   contractor: string | null;
+  organization_id?: string | null;
   status: PamTaskStatus;
   has_evidence: boolean;
   created_at: string;
