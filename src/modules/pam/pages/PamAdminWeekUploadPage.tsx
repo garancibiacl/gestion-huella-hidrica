@@ -50,9 +50,22 @@ export default function PamAdminWeekUploadPage() {
           setLastSyncResult({ tasksCreated });
           setSyncErrors([]);
           if (importedWeek) {
-            week.setWeek(importedWeek.weekYear, importedWeek.weekNumber);
+            // Si la importación trae una semana distinta, actualizamos el selector;
+            // usePamBoard se encargará de recargar automáticamente esa semana.
+            const isSameWeek =
+              importedWeek.weekYear === week.weekYear &&
+              importedWeek.weekNumber === week.weekNumber;
+
+            if (!isSameWeek) {
+              week.setWeek(importedWeek.weekYear, importedWeek.weekNumber);
+            } else {
+              // Si es la misma semana seleccionada, hacemos refetch explícito.
+              await refetchPreview();
+            }
+          } else {
+            // Si no hay información de semana importada, hacemos refetch de la semana actual.
+            await refetchPreview();
           }
-          await refetchPreview();
           toast({
             title: 'Sincronización PLS completada',
             description: `${tasksCreated} tareas importadas desde Google Sheets`,
