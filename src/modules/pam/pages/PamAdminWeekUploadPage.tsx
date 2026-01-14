@@ -25,7 +25,7 @@ export default function PamAdminWeekUploadPage() {
   const [syncErrors, setSyncErrors] = useState<string[]>([]);
   const [lastSyncResult, setLastSyncResult] = useState<{ tasksCreated: number } | null>(null);
   const [tableFilter, setTableFilter] = useState<"all" | "recent">("all");
-  const { organization } = useOrganization();
+  const { organizationId } = useOrganization();
 
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
   const [assignTitle, setAssignTitle] = useState("");
@@ -91,9 +91,9 @@ export default function PamAdminWeekUploadPage() {
     const firstTask = tasks[0] as any | undefined;
     const fallbackOrgId = firstTask?.organization_id as string | undefined;
     const fallbackWeekPlanId = firstTask?.week_plan_id as string | undefined;
-    const organizationId = organization?.id || fallbackOrgId;
+    const orgIdToUse = organizationId || fallbackOrgId;
 
-    if (!organizationId) {
+    if (!orgIdToUse) {
       toast({
         variant: "destructive",
         title: "Organización no encontrada",
@@ -123,7 +123,7 @@ export default function PamAdminWeekUploadPage() {
     try {
       setIsCreatingTask(true);
       await createPamTask({
-        organizationId,
+        organizationId: orgIdToUse,
         weekYear: week.weekYear,
         weekNumber: week.weekNumber,
         date: assignStartDate,
