@@ -72,6 +72,54 @@ export async function uploadPamEvidenceFile(params: {
   return path;
 }
 
+export async function createPamTask(params: {
+  organizationId: string;
+  weekYear: number;
+  weekNumber: number;
+  date: string;
+  endDate?: string | null;
+  description: string;
+  assigneeUserId?: string | null;
+  assigneeName?: string | null;
+  location?: string | null;
+  contractor?: string | null;
+}): Promise<void> {
+  const {
+    organizationId,
+    weekYear,
+    weekNumber,
+    date,
+    endDate,
+    description,
+    assigneeUserId,
+    assigneeName,
+    location,
+    contractor,
+  } = params;
+
+  const insertPayload: any = {
+    organization_id: organizationId,
+    week_year: weekYear,
+    week_number: weekNumber,
+    date,
+    end_date: endDate ?? null,
+    assignee_user_id: assigneeUserId ?? null,
+    assignee_name: assigneeName ?? null,
+    description,
+    location: location ?? null,
+    contractor: contractor ?? null,
+    status: "PENDING" as PamTaskStatus,
+    has_evidence: false,
+  };
+
+  const { error } = await supabase.from("pam_tasks").insert(insertPayload);
+
+  if (error) {
+    console.error("Error creating manual PLS task", error);
+    throw new Error("No se pudo crear la tarea PLS. Inténtalo nuevamente.");
+  }
+}
+
 export async function getAllPamTasksForWeek(
   weekYear: number,
   weekNumber: number

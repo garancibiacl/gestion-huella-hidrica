@@ -8,8 +8,12 @@ import { useRole } from "@/hooks/useRole";
 import { usePamSync } from "../hooks/usePamSync";
 import { usePamWeekSelector } from "../hooks/usePamWeekSelector";
 import { usePamBoard } from "../hooks/usePamBoard";
+import { useOrganization } from "@/hooks/useOrganization";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, RefreshCw, CheckCircle2, AlertTriangle, ExternalLink, PlusCircle, Pencil } from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { createPamTask } from "../services/pamApi";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -21,6 +25,16 @@ export default function PamAdminWeekUploadPage() {
   const [syncErrors, setSyncErrors] = useState<string[]>([]);
   const [lastSyncResult, setLastSyncResult] = useState<{ tasksCreated: number } | null>(null);
   const [tableFilter, setTableFilter] = useState<"all" | "recent">("all");
+  const { organization } = useOrganization();
+
+  const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
+  const [assignTitle, setAssignTitle] = useState("");
+  const [assignResponsible, setAssignResponsible] = useState("");
+  const [assignStartDate, setAssignStartDate] = useState("");
+  const [assignEndDate, setAssignEndDate] = useState("");
+  const [assignLocation, setAssignLocation] = useState("");
+  const [assignContractor, setAssignContractor] = useState("");
+  const [isCreatingTask, setIsCreatingTask] = useState(false);
 
   const week = usePamWeekSelector();
   const { tasks, isLoading: isLoadingPreview, refetch: refetchPreview } = usePamBoard(
@@ -59,6 +73,65 @@ export default function PamAdminWeekUploadPage() {
       }
     },
   });
+
+  const handleCreateManualTask = async () => {
+    if (!organization?.id) {
+      toast({
+        variant: "destructive",
+        title: "Organización no encontrada",
+        description: "No se pudo determinar la organización actual.",
+      });
+      return;
+    }
+
+    if (!assignTitle.trim() || !assignStartDate) {
+      toast({
+        variant: "destructive",
+        title: "Datos incompletos",
+        description: "Completa al menos título y fecha inicio para crear la tarea.",
+      });
+      return;
+    }
+
+    try {
+      setIsCreatingTask(true);
+      await createPamTask({
+        organizationId: organization.id,
+        weekYear: week.weekYear,
+        weekNumber: week.weekNumber,
+        date: assignStartDate,
+        endDate: assignEndDate || null,
+        description: assignTitle.trim(),
+        assigneeUserId: null,
+        assigneeName: assignResponsible || null,
+        location: assignLocation || null,
+        contractor: assignContractor || null,
+      });
+
+      await refetchPreview();
+
+      setAssignTitle("");
+      setAssignResponsible("");
+      setAssignStartDate("");
+      setAssignEndDate("");
+      setAssignLocation("");
+      setAssignContractor("");
+      setIsAssignDialogOpen(false);
+
+      toast({
+        title: "Tarea creada",
+        description: "La tarea fue agregada a la planificación de esta semana.",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error al crear tarea",
+        description: error?.message || "No se pudo crear la tarea.",
+      });
+    } finally {
+      setIsCreatingTask(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -145,6 +218,89 @@ export default function PamAdminWeekUploadPage() {
             </Button>
           </div>
         </div>
+        <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Asignar tarea PLS</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-2">
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  Semana seleccionada: {week.label}
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium">Título / Descripción</label>
+                    <Input
+                      value={assignTitle}
+                      onChange={(e) => setAssignTitle(e.target.value)}
+                      placeholder="Ej: Inspección PLS en patio"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium">Responsable (texto)</label>
+                    <Input
+                      value={assignResponsible}
+                      onChange={(e) => setAssignResponsible(e.target.value)}
+                      placeholder="Nombre del responsable"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium">Fecha inicio</label>
+                    <Input
+                      type="date"
+                      value={assignStartDate}
+                      onChange={(e) => setAssignStartDate(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium">Fecha fin (opcional)</label>
+                    <Input
+                      type="date"
+                      value={assignEndDate}
+                      onChange={(e) => setAssignEndDate(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium">Gerencia</label>
+                    <Input
+                      value={assignLocation}
+                      onChange={(e) => setAssignLocation(e.target.value)}
+                      placeholder="Ej: Gerencia de Seguridad"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium">Proceso/Empresa Contratista</label>
+                    <Input
+                      value={assignContractor}
+                      onChange={(e) => setAssignContractor(e.target.value)}
+                      placeholder="Ej: Buses JM"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <DialogFooter className="mt-4">
+              <Button
+                variant="outline"
+                onClick={() => setIsAssignDialogOpen(false)}
+                disabled={isCreatingTask}
+              >
+                Cancelar
+              </Button>
+              <Button onClick={handleCreateManualTask} disabled={isCreatingTask}>
+                {isCreatingTask ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Guardando...
+                  </>
+                ) : (
+                  "Crear tarea"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </Card>
 
       {/* Formato esperado */}
@@ -211,7 +367,7 @@ export default function PamAdminWeekUploadPage() {
               })()}
             </p>
           </div>
-          <div className="flex flex-col items-end gap-1 text-xs text-muted-foreground">
+          <div className="flex flex-col items-end gap-2 text-xs text-muted-foreground">
             <span className="text-[11px] uppercase tracking-wide bg-muted px-2 py-0.5 rounded-full">
               Fuente: Google Sheets PLS
             </span>
@@ -236,6 +392,13 @@ export default function PamAdminWeekUploadPage() {
                 onClick={week.goToNextWeek}
               >
                 Próxima semana
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => setIsAssignDialogOpen(true)}
+              >
+                Asignar tarea
               </Button>
             </div>
           </div>
