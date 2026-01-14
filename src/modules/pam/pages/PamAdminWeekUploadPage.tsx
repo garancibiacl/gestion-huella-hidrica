@@ -455,22 +455,23 @@ export default function PamAdminWeekUploadPage() {
             }
           }}
         >
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-3xl">
             <DialogHeader>
               <DialogTitle>{editingTaskId ? "Editar tarea PLS" : "Asignar tarea PLS"}</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4 mt-2">
+            <div className="space-y-6 mt-4">
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground">
                   Semana seleccionada: {week.label}
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div>
                     <label className="text-xs font-medium">Título / Descripción</label>
                     <Input
                       value={assignTitle}
                       onChange={(e) => setAssignTitle(e.target.value)}
                       placeholder="Ej: Inspección PLS en patio"
+                      className="h-10"
                     />
                   </div>
                   <div>
@@ -479,6 +480,7 @@ export default function PamAdminWeekUploadPage() {
                       value={assignResponsible}
                       onChange={(e) => setAssignResponsible(e.target.value)}
                       placeholder="Nombre del responsable"
+                      className="h-10"
                     />
                   </div>
                   <div>
@@ -489,12 +491,13 @@ export default function PamAdminWeekUploadPage() {
                       onChange={(e) => setAssignEmail(e.target.value)}
                       placeholder="correo@empresa.com"
                       required
+                      className="h-10"
                     />
                   </div>
                   <div>
                     <label className="text-xs font-medium">Estado de la tarea</label>
                     <Select value={assignStatus} onValueChange={(value) => setAssignStatus(value as typeof assignStatus)}>
-                      <SelectTrigger className="h-9">
+                      <SelectTrigger className="h-10">
                         <SelectValue placeholder="Seleccionar estado" />
                       </SelectTrigger>
                       <SelectContent>
@@ -510,6 +513,7 @@ export default function PamAdminWeekUploadPage() {
                       type="date"
                       value={assignStartDate}
                       onChange={(e) => setAssignStartDate(e.target.value)}
+                      className="h-10"
                     />
                   </div>
                   <div>
@@ -518,6 +522,7 @@ export default function PamAdminWeekUploadPage() {
                       type="date"
                       value={assignEndDate}
                       onChange={(e) => setAssignEndDate(e.target.value)}
+                      className="h-10"
                     />
                   </div>
                   <div>
@@ -526,6 +531,7 @@ export default function PamAdminWeekUploadPage() {
                       value={assignLocation}
                       onChange={(e) => setAssignLocation(e.target.value)}
                       placeholder="Ej: Gerencia de Seguridad"
+                      className="h-10"
                     />
                   </div>
                   <div>
@@ -534,12 +540,13 @@ export default function PamAdminWeekUploadPage() {
                       value={assignContractor}
                       onChange={(e) => setAssignContractor(e.target.value)}
                       placeholder="Ej: Buses JM"
+                      className="h-10"
                     />
                   </div>
                 </div>
               </div>
             </div>
-            <DialogFooter className="mt-4">
+            <DialogFooter className="mt-6">
               <Button
                 variant="outline"
                 onClick={() => setIsAssignDialogOpen(false)}
