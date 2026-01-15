@@ -2,7 +2,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle2, AlertTriangle, Calendar, User, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageHeader } from '@/components/ui/page-header';
 import { HazardStatusBadge } from '../components/HazardStatusBadge';
 import { HazardEvidenceSection } from '../components/HazardEvidenceSection';
@@ -19,7 +18,7 @@ export default function HazardDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
         <PageHeader title="Cargando..." description="Obteniendo detalles del reporte" />
         <div className="text-center py-12">
           <p className="text-muted-foreground">Cargando reporte...</p>
@@ -30,7 +29,7 @@ export default function HazardDetailPage() {
 
   if (!report) {
     return (
-      <div className="space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
         <PageHeader title="Reporte no encontrado" description="El reporte solicitado no existe" />
         <Card className="p-12 text-center">
           <AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground opacity-20 mb-4" />
@@ -51,24 +50,25 @@ export default function HazardDetailPage() {
   const canClose = report.status === 'OPEN';
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
       <PageHeader
         title={`Reporte de Peligro #${report.id.slice(0, 8)}`}
         description={report.gerencia}
-      >
-        <div className="flex gap-2">
-          {canClose && (
-            <Button onClick={() => navigate(`/admin/pls/hazard-report/${report.id}/close`)}>
-              <CheckCircle2 className="mr-2 h-4 w-4" />
-              Cerrar Reporte
+        action={
+          <div className="flex gap-2">
+            {canClose && (
+              <Button onClick={() => navigate(`/admin/pls/hazard-report/${report.id}/close`)}>
+                <CheckCircle2 className="mr-2 h-4 w-4" />
+                Cerrar Reporte
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => navigate('/admin/pls/hazard-report')}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Volver
             </Button>
-          )}
-          <Button variant="outline" onClick={() => navigate('/admin/pls/hazard-report')}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver
-          </Button>
-        </div>
-      </PageHeader>
+          </div>
+        }
+      />
 
       {/* Encabezado del reporte */}
       <Card className="p-6">
@@ -105,6 +105,17 @@ export default function HazardDetailPage() {
                 <p className="text-muted-foreground whitespace-pre-wrap">{report.root_cause}</p>
               </>
             )}
+          </div>
+
+          {/* Evidencias (debajo de Descripción/Causa raíz) */}
+          <div className="md:col-span-2">
+            <Card className="p-6">
+              <HazardEvidenceSection
+                reportId={report.id}
+                evidences={report.evidences || []}
+                canAddEvidence={report.status === 'OPEN'}
+              />
+            </Card>
           </div>
 
           {/* Jerarquía */}
@@ -227,31 +238,10 @@ export default function HazardDetailPage() {
         </div>
       </Card>
 
-      {/* Tabs: Evidencias y Timeline */}
-      <Tabs defaultValue="evidences">
-        <TabsList>
-          <TabsTrigger value="evidences">
-            Evidencias ({report.evidences?.length || 0})
-          </TabsTrigger>
-          <TabsTrigger value="timeline">Timeline ({report.events?.length || 0})</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="evidences" className="mt-6">
-          <Card className="p-6">
-            <HazardEvidenceSection
-              reportId={report.id}
-              evidences={report.evidences || []}
-              canAddEvidence={report.status === 'OPEN'}
-            />
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="timeline" className="mt-6">
-          <Card className="p-6">
-            <HazardTimeline events={report.events || []} />
-          </Card>
-        </TabsContent>
-      </Tabs>
+      {/* Timeline */}
+      <Card className="p-6">
+        <HazardTimeline events={report.events || []} />
+      </Card>
     </div>
   );
 }

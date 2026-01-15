@@ -86,7 +86,7 @@ export default function HazardClosePage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
         <PageHeader title="Cargando..." description="Obteniendo detalles del reporte" />
         <div className="text-center py-12">
           <p className="text-muted-foreground">Cargando reporte...</p>
@@ -97,7 +97,7 @@ export default function HazardClosePage() {
 
   if (!report) {
     return (
-      <div className="space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
         <PageHeader title="Reporte no encontrado" description="El reporte solicitado no existe" />
         <Card className="p-12 text-center">
           <h3 className="text-lg font-semibold mb-2">Reporte no encontrado</h3>
@@ -112,7 +112,7 @@ export default function HazardClosePage() {
 
   if (report.status !== 'OPEN') {
     return (
-      <div className="space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
         <PageHeader
           title="Reporte ya cerrado"
           description="Este reporte ya ha sido procesado"
@@ -129,16 +129,17 @@ export default function HazardClosePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
       <PageHeader
         title={`Cerrar Reporte #${report.id.slice(0, 8)}`}
         description="Complete la información de cierre del reporte"
-      >
-        <Button variant="outline" onClick={() => navigate(`/admin/pls/hazard-report/${id}`)}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Volver
-        </Button>
-      </PageHeader>
+        action={
+          <Button variant="outline" onClick={() => navigate(`/admin/pls/hazard-report/${id}`)}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Volver
+          </Button>
+        }
+      />
 
       {/* Resumen del reporte */}
       <Card className="p-6">

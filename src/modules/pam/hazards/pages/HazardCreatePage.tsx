@@ -7,20 +7,36 @@ import { HazardForm } from '../components/HazardForm';
 import { useCreateHazardReport } from '../hooks/useHazardReports';
 import { useToast } from '@/hooks/use-toast';
 import type { CreateHazardReportPayload } from '../types/hazard.types';
+import { addHazardEvidence } from '../services/hazardApi';
 
 export default function HazardCreatePage() {
   const navigate = useNavigate();
   const createMutation = useCreateHazardReport();
   const { toast } = useToast();
 
-  const handleSubmit = async (data: CreateHazardReportPayload) => {
+  const handleSubmit = async (params: { payload: CreateHazardReportPayload; evidences: File[] }) => {
     try {
-      const report = await createMutation.mutateAsync(data);
+      const report = await createMutation.mutateAsync(params.payload);
       
       toast({
         title: 'Reporte creado',
         description: 'El reporte de peligro se ha creado correctamente',
       });
+
+      // Evidencias (foto primero, archivos después)
+      if (params.evidences.length > 0) {
+        toast({
+          title: 'Subiendo evidencias…',
+          description: `Subiendo ${params.evidences.length} archivo(s)`,
+        });
+        for (const file of params.evidences) {
+          await addHazardEvidence({
+            reportId: report.id,
+            file,
+            evidenceType: 'FINDING',
+          });
+        }
+      }
 
       navigate(`/admin/pls/hazard-report/${report.id}`);
     } catch (error: any) {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -70,7 +70,7 @@ const hazardReportSchema = z.object({
 type HazardReportFormValues = z.infer<typeof hazardReportSchema>;
 
 interface HazardFormProps {
-  onSubmit: (data: CreateHazardReportPayload) => void;
+  onSubmit: (params: { payload: CreateHazardReportPayload; evidences: File[] }) => void;
   isSubmitting?: boolean;
 }
 
@@ -79,6 +79,10 @@ export function HazardForm({ onSubmit, isSubmitting }: HazardFormProps) {
   const { data: profile } = useUserProfile();
   const { data: criticalRisks = [] } = useHazardCriticalRisks();
   const { data: responsibles = [] } = useHazardResponsibles();
+  const [evidenceError, setEvidenceError] = useState<string | null>(null);
+  const evidenceSectionRef = useRef<HTMLDivElement | null>(null);
+  const [findingPhotos, setFindingPhotos] = useState<File[]>([]);
+  const [findingFiles, setFindingFiles] = useState<File[]>([]);
 
   const form = useForm<HazardReportFormValues>({
     resolver: zodResolver(hazardReportSchema),
@@ -102,13 +106,47 @@ export function HazardForm({ onSubmit, isSubmitting }: HazardFormProps) {
   });
 
   const handleSubmit = (values: HazardReportFormValues) => {
+    setEvidenceError(null);
+
+    const selectedRisk = criticalRisks.find((r) => r.id === values.critical_risk_id);
+    const requiresEvidence =
+      !!selectedRisk?.requires_evidence ||
+      selectedRisk?.severity === 'ALTA' ||
+      selectedRisk?.severity === 'CRITICA';
+
+    const evidences = [...findingPhotos, ...findingFiles];
+    if (requiresEvidence && evidences.length === 0) {
+      setEvidenceError(
+        'Este riesgo requiere evidencia. Adjunta al menos 1 foto (recomendado) o archivo.'
+      );
+      evidenceSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+
     const payload: CreateHazardReportPayload = {
       ...values,
       due_date: format(values.due_date, 'yyyy-MM-dd'),
       reporter_email: values.reporter_email || undefined,
     };
-    onSubmit(payload);
+    onSubmit({ payload, evidences });
   };
+
+  const criticalRiskHint = useMemo(() => {
+    const selectedId = form.watch('critical_risk_id');
+    const selected = criticalRisks.find((r) => r.id === selectedId);
+    if (!selected) return null;
+    const requires =
+      !!selected.requires_evidence ||
+      selected.severity === 'ALTA' ||
+      selected.severity === 'CRITICA';
+    return {
+      requiresEvidence: requires,
+      label:
+        selected.severity || selected.requires_evidence
+          ? `Severidad: ${selected.severity ?? '—'}${selected.requires_evidence ? ' · Evidencia obligatoria' : ''}`
+          : null,
+    };
+  }, [criticalRisks, form]);
 
   return (
     <Form {...form}>
@@ -353,6 +391,114 @@ export function HazardForm({ onSubmit, isSubmitting }: HazardFormProps) {
               </FormItem>
             )}
           />
+        </div>
+
+        {/* Evidencias (foto primero) */}
+        <div ref={evidenceSectionRef} className="space-y-4">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="space-y-1">
+              <h3 className="text-lg font-semibold">Evidencias</h3>
+              <p className="text-sm text-muted-foreground">
+                Foto primero (ideal en terreno). Luego puedes adjuntar archivos si hace falta.
+              </p>
+              {criticalRiskHint?.label && (
+                <p className="text-xs text-muted-foreground">{criticalRiskHint.label}</p>
+              )}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {findingPhotos.length + findingFiles.length} adjunto(s)
+            </div>
+          </div>
+
+          {evidenceError && (
+            <div className="text-sm text-destructive">{evidenceError}</div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Fotos (recomendado)
+                {criticalRiskHint?.requiresEvidence && (
+                  <span className="text-destructive"> *</span>
+                )}
+              </label>
+              <Input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                multiple
+                disabled={isSubmitting}
+                onChange={(e) => {
+                  const files = Array.from(e.target.files ?? []);
+                  if (!files.length) return;
+                  setFindingPhotos((prev) => [...prev, ...files]);
+                  e.currentTarget.value = '';
+                }}
+              />
+              {findingPhotos.length > 0 && (
+                <ul className="text-xs text-muted-foreground space-y-1">
+                  {findingPhotos.map((f, idx) => (
+                    <li
+                      key={`${f.name}-${f.size}-${idx}`}
+                      className="flex items-center justify-between gap-2"
+                    >
+                      <span className="truncate">{f.name}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={isSubmitting}
+                        onClick={() =>
+                          setFindingPhotos((prev) => prev.filter((_, i) => i !== idx))
+                        }
+                      >
+                        Quitar
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Archivos (opcional)</label>
+              <Input
+                type="file"
+                accept="application/pdf,.pdf,.doc,.docx"
+                multiple
+                disabled={isSubmitting}
+                onChange={(e) => {
+                  const files = Array.from(e.target.files ?? []);
+                  if (!files.length) return;
+                  setFindingFiles((prev) => [...prev, ...files]);
+                  e.currentTarget.value = '';
+                }}
+              />
+              {findingFiles.length > 0 && (
+                <ul className="text-xs text-muted-foreground space-y-1">
+                  {findingFiles.map((f, idx) => (
+                    <li
+                      key={`${f.name}-${f.size}-${idx}`}
+                      className="flex items-center justify-between gap-2"
+                    >
+                      <span className="truncate">{f.name}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={isSubmitting}
+                        onClick={() =>
+                          setFindingFiles((prev) => prev.filter((_, i) => i !== idx))
+                        }
+                      >
+                        Quitar
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Datos del Reportante */}

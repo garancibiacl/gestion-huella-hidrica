@@ -13,6 +13,8 @@ import type {
   HazardReportStats,
 } from '../types/hazard.types';
 
+const HAZARD_EVIDENCE_BUCKET = 'hazard-evidence';
+
 // =====================================================
 // CATALOGS: Obtener catálogos desde Supabase
 // =====================================================
@@ -375,32 +377,22 @@ export async function addHazardEvidence(params: {
   if (!report) throw new Error('Reporte no encontrado');
 
   // 2. Subir archivo a storage
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${reportId}/${evidenceType}/${Date.now()}.${fileExt}`;
-  const filePath = `${report.organization_id}/hazards/${fileName}`;
+  const safeName = file.name.replace(/[^\w.\-() ]+/g, '_');
+  const filePath = `${report.organization_id}/hazards/${reportId}/${evidenceType}/${Date.now()}-${safeName}`;
 
   const { error: uploadError } = await supabase.storage
-    .from('hazard-evidence')
-    .upload(filePath, file, {
-      cacheControl: '3600',
-      upsert: false,
-    });
+    .from(HAZARD_EVIDENCE_BUCKET)
+    .upload(filePath, file, { upsert: false });
 
   if (uploadError) throw uploadError;
 
-  // 3. Obtener URL pública (o signed URL si es privado)
-  const { data: urlData } = supabase.storage
-    .from('hazard-evidence')
-    .getPublicUrl(filePath);
-
-  const fileUrl = urlData.publicUrl;
-
-  // 4. Registrar evidencia en DB
+  // 3. Registrar evidencia en DB
   const { data, error } = await supabase
     .from('hazard_report_evidences')
     .insert({
       hazard_report_id: reportId,
-      file_url: fileUrl,
+      // Guardamos el PATH en storage (bucket privado). La UI genera signed URL al renderizar.
+      file_url: filePath,
       file_name: file.name,
       mime_type: file.type,
       size_bytes: file.size,
@@ -413,7 +405,7 @@ export async function addHazardEvidence(params: {
 
   if (error) throw error;
 
-  // 5. Crear evento
+  // 4. Crear evento
   await supabase.from('hazard_report_events').insert({
     hazard_report_id: reportId,
     event_type: 'EVIDENCE_ADDED',

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,7 +21,10 @@ import {
 import { Upload, FileIcon, ImageIcon, Loader2, X } from 'lucide-react';
 import { useAddHazardEvidence } from '../hooks/useHazardReports';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import type { HazardReportEvidence, EvidenceType } from '../types/hazard.types';
+
+const HAZARD_EVIDENCE_BUCKET = 'hazard-evidence';
 
 interface HazardEvidenceSectionProps {
   reportId: string;
@@ -42,6 +45,41 @@ export function HazardEvidenceSection({
 
   const addEvidenceMutation = useAddHazardEvidence();
   const { toast } = useToast();
+
+  const needsSignedUrls = useMemo(
+    () => evidences.some((e) => e.file_url && !e.file_url.startsWith('http')),
+    [evidences]
+  );
+  const [signedUrlByEvidenceId, setSignedUrlByEvidenceId] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    async function hydrateSignedUrls() {
+      if (!needsSignedUrls) return;
+
+      const entries = await Promise.all(
+        evidences.map(async (e) => {
+          if (!e.file_url || e.file_url.startsWith('http')) {
+            return [e.id, e.file_url] as const;
+          }
+          const { data, error } = await supabase.storage
+            .from(HAZARD_EVIDENCE_BUCKET)
+            .createSignedUrl(e.file_url, 60 * 60); // 1h
+
+          if (error || !data?.signedUrl) return [e.id, ''] as const;
+          return [e.id, data.signedUrl] as const;
+        })
+      );
+
+      if (cancelled) return;
+      setSignedUrlByEvidenceId(Object.fromEntries(entries));
+    }
+
+    hydrateSignedUrls();
+    return () => {
+      cancelled = true;
+    };
+  }, [evidences, needsSignedUrls]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -248,7 +286,21 @@ export function HazardEvidenceSection({
                   asChild
                   className="h-8"
                 >
-                  <a href={evidence.file_url} target="_blank" rel="noopener noreferrer">
+                  <a
+                    href={signedUrlByEvidenceId[evidence.id] || '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-disabled={!signedUrlByEvidenceId[evidence.id]}
+                    onClick={(ev) => {
+                      if (!signedUrlByEvidenceId[evidence.id]) {
+                        ev.preventDefault();
+                        toast({
+                          title: 'Cargando evidencia…',
+                          description: 'Intenta nuevamente en unos segundos.',
+                        });
+                      }
+                    }}
+                  >
                     Ver
                   </a>
                 </Button>
