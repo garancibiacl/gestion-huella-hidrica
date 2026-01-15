@@ -29,6 +29,7 @@ import PamAdminBoardPage from "./modules/pam/pages/PamAdminBoardPage";
 import PamDashboardPage from "./modules/pam/pages/PamDashboardPage";
 import PamPerformancePage from "./modules/pam/pages/PamPerformancePage";
 import PamReportsPage from "./modules/pam/pages/PamReportsPage";
+import HazardDashboardPage from "./modules/pam/hazards/pages/HazardDashboardPage";
 
 // Hazard Report Module
 import HazardListPage from "./modules/pam/hazards/pages/HazardListPage";
@@ -69,6 +70,7 @@ const App = () => (
               <Route path="/pls/dashboard" element={<PamDashboardPage />} />
               <Route path="/pls/performance" element={<PamPerformancePage />} />
               <Route path="/pls/reports" element={<PamReportsPage />} />
+              <Route path="/pls/hazard-dashboard" element={<HazardDashboardPage />} />
               <Route path="/admin/pls/upload" element={<PamAdminWeekUploadPage />} />
               
               {/* Hazard Report Module */}

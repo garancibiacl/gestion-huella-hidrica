@@ -25,7 +25,7 @@ Sistema de gestión de tareas de seguridad y salud ocupacional integrado en plat
 - Subir evidencias
 - Comentar en sus tareas
 
-### Prevencionista (Preventer)
+### Supervisión (Preventer)
 - Ver todas las tareas de su organización
 - Asignar y planificar tareas
 - Acceso a dashboard ejecutivo

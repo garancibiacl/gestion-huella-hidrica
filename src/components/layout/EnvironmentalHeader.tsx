@@ -40,7 +40,7 @@ export function EnvironmentalHeader({ onMenuClick, className }: EnvironmentalHea
     .map((part: string) => part.charAt(0).toUpperCase())
     .join('') || 'BJ';
 
-  const roleLabel = isAdmin ? 'Admin' : isPrevencionista ? 'Prevencionista' : 'Worker';
+  const roleLabel = isAdmin ? 'Admin' : isPrevencionista ? 'Supervisión' : 'Worker';
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

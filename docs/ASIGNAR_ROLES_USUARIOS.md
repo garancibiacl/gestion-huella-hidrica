@@ -57,7 +57,7 @@ FROM profiles
 WHERE email IN ('diego@ejemplo.com', 'admin@empresa.cl')
 ON CONFLICT (user_id, role) DO NOTHING;
 
--- Prevencionista
+-- Supervisión
 INSERT INTO user_roles (user_id, role) 
 SELECT user_id, 'prevencionista' 
 FROM profiles 

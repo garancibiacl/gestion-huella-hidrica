@@ -736,6 +736,7 @@ export default function PamAdminWeekUploadPage({
                     const updatedAtMs = Date.parse(task.updated_at);
                     const isNew = createdAtMs >= recentCutoffMs;
                     const isRecentlyUpdated = !isNew && updatedAtMs >= recentCutoffMs;
+                    const isLocked = task.status === "DONE";
 
                     return (
                       <tr key={task.id} className="hover:bg-muted/50">
@@ -762,6 +763,14 @@ export default function PamAdminWeekUploadPage({
                                 </Badge>
                               );
                             })()}
+                            {isLocked && (
+                              <Badge
+                                variant="outline"
+                                className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              >
+                                Cerrada
+                              </Badge>
+                            )}
                             <span className="truncate" title={task.description}>
                               {task.description}
                             </span>
@@ -771,7 +780,7 @@ export default function PamAdminWeekUploadPage({
                         <td className="p-2 text-xs text-muted-foreground">{task.contractor || "-"}</td>
                         <td className="p-2 text-xs">
                           <div className="flex items-center justify-end gap-1">
-                            {task.has_evidence && (
+                            {task.has_evidence && !isLocked && (
                               <>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
@@ -801,32 +810,36 @@ export default function PamAdminWeekUploadPage({
                                 </Tooltip>
                               </>
                             )}
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                  onClick={() => handleOpenEditTask(task)}
-                                >
-                                  <Edit3 className="w-4 h-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top">Editar tarea</TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7 text-muted-foreground hover:text-red-600"
-                                  onClick={() => handleDeleteTask(task.id)}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top">Eliminar tarea</TooltipContent>
-                            </Tooltip>
+                            {!isLocked && (
+                              <>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                      onClick={() => handleOpenEditTask(task)}
+                                    >
+                                      <Edit3 className="w-4 h-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">Editar tarea</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 text-muted-foreground hover:text-red-600"
+                                      onClick={() => handleDeleteTask(task.id)}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top">Eliminar tarea</TooltipContent>
+                                </Tooltip>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>

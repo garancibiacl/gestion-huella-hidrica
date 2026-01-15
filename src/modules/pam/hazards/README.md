@@ -152,7 +152,7 @@ Ya está configurado en `src/components/layout/AppSidebar.tsx`:
 ### 3. Permisos
 
 - **Todos los usuarios de PLS**: Pueden ver reportes de su organización
-- **Admin/Prevencionista**: Pueden crear, editar y cerrar reportes
+- **Admin/Supervisión**: Pueden crear, editar y cerrar reportes
 - **Responsables asignados**: Pueden ver reportes asignados a ellos
 
 ## Configuración de Google Sheets

@@ -15,6 +15,7 @@ import { es } from 'date-fns/locale';
 import { useHazardCatalogSync } from '../hooks/useHazardCatalogSync';
 import { useToast } from '@/hooks/use-toast';
 import { exportHazardMonthlyReport } from '@/lib/pdf-export';
+import { useOrganization } from '@/hooks/useOrganization';
 
 export default function HazardListPage() {
   const navigate = useNavigate();
@@ -22,6 +23,7 @@ export default function HazardListPage() {
   const [activeTab, setActiveTab] = useState<'all' | 'open' | 'closed'>('all');
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { organizationId, loading: organizationLoading } = useOrganization();
 
   const { data: hierarchy = [], isLoading: hierarchyLoading } = useHazardHierarchy();
   const { data: risks = [], isLoading: risksLoading } = useHazardCriticalRisks();
@@ -30,6 +32,7 @@ export default function HazardListPage() {
   const autoSyncOnceRef = useRef(false);
 
   useEffect(() => {
+    if (organizationLoading || !organizationId) return;
     const doneLoading = !hierarchyLoading && !risksLoading && !responsiblesLoading;
     const hasCatalogs = hierarchy.length > 0 && risks.length > 0 && responsibles.length > 0;
     if (!doneLoading || hasCatalogs || isSyncing || autoSyncOnceRef.current) return;
@@ -57,6 +60,8 @@ export default function HazardListPage() {
     syncCatalogs,
     queryClient,
     toast,
+    organizationLoading,
+    organizationId,
   ]);
 
   // Aplicar filtro de estado según tab activo
@@ -97,6 +102,14 @@ export default function HazardListPage() {
               variant="outline"
               disabled={isSyncing}
               onClick={async () => {
+                if (!organizationId) {
+                  toast({
+                    title: 'Organización no disponible',
+                    description: 'No se pudo determinar la organización actual.',
+                    variant: 'destructive',
+                  });
+                  return;
+                }
                 const result = await syncCatalogs(true);
                 await queryClient.invalidateQueries({ queryKey: hazardKeys.catalogs() });
                 if (!result.success) {

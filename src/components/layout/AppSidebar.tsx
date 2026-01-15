@@ -46,10 +46,11 @@ const environmentalNavItems: NavItem[] = [
 // Navegación para Módulo PLS (Gestión de Seguridad)
 // Basado en estructura Codelco/Zyght
 const pamNavItems: NavItem[] = [
+  { icon: AlertTriangle, label: "Reporte de Peligro", path: "/admin/pls/hazard-report", pamAdminOnly: true },
+  { icon: BarChart3, label: "Dashboard de Peligros", path: "/pls/hazard-dashboard", pamAdminOnly: true },
   { icon: ClipboardList, label: "Mis actividades", path: "/pls/my-activities" },
   { icon: LayoutDashboard, label: "Dashboard PLS", path: "/pls/dashboard", pamAdminOnly: true },
   { icon: Upload, label: "Planificación semanal PLS", path: "/admin/pls/upload", pamAdminOnly: true },
-  { icon: AlertTriangle, label: "Reporte de Peligro", path: "/admin/pls/hazard-report", pamAdminOnly: true },
   { icon: CheckSquare, label: "Estado de cumplimiento", path: "/admin/pls/board", pamAdminOnly: true },
   { icon: TrendingUp, label: "Desempeño del PLS", path: "/pls/performance", pamAdminOnly: true },
   { icon: FileText, label: "Reportabilidad", path: "/pls/reports", pamAdminOnly: true },

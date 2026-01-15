@@ -4,7 +4,7 @@ Sistema de gestión de tareas de seguridad y salud ocupacional (Plan de Acción 
 
 ## Características
 
-✅ **Multi-rol**: Worker, Prevencionista, Admin  
+✅ **Multi-rol**: Worker, Supervisión, Admin  
 ✅ **Dashboard ejecutivo** con KPIs en tiempo real  
 ✅ **Importación masiva** desde Google Sheets  
 ✅ **Notificaciones** in-app y email  
@@ -50,7 +50,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 3. Acusar recibo: PENDING → IN_PROGRESS
 4. Subir evidencia y marcar como DONE
 
-### Para Prevencionistas
+### Para Supervisión
 
 1. Acceso a dashboard ejecutivo: `/pam/dashboard`
 2. Ver cumplimiento por contrato, área, ubicación
@@ -70,7 +70,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 ```csv
 fecha,descripcion,responsable_email,responsable_nombre,ubicacion,contrato,area,rol,tipo_riesgo
 2024-01-15,Inspección de EPP,juan@empresa.cl,Juan Pérez,Taller Los Andes,Codelco VP,Operaciones,Supervisor,Ergonómico
-2024-01-16,Revisión extintores,maria@empresa.cl,María González,Casa matriz,Codelco Andina,Seguridad,Prevencionista,Incendio
+2024-01-16,Revisión extintores,maria@empresa.cl,María González,Casa matriz,Codelco Andina,Seguridad,Supervisión,Incendio
 ```
 
 **Campos obligatorios**: fecha, descripcion, responsable_email  

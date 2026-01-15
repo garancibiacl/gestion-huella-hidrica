@@ -165,7 +165,7 @@ export default function Hub() {
 
   const roleLabelMap: Record<string, string> = {
     admin: 'ADMINISTRADOR SENIOR',
-    prevencionista: 'PREVENCIONISTA',
+    prevencionista: 'SUPERVISIÓN',
     worker: 'TRABAJADOR',
   };
 

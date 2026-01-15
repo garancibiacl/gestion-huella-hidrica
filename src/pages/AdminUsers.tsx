@@ -399,7 +399,7 @@ export default function AdminUsers() {
       case 'admin':
         return <Badge className="bg-primary/10 text-primary border-primary/20">Admin</Badge>;
       case 'prevencionista':
-        return <Badge className="bg-success/10 text-success border-success/20">Prevencionista</Badge>;
+        return <Badge className="bg-success/10 text-success border-success/20">Supervisión</Badge>;
       case 'worker':
         return <Badge className="bg-blue-100 text-blue-700 border-blue-200">Worker</Badge>;
       default:
@@ -468,7 +468,7 @@ export default function AdminUsers() {
               <UserCog className="w-6 h-6 text-success" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Prevencionistas</p>
+              <p className="text-sm text-muted-foreground">Supervisión</p>
               <p className="text-2xl font-bold">{stats.prevencionistas}</p>
             </div>
           </div>
@@ -601,7 +601,7 @@ export default function AdminUsers() {
                           <SelectItem value="prevencionista">
                             <div className="flex items-center gap-2">
                               <UserCog className="w-4 h-4" />
-                              Prevencionista
+                              Supervisión
                             </div>
                           </SelectItem>
                           <SelectItem value="worker">
@@ -860,7 +860,7 @@ export default function AdminUsers() {
                   <SelectItem value="prevencionista">
                     <div className="flex items-center gap-2">
                       <UserCog className="w-4 h-4" />
-                      Prevencionista
+                      Supervisión
                     </div>
                   </SelectItem>
                   <SelectItem value="admin">

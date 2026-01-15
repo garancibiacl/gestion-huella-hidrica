@@ -49,7 +49,7 @@ Semántica: Rojo = Alerta, Seguridad, Prevención
 ### Roles de Usuario
 ```css
 Admin: Purple (bg-purple-100, text-purple-700)
-Prevencionista: Blue (bg-blue-100, text-blue-700)
+Supervisión: Blue (bg-blue-100, text-blue-700)
 Worker: Green (bg-green-100, text-green-700)
 ```
 
