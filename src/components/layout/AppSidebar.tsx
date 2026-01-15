@@ -400,17 +400,17 @@ export function AppSidebar({ onClose, isCollapsed = false, onToggleCollapse }: A
               >
                 {isPamModule ? (
                   <>
-                    <Leaf className={cn(
+                    <Home className={cn(
                       "flex-shrink-0 text-white/90 group-hover:text-white transition-colors",
                       isCollapsed ? "w-5 h-5" : "w-4 h-4"
                     )} />
                     {!isCollapsed && (
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-white/90 group-hover:text-white truncate">
-                          Gestión Ambiental
+                          Volver al inicio
                         </p>
                         <p className="text-[10px] text-white/60 group-hover:text-white/70">
-                          Cambiar módulo
+                          Ver todos los módulos
                         </p>
                       </div>
                     )}
@@ -424,10 +424,10 @@ export function AppSidebar({ onClose, isCollapsed = false, onToggleCollapse }: A
                     {!isCollapsed && (
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-white/90 group-hover:text-white truncate">
-                          Gestión de Seguridad
+                          Ir a Seguridad (PLS)
                         </p>
                         <p className="text-[10px] text-white/60 group-hover:text-white/70">
-                          Cambiar módulo
+                          Cambiar de módulo
                         </p>
                       </div>
                     )}
@@ -437,7 +437,7 @@ export function AppSidebar({ onClose, isCollapsed = false, onToggleCollapse }: A
             </TooltipTrigger>
             <TooltipContent side="right" className="text-xs">
               <span>
-                {isPamModule ? "Ir a Gestión Ambiental" : "Ir a Gestión de Seguridad (PLS)"}
+                {isPamModule ? "Volver al inicio y ver todos los módulos" : "Cambiar a módulo de Seguridad (PLS)"}
               </span>
             </TooltipContent>
           </Tooltip>

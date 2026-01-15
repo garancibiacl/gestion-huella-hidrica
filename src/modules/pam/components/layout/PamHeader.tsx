@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { Search, Bell, Settings, HelpCircle, Menu, X, LogOut, ChevronDown } from 'lucide-react';
+import { Search, Settings, HelpCircle, Menu, X, LogOut, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,7 +12,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { usePamNotifications } from '../../hooks/usePamNotifications';
+import { PamNotificationBell } from '../notifications/PamNotificationBell';
+import { HazardNotificationBell } from '../../hazards/components/HazardNotificationBell';
 import { useAuth } from '@/hooks/useAuth';
 import { useRole } from '@/hooks/useRole';
 
@@ -25,7 +25,6 @@ interface PamHeaderProps {
 export function PamHeader({ onMenuClick, className }: PamHeaderProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const { notifications, unreadCount } = usePamNotifications();
   const { user, signOut } = useAuth();
   const { isAdmin, isPrevencionista } = useRole();
 
@@ -119,82 +118,11 @@ export function PamHeader({ onMenuClick, className }: PamHeaderProps) {
 
         {/* Right: Quick Actions */}
         <div className="flex items-center gap-1 lg:gap-2">
-          {/* Notifications */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative text-white hover:bg-white/10"
-              >
-                <Bell className="h-5 w-5" />
-                {unreadCount > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold text-red-600 shadow-md">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-                <span className="sr-only">
-                  Notificaciones ({unreadCount} sin leer)
-                </span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80">
-              <DropdownMenuLabel className="flex items-center justify-between">
-                <span>Notificaciones</span>
-                {unreadCount > 0 && (
-                  <Badge variant="secondary" className="text-xs">
-                    {unreadCount} nuevas
-                  </Badge>
-                )}
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {notifications.length === 0 ? (
-                <div className="p-4 text-center text-sm text-muted-foreground">
-                  No hay notificaciones
-                </div>
-              ) : (
-                <div className="max-h-[400px] overflow-y-auto">
-                  {notifications.slice(0, 5).map((notification) => (
-                    <DropdownMenuItem
-                      key={notification.id}
-                      asChild
-                      className="cursor-pointer"
-                    >
-                      <Link
-                        to={`/pls/my-activities?task=${notification.task_id}`}
-                        className="flex flex-col gap-1 p-3"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <span className="text-sm font-medium line-clamp-1">
-                            {notification.title}
-                          </span>
-                          {!notification.is_read && (
-                            <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0 mt-1" />
-                          )}
-                        </div>
-                        <span className="text-xs text-muted-foreground line-clamp-2">
-                          {notification.message}
-                        </span>
-                      </Link>
-                    </DropdownMenuItem>
-                  ))}
-                </div>
-              )}
-              {notifications.length > 5 && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link
-                      to="/pls/notifications"
-                      className="text-center text-sm text-primary"
-                    >
-                      Ver todas las notificaciones
-                    </Link>
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Notificaciones - Dos campanas separadas */}
+          <div className="flex items-center gap-1">
+            <HazardNotificationBell />
+            <PamNotificationBell />
+          </div>
 
           {/* User Menu */}
           <DropdownMenu>
