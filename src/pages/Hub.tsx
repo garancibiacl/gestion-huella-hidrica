@@ -6,6 +6,7 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 import { Loader2, Droplets, Shield, Settings, HelpCircle, LogOut, ChevronDown, BarChart3, Users } from "lucide-react";
 import { ModuleCard } from "@/components/hub/ModuleCard";
 import { PamNotificationBell } from "@/modules/pam/components/notifications/PamNotificationBell";
+import { HazardNotificationBell } from "@/modules/pam/hazards/components/HazardNotificationBell";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -217,8 +218,11 @@ export default function Hub() {
               <span>ACTIVO</span>
             </div>
 
-            {/* Notificaciones PLS */}
-            <PamNotificationBell />
+            {/* Notificaciones */}
+            <div className="flex items-center gap-1">
+              <HazardNotificationBell />
+              <PamNotificationBell />
+            </div>
 
             {/* Menú de usuario */}
             <DropdownMenu>

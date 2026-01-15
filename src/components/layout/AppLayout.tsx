@@ -9,6 +9,7 @@ import { usePageTracking } from '@/hooks/usePageTracking';
 import { FullPageLoader } from '@/components/ui/full-page-loader';
 import { cn } from '@/lib/utils';
 import { PamNotificationBell } from '@/modules/pam/components/notifications/PamNotificationBell';
+import { HazardNotificationBell } from '@/modules/pam/hazards/components/HazardNotificationBell';
 import { PamHeader } from '@/modules/pam/components/layout/PamHeader';
 
 export function AppLayout() {
@@ -94,7 +95,10 @@ export function AppLayout() {
             </Button>
             <span className="font-semibold">Buses JM</span>
           </div>
-          <PamNotificationBell />
+          <div className="flex items-center gap-1">
+            <HazardNotificationBell />
+            <PamNotificationBell />
+          </div>
         </header>
       )}
 

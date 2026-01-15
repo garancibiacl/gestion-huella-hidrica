@@ -250,6 +250,60 @@ export type Database = {
           },
         ]
       }
+      hazard_notifications: {
+        Row: {
+          created_at: string
+          hazard_report_id: string | null
+          id: string
+          is_read: boolean
+          message: string
+          organization_id: string
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          hazard_report_id?: string | null
+          id?: string
+          is_read?: boolean
+          message: string
+          organization_id: string
+          read_at?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          hazard_report_id?: string | null
+          id?: string
+          is_read?: boolean
+          message?: string
+          organization_id?: string
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hazard_notifications_hazard_report_id_fkey"
+            columns: ["hazard_report_id"]
+            isOneToOne: false
+            referencedRelation: "hazard_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hazard_notifications_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hazard_report_events: {
         Row: {
           created_at: string | null
@@ -1484,7 +1538,12 @@ export type Database = {
       }
       is_pam_admin: { Args: never; Returns: boolean }
       is_pam_worker: { Args: never; Returns: boolean }
+      mark_all_hazard_notifications_read: { Args: never; Returns: undefined }
       mark_all_pam_notifications_read: { Args: never; Returns: undefined }
+      mark_hazard_notification_read: {
+        Args: { notification_id: string }
+        Returns: undefined
+      }
       mark_pam_notification_read: {
         Args: { notification_id: string }
         Returns: undefined
