@@ -4,8 +4,14 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
+  Legend,
   Line,
   LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
@@ -104,6 +110,35 @@ export default function HazardDashboardPage() {
     return unique.sort((a, b) => a.localeCompare(b, "es"));
   }, [reports]);
 
+  const pieChartData = useMemo(() => {
+    const total = filteredReports.length;
+    if (total === 0) return [];
+
+    const { open, inProgress } = splitOpenProgress(filteredReports);
+    const closed = filteredReports.filter((report) => report.status === "CLOSED").length;
+
+    return [
+      {
+        name: "Abiertos",
+        value: open,
+        percentage: ((open / total) * 100).toFixed(1),
+        fill: "#ef4444", // red-500
+      },
+      {
+        name: "En Proceso",
+        value: inProgress,
+        percentage: ((inProgress / total) * 100).toFixed(1),
+        fill: "#f59e0b", // amber-500
+      },
+      {
+        name: "Cerrados",
+        value: closed,
+        percentage: ((closed / total) * 100).toFixed(1),
+        fill: "#10b981", // emerald-500
+      },
+    ].filter((item) => item.value > 0);
+  }, [filteredReports]);
+
   return (
     <div className="p-4 md:p-6 space-y-6">
       <PageHeader
@@ -177,6 +212,101 @@ export default function HazardDashboardPage() {
               </Card>
             ))}
           </div>
+
+          {/* Gráfico de Torta - Avance y Cumplimiento */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Avance y Cumplimiento</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Distribución porcentual de reportes por estado
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[320px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pieChartData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percentage }) => `${name}: ${percentage}%`}
+                      outerRadius={100}
+                      innerRadius={60}
+                      fill="#8884d8"
+                      dataKey="value"
+                      paddingAngle={5}
+                    >
+                      {pieChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          return (
+                            <div className="rounded-lg border bg-background p-2 shadow-sm">
+                              <div className="grid gap-2">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="text-sm font-medium">{data.name}</span>
+                                  <span className="text-sm font-bold">{data.value}</span>
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {data.percentage}% del total
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      height={36}
+                      content={({ payload }) => (
+                        <div className="flex flex-wrap justify-center gap-4 pt-4">
+                          {payload?.map((entry, index) => (
+                            <div key={`legend-${index}`} className="flex items-center gap-2">
+                              <div
+                                className="h-3 w-3 rounded-full"
+                                style={{ backgroundColor: entry.color }}
+                              />
+                              <span className="text-sm text-muted-foreground">
+                                {entry.value}: {pieChartData[index]?.percentage}%
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              
+              {/* Resumen textual */}
+              <div className="mt-4 grid gap-2 text-sm">
+                <div className="flex items-center justify-between p-2 rounded-md bg-muted/50">
+                  <span className="font-medium">Total de reportes:</span>
+                  <span className="font-bold">{filteredReports.length}</span>
+                </div>
+                <div className="flex items-center justify-between p-2 rounded-md">
+                  <span className="text-muted-foreground">Tasa de cumplimiento:</span>
+                  <span className="font-semibold text-emerald-600">
+                    {filteredReports.length > 0
+                      ? (
+                          (filteredReports.filter((r) => r.status === "CLOSED").length /
+                            filteredReports.length) *
+                          100
+                        ).toFixed(1)
+                      : 0}
+                    %
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           <div className="grid gap-6 lg:grid-cols-2">
             <Card>
