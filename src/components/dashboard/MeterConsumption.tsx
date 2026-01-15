@@ -22,6 +22,7 @@ import {
   Legend
 } from 'recharts';
 import { useAuth } from '@/hooks/useAuth';
+import { useOrganization } from '@/hooks/useOrganization';
 import { supabase } from '@/integrations/supabase/client';
 import { StatCard } from '@/components/ui/stat-card';
 import { ChartCard } from '@/components/ui/chart-card';
@@ -46,6 +47,7 @@ interface Alert {
 
 export default function MeterConsumption() {
   const { user } = useAuth();
+  const { organizationId } = useOrganization();
   const [loading, setLoading] = useState(true);
   const [readings, setReadings] = useState<WaterReading[]>([]);
   const [objective, setObjective] = useState(1000);
@@ -54,24 +56,27 @@ export default function MeterConsumption() {
   const [period, setPeriod] = useState('6');
 
   useEffect(() => {
-    if (user) {
+    if (user && organizationId) {
       fetchData();
     }
-  }, [user, period]);
+  }, [user, organizationId, period]);
 
   const fetchData = async () => {
+    if (!organizationId) return;
+    
     setLoading(true);
     try {
       const { data: readingsData } = await supabase
         .from('water_readings')
         .select('period, consumo_m3')
+        .eq('organization_id', organizationId)
         .order('period', { ascending: true })
         .limit(parseInt(period));
 
       const { data: criteriaData } = await supabase
         .from('measurement_criteria')
         .select('objetivo_mensual, umbral_alerta_pct')
-        .eq('user_id', user?.id)
+        .eq('organization_id', organizationId)
         .maybeSingle();
 
       if (readingsData) {

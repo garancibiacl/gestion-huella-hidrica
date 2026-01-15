@@ -2,9 +2,8 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
-// URL pública del Google Sheet de agua medidor (formato CSV)
-// Importante: usar /export?format=csv (no /edit) para asegurar datos consistentes.
-const CSV_URL = 'https://docs.google.com/spreadsheets/d/1yVo_zxvA-hSf04aUXABijRUeAuHq-huc/export?format=csv';
+// URL pública del Google Sheet de agua medidor (publicado).
+const SHEET_PUBHTML_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQc5dC1jLM23N7CrgGIdFsksqL67FrNrbCLff2wuW5PQvvVb3nW5FW_QtBhEuG_FrRSe8mSqOKhyEtC/pubhtml';
 const LAST_SYNC_KEY = 'last_water_meter_sync';
 const LAST_HASH_KEY = 'last_water_meter_hash';
 const MIN_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
@@ -33,8 +32,14 @@ function simpleHash(str: string): string {
 
 function parseChileanCurrency(value: string | undefined): number | null {
   if (!value) return null;
-  const cleaned = String(value).replace(/[$\s.]/g, '').replace(/,/g, '');
-  const num = parseInt(cleaned, 10);
+  const raw = String(value).trim();
+  if (!raw) return null;
+  const withoutCurrency = raw.replace(/[$\s]/g, '');
+  const noDecimals = withoutCurrency.includes(',')
+    ? withoutCurrency.split(',')[0]
+    : withoutCurrency;
+  const normalized = noDecimals.replace(/\./g, '');
+  const num = parseInt(normalized, 10);
   return isNaN(num) ? null : num;
 }
 
@@ -130,6 +135,20 @@ function normalizeHeader(header: string): string {
     .trim();
 }
 
+function toCsvUrlFromPublishedSheet(publishedUrl: string): string {
+  if (publishedUrl.includes('/edit')) {
+    const [base] = publishedUrl.split('/edit');
+    return `${base}/export?format=csv`;
+  }
+  if (publishedUrl.includes('/pubhtml')) {
+    const [base, query] = publishedUrl.split('?');
+    const pubBase = base.replace('/pubhtml', '/pub');
+    return query ? `${pubBase}?output=csv&${query}` : `${pubBase}?output=csv`;
+  }
+  if (publishedUrl.includes('output=csv')) return publishedUrl;
+  return publishedUrl.includes('?') ? `${publishedUrl}&output=csv` : `${publishedUrl}?output=csv`;
+}
+
 function parseCSV(csvText: string): string[][] {
   const rows: string[][] = [];
   let currentRow: string[] = [];
@@ -189,9 +208,10 @@ async function performWaterMeterSync(userId: string, force: boolean = false): Pr
       return { success: false, rowsInserted: 0, errors: ['No se pudo determinar la organización del usuario.'] };
     }
 
+    const csvUrl = toCsvUrlFromPublishedSheet(SHEET_PUBHTML_URL);
     const fetchUrl = force
-      ? `${CSV_URL}${CSV_URL.includes('?') ? '&' : '?'}cacheBust=${Date.now()}`
-      : CSV_URL;
+      ? `${csvUrl}${csvUrl.includes('?') ? '&' : '?'}cacheBust=${Date.now()}`
+      : csvUrl;
 
     console.log('Fetching water meter CSV from:', fetchUrl);
     const response = await fetch(fetchUrl, { cache: 'no-store' });
@@ -225,6 +245,7 @@ async function performWaterMeterSync(userId: string, force: boolean = false): Pr
     console.log('Normalized:', normalizedHeaders);
 
     const dataRows = rows.slice(1);
+    const seenKeys = new Set<string>();
     const records: any[] = [];
 
     dataRows.forEach((row, i) => {
@@ -237,11 +258,37 @@ async function performWaterMeterSync(userId: string, force: boolean = false): Pr
       const fecha = rowObj['fecha'] || '';
       const centroTrabajo = rowObj['centro trabajo'] || rowObj['centro de trabajo'] || '';
       const direccion = rowObj['direccion'] || '';
-      const medidor = rowObj['n medidor'] || rowObj['n de medidor'] || rowObj['medidor'] || rowObj['numero medidor'] || '';
+      const medidor =
+        rowObj['n medidor'] ||
+        rowObj['n de medidor'] ||
+        rowObj['n de medidor '] ||
+        rowObj['n° de medidor'] ||
+        rowObj['nº de medidor'] ||
+        rowObj['n de medidor'] ||
+        rowObj['medidor'] ||
+        rowObj['numero medidor'] ||
+        '';
       const lecturaM3 = rowObj['lectura en m3'] || rowObj['lectura m3'] || '';
-      const consumoM3 = rowObj['m3 consumidos por periodo'] || rowObj['consumo m3'] || rowObj['consumo'] || '';
-      const sobreConsumoM3 = rowObj['sobre consumo en m3'] || rowObj['sobre consumo'] || '';
-      const costoTotal = rowObj['total pagar'] || rowObj['costo pagar'] || rowObj['costo total'] || '';
+      const consumoM3 =
+        rowObj['m3 consumidos por periodo'] ||
+        rowObj['m3 consumidos por periodo '] ||
+        rowObj['m3 consumidos por periodo.'] ||
+        rowObj['m3 consumidos por periodo'] ||
+        rowObj['consumo m3'] ||
+        rowObj['consumo'] ||
+        '';
+      const sobreConsumoM3 =
+        rowObj['sobre consumo en m3'] ||
+        rowObj['sobre consumo en m3 '] ||
+        rowObj['sobre consumo'] ||
+        '';
+      const costoTotal =
+        rowObj['total pagar'] ||
+        rowObj['total a pagar'] ||
+        rowObj['total'] ||
+        rowObj['costo pagar'] ||
+        rowObj['costo total'] ||
+        '';
       const observaciones = rowObj['observaciones'] || '';
 
       console.log(`Row ${i + 2}: fecha="${fecha}", centro="${centroTrabajo}", consumo="${consumoM3}"`);
@@ -268,6 +315,10 @@ async function performWaterMeterSync(userId: string, force: boolean = false): Pr
         return;
       }
 
+      const dedupeKey = `${period}|${centroTrabajo}|${medidor}|${lecturaM3}|${consumoM3}|${costoTotal}`;
+      if (seenKeys.has(dedupeKey)) return;
+      seenKeys.add(dedupeKey);
+
       records.push({
         user_id: userId,
         organization_id: organizationId,
@@ -284,6 +335,13 @@ async function performWaterMeterSync(userId: string, force: boolean = false): Pr
     });
 
     console.log('Records to insert:', records.length);
+    if (records.length > 0) {
+      const totalCostFromCsv = records.reduce(
+        (sum, record) => sum + (typeof record.costo_total === 'number' ? record.costo_total : 0),
+        0
+      );
+      console.log('CSV total costo_total:', totalCostFromCsv);
+    }
 
     if (records.length > 0) {
       // Mirror sync: delete all for this org and re-insert
