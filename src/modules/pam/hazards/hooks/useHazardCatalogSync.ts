@@ -1,21 +1,34 @@
 import { useState, useCallback } from 'react';
 import { useOrganization } from '@/hooks/useOrganization';
 import {
-  parseHierarchySheet,
-  parseRisksSheet,
-  parseResponsiblesSheet,
+  parseHazardMasterSheet,
   importHazardCatalogs,
 } from '../services/hazardImporter';
 import type { HazardCatalogSyncResult } from '../types/hazard.types';
 
-// URLs públicas de Google Sheets (CSV)
-// TODO: Configurar URLs reales cuando estén disponibles
-const HIERARCHY_CSV_URL = 
-  'https://docs.google.com/spreadsheets/d/e/YOUR_HIERARCHY_SHEET_ID/pub?output=csv';
-const RISKS_CSV_URL = 
-  'https://docs.google.com/spreadsheets/d/e/YOUR_RISKS_SHEET_ID/pub?output=csv';
-const RESPONSIBLES_CSV_URL = 
-  'https://docs.google.com/spreadsheets/d/e/YOUR_RESPONSIBLES_SHEET_ID/pub?output=csv';
+// Google Sheet entregado por el usuario (link de edición). Lo convertimos a CSV.
+// Nuevas columnas: Gerencia | Proceso | Actividad | Tarea | Centro de Trabajo / Faena |
+// Riesgo Crítico | Empresa | Responsables (Nombre) | Responsables (RUT) | Responsables (Correo Electrónico)
+const HAZARDS_SHEET_PUBHTML_URL =
+  'https://docs.google.com/spreadsheets/d/1NYNeMkms3TMiR4xPDPqn9DrzvU8FLR2vFN8QTkGq4Po/edit?usp=sharing';
+
+function toCsvUrlFromPublishedSheet(publishedUrl: string): string {
+  // Patrones comunes:
+  // - .../edit -> .../export?format=csv
+  // - .../pubhtml -> .../pub?output=csv
+  // - .../pubhtml?... -> .../pub?output=csv&...
+  if (publishedUrl.includes('/edit')) {
+    const [base] = publishedUrl.split('/edit');
+    return `${base}/export?format=csv`;
+  }
+  if (publishedUrl.includes('/pubhtml')) {
+    const [base, query] = publishedUrl.split('?');
+    const pubBase = base.replace('/pubhtml', '/pub');
+    return query ? `${pubBase}?output=csv&${query}` : `${pubBase}?output=csv`;
+  }
+  if (publishedUrl.includes('output=csv')) return publishedUrl;
+  return publishedUrl.includes('?') ? `${publishedUrl}&output=csv` : `${publishedUrl}?output=csv`;
+}
 
 const LAST_SYNC_KEY = 'last_hazard_catalog_sync';
 const MIN_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutos
@@ -70,52 +83,22 @@ export function useHazardCatalogSync(options: UseHazardCatalogSyncOptions = {}) 
       try {
         console.log('Starting hazard catalog sync...');
 
-        // 1. Fetch CSVs en paralelo
-        const [hierarchyResponse, risksResponse, responsiblesResponse] = await Promise.all([
-          fetch(HIERARCHY_CSV_URL).catch(() => null),
-          fetch(RISKS_CSV_URL).catch(() => null),
-          fetch(RESPONSIBLES_CSV_URL).catch(() => null),
-        ]);
-
-        // 2. Parse CSVs
-        let hierarchyRows: any[] = [];
-        let risksRows: any[] = [];
-        let responsiblesRows: any[] = [];
-        const parseErrors: string[] = [];
-
-        if (hierarchyResponse?.ok) {
-          const csvText = await hierarchyResponse.text();
-          const { rows, errors } = parseHierarchySheet(csvText);
-          hierarchyRows = rows;
-          parseErrors.push(...errors);
-        } else {
-          console.warn('No se pudo cargar el catálogo de jerarquía');
+        const csvUrl = toCsvUrlFromPublishedSheet(HAZARDS_SHEET_PUBHTML_URL);
+        const response = await fetch(csvUrl);
+        if (!response.ok) {
+          throw new Error(`Error fetching Google Sheet (CSV): ${response.statusText}`);
         }
 
-        if (risksResponse?.ok) {
-          const csvText = await risksResponse.text();
-          const { rows, errors } = parseRisksSheet(csvText);
-          risksRows = rows;
-          parseErrors.push(...errors);
-        } else {
-          console.warn('No se pudo cargar el catálogo de riesgos');
-        }
-
-        if (responsiblesResponse?.ok) {
-          const csvText = await responsiblesResponse.text();
-          const { rows, errors } = parseResponsiblesSheet(csvText);
-          responsiblesRows = rows;
-          parseErrors.push(...errors);
-        } else {
-          console.warn('No se pudo cargar el catálogo de responsables');
-        }
+        const csvText = await response.text();
+        const { hierarchy, risks, responsibles, errors: parseErrors } =
+          parseHazardMasterSheet(csvText);
 
         // 3. Importar a Supabase
         const result = await importHazardCatalogs({
-          organizationId: organizationId,
-          hierarchy: hierarchyRows,
-          risks: risksRows,
-          responsibles: responsiblesRows,
+          organizationId,
+          hierarchy,
+          risks,
+          responsibles,
         });
 
         // Agregar errores de parsing

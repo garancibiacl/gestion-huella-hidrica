@@ -26,27 +26,70 @@ async function resolveAssigneeByEmail(params: {
   organizationId: string;
   assigneeEmail: string;
 }): Promise<{ assigneeUserId: string; assigneeName: string | null; assigneeEmail: string }> {
-  const normalizedEmail = params.assigneeEmail.trim().toLowerCase();
-  const { data: profiles, error } = await supabase.rpc("get_profiles_for_organization", {
+  const normalizedEmail = params.assigneeEmail.trim();
+
+  console.log("🔍 [DEBUG] Buscando perfil:", {
+    email: normalizedEmail,
+    organizationId: params.organizationId,
+  });
+
+  // Usar función SECURITY DEFINER para bypassear RLS de forma segura
+  const { data: profiles, error } = await supabase.rpc("find_profile_by_email_in_org", {
+    p_email: normalizedEmail,
     p_organization_id: params.organizationId,
   });
 
+  console.log("🔍 [DEBUG] Resultado find_profile_by_email_in_org:", { profiles, error });
+
   if (error) {
-    throw new Error("No se pudo validar el email del responsable.");
+    console.error("❌ Error calling find_profile_by_email_in_org:", error);
+    throw new Error(`No se pudo validar el email del responsable. Error: ${error.message || JSON.stringify(error)}`);
   }
 
-  const resolvedProfile = profiles?.find(
-    (profile) => profile.email?.trim().toLowerCase() === normalizedEmail
-  );
+  const profile = profiles?.[0];
 
-  if (!resolvedProfile || !resolvedProfile.user_id) {
-    throw new Error("El email no corresponde a un usuario activo de la organización.");
+  if (!profile || !profile.user_id) {
+    console.log("⚠️ [DEBUG] No se encontró en la org actual, buscando en todas las orgs...");
+    
+    // Intentar detectar si el correo existe en otra organización (mejor UX de error)
+    const { data: anyProfiles, error: anyProfileError } = await supabase.rpc(
+      "find_profile_by_email_any_org",
+      {
+        p_email: normalizedEmail,
+      }
+    );
+
+    console.log("🔍 [DEBUG] Resultado find_profile_by_email_any_org:", { anyProfiles, error: anyProfileError });
+
+    if (anyProfileError) {
+      console.error("❌ Error calling find_profile_by_email_any_org:", anyProfileError);
+      throw new Error("El email no corresponde a un usuario activo de la organización.");
+    }
+
+    const anyProfile = anyProfiles?.[0];
+
+    if (anyProfile?.user_id) {
+      if (!anyProfile.organization_id) {
+        console.log("⚠️ [DEBUG] Usuario existe pero sin organization_id");
+        throw new Error(
+          "El usuario existe, pero no tiene organización asignada en su perfil. Contacta a un administrador."
+        );
+      }
+      console.log("⚠️ [DEBUG] Usuario existe en otra organización:", anyProfile.organization_id);
+      throw new Error(
+        "El usuario existe, pero pertenece a otra organización. Verifica que estés asignando dentro de la organización correcta."
+      );
+    }
+
+    console.log("❌ [DEBUG] El email no existe en la base de datos");
+    throw new Error(`El email "${normalizedEmail}" no corresponde a un usuario activo de la organización "${params.organizationId}". Verifica que el usuario esté registrado con este email.`);
   }
 
+  console.log("✅ [DEBUG] Perfil encontrado:", profile);
   return {
-    assigneeUserId: resolvedProfile.user_id,
-    assigneeName: resolvedProfile.full_name ?? null,
-    assigneeEmail: resolvedProfile.email ?? normalizedEmail,
+    assigneeUserId: profile.user_id,
+    assigneeName: profile.full_name ?? null,
+    assigneeEmail: profile.email ?? normalizedEmail,
   };
 }
 

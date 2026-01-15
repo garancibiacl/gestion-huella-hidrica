@@ -250,15 +250,16 @@ export async function importPamWeek(params: {
     
     console.log("PLS import: Buscando perfiles para emails:", uniqueEmails);
     
-    // Obtener TODOS los perfiles de la organización para hacer match case-insensitive
+    // Usar función SECURITY DEFINER para obtener todos los perfiles de la org (bypassa RLS)
     const { data: profiles, error: profilesError } = await supabase.rpc(
       "get_profiles_for_organization",
-      {
-        p_organization_id: organizationId,
-      }
+      { p_organization_id: organizationId }
     );
 
-    if (profilesError) throw profilesError;
+    if (profilesError) {
+      console.error("Error obteniendo perfiles:", profilesError);
+      throw profilesError;
+    }
 
     console.log("PLS import: Perfiles encontrados en org:", profiles?.map(p => ({ email: p.email, user_id: p.user_id })));
 

@@ -61,6 +61,10 @@ function normalizeString(str: string): string {
     .replace(/[\u0300-\u036f]/g, ''); // Elimina tildes
 }
 
+function normalizeCell(str: string | undefined): string {
+  return (str ?? '').trim();
+}
+
 // Hash simple para generar stable_id
 function simpleHash(str: string): string {
   let hash = 0;
@@ -70,6 +74,13 @@ function simpleHash(str: string): string {
     hash = hash & hash;
   }
   return Math.abs(hash).toString(36);
+}
+
+function stableKey(parts: Array<string | undefined | null>): string {
+  return parts
+    .map((p) => normalizeString(String(p ?? '')))
+    .filter((p) => p.length > 0)
+    .join('|');
 }
 
 // =====================================================
@@ -247,6 +258,134 @@ export function parseResponsiblesSheet(csvText: string): {
   }
 
   return { rows, errors };
+}
+
+// =====================================================
+// PARSE: Sheet Master (un solo CSV con jerarquía + riesgos + responsables)
+//
+// Columnas esperadas (según usuario):
+// Gerencia | Proceso | Actividad | Tarea | Centro de Trabajo / Faena | Riesgo Crítico | Empresa |
+// Responsables (Nombre) | Responsables (RUT) | Responsables (Correo Electrónico)
+// =====================================================
+
+export function parseHazardMasterSheet(csvText: string): {
+  hierarchy: HazardCatalogImportRow[];
+  risks: HazardRiskImportRow[];
+  responsibles: HazardResponsibleImportRow[];
+  errors: string[];
+} {
+  const rows = parseCSV(csvText);
+  if (rows.length < 2) {
+    return { hierarchy: [], risks: [], responsibles: [], errors: ['El sheet está vacío'] };
+  }
+
+  const headers = rows[0].map((h) => normalizeString(h));
+  const dataRows = rows.slice(1);
+
+  const colIdx = {
+    gerencia: headers.findIndex((h) => h === 'gerencia' || h.includes('gerencia')),
+    proceso: headers.findIndex((h) => h === 'proceso' || h.includes('proceso')),
+    actividad: headers.findIndex((h) => h === 'actividad' || h.includes('actividad')),
+    tarea: headers.findIndex((h) => h === 'tarea' || h.includes('tarea')),
+    faena: headers.findIndex(
+      (h) =>
+        h.includes('centro de trabajo') ||
+        h.includes('centro trabajo') ||
+        h.includes('faena') ||
+        h.includes('ubicacion')
+    ),
+    riesgo: headers.findIndex((h) => h.includes('riesgo') && h.includes('critico')),
+    empresa: headers.findIndex((h) => h === 'empresa' || h.includes('empresa')),
+    resp_nombre: headers.findIndex((h) => h.includes('responsables') && h.includes('nombre')),
+    resp_rut: headers.findIndex((h) => h.includes('responsables') && h.includes('rut')),
+    resp_email: headers.findIndex(
+      (h) =>
+        (h.includes('responsables') && (h.includes('correo') || h.includes('email') || h.includes('mail'))) ||
+        h === 'correo electronico'
+    ),
+  };
+
+  const errors: string[] = [];
+  const hierarchyMap = new Map<string, HazardCatalogImportRow>();
+  const risksMap = new Map<string, HazardRiskImportRow>();
+  const responsiblesMap = new Map<string, HazardResponsibleImportRow>();
+
+  for (let i = 0; i < dataRows.length; i++) {
+    const row = dataRows[i];
+    const rowNum = i + 2;
+
+    const gerencia = normalizeCell(colIdx.gerencia >= 0 ? row[colIdx.gerencia] : '');
+    const proceso = normalizeCell(colIdx.proceso >= 0 ? row[colIdx.proceso] : '');
+    const actividad = normalizeCell(colIdx.actividad >= 0 ? row[colIdx.actividad] : '');
+    const tarea = normalizeCell(colIdx.tarea >= 0 ? row[colIdx.tarea] : '');
+    const faena = normalizeCell(colIdx.faena >= 0 ? row[colIdx.faena] : '');
+    const riesgo = normalizeCell(colIdx.riesgo >= 0 ? row[colIdx.riesgo] : '');
+    const empresa = normalizeCell(colIdx.empresa >= 0 ? row[colIdx.empresa] : '');
+    const respNombre = normalizeCell(colIdx.resp_nombre >= 0 ? row[colIdx.resp_nombre] : '');
+    const respRut = normalizeCell(colIdx.resp_rut >= 0 ? row[colIdx.resp_rut] : '');
+    const respEmailRaw = normalizeCell(colIdx.resp_email >= 0 ? row[colIdx.resp_email] : '');
+    const respEmail = respEmailRaw ? respEmailRaw.toLowerCase() : '';
+
+    if (!gerencia) {
+      errors.push(`Fila ${rowNum}: falta Gerencia`);
+      continue;
+    }
+
+    // Jerarquía
+    const hKey = stableKey([gerencia, proceso, actividad, tarea, faena]);
+    if (hKey) {
+      hierarchyMap.set(hKey, {
+        gerencia,
+        proceso: proceso || undefined,
+        actividad: actividad || undefined,
+        tarea: tarea || undefined,
+        // En el sheet viene una sola columna "Centro de Trabajo / Faena"
+        // La guardamos como faena (y dejamos centro_trabajo vacío por ahora).
+        faena: faena || undefined,
+        centro_trabajo: undefined,
+      });
+    }
+
+    // Riesgo crítico (no trae código: generamos un code estable por nombre)
+    if (riesgo) {
+      const riskKey = stableKey([riesgo]);
+      const code = `HR-${simpleHash(riskKey)}`;
+      if (!risksMap.has(code)) {
+        risksMap.set(code, {
+          code,
+          name: riesgo,
+          description: undefined,
+          severity: undefined,
+          requires_evidence: false,
+        });
+      }
+    }
+
+    // Responsable
+    // (para MVP lo tratamos como responsable de cierre y verificación)
+    if (respNombre || respEmail) {
+      if (!respEmail) {
+        // Si no hay email, no podremos upsert por constraint (organization_id,email). Registramos warning.
+        errors.push(`Fila ${rowNum}: responsable sin correo (no se importará): "${respNombre}"`);
+      } else {
+        responsiblesMap.set(respEmail, {
+          name: respNombre || respEmail,
+          rut: respRut || undefined,
+          email: respEmail,
+          company: empresa || undefined,
+          can_close: true,
+          can_verify: true,
+        });
+      }
+    }
+  }
+
+  return {
+    hierarchy: Array.from(hierarchyMap.values()),
+    risks: Array.from(risksMap.values()),
+    responsibles: Array.from(responsiblesMap.values()),
+    errors,
+  };
 }
 
 // =====================================================

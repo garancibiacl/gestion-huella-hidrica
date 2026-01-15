@@ -92,6 +92,15 @@ export function HazardHierarchySelect({
     return <div className="text-sm text-muted-foreground">Cargando jerarquía...</div>;
   }
 
+  if (gerencias.length === 0) {
+    return (
+      <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+        No hay catálogos cargados para Jerarquía. Usa <strong>“Sincronizar catálogos”</strong> en
+        la parte superior para traerlos desde el Google Sheet.
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Gerencia */}

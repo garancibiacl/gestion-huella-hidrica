@@ -67,6 +67,14 @@
  - Gestión de tareas: creación, edición, estados y evidencias.
  - Tablero de cumplimiento y reportabilidad.
 
+ ## Checklist rápido (soporte/operación)
+
+ - Verificar que el email exista en `profiles` y tenga `organization_id` asignado.
+ - Confirmar que el usuario logueado pertenece a la misma `organization_id`.
+ - Resolver emails usando `get_profiles_for_organization` (evita bloqueos por RLS).
+ - Normalizar emails antes de validar (trim + lowercase).
+ - Si falla la asignación, probar el RPC manualmente y revisar logs de consola.
+
  ### Sincronización (Google Sheets → Supabase)
 
  - Sincronización iniciada por el usuario desde la UI.

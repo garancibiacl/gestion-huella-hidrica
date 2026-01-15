@@ -3,10 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@/hooks/useOrganization';
 import { parsePamSheet, importPamWeek } from '../services/pamImporter';
+import { toCsvUrlFromGoogleSheet } from '../services/googleSheet';
 
-// URL pública del Google Sheet PLS (formato CSV)
-// Debe coincidir con el Sheet que se abre desde la pantalla de Planificación semanal PLS.
-const CSV_URL =
+// URL del Google Sheet PLS. Puede ser /edit o /pubhtml; se normaliza a CSV.
+const SHEET_URL =
   "https://docs.google.com/spreadsheets/d/e/2PACX-1vSm6kI2pKhHhLX5kwP2AWWwbc1fYr9h96k9OqumbRqJtcxSKeW7VUbhtDmXQuyksQ/pub?output=csv";
 const LAST_SYNC_KEY = "last_pls_sync";
 const LAST_HASH_KEY = "last_pls_hash";
@@ -59,7 +59,8 @@ async function performPamSync(
       targetWeekNumber,
     });
 
-    const response = await fetch(CSV_URL);
+    const csvUrl = toCsvUrlFromGoogleSheet(SHEET_URL);
+    const response = await fetch(csvUrl);
     if (!response.ok) {
       return {
         success: false,

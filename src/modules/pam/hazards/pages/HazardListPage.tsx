@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Calendar, AlertTriangle, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,15 +7,56 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageHeader } from '@/components/ui/page-header';
 import { HazardFilters } from '../components/HazardFilters';
 import { HazardStatusBadge } from '../components/HazardStatusBadge';
-import { useHazardReports, useHazardReportStats } from '../hooks/useHazardReports';
+import { useQueryClient } from '@tanstack/react-query';
+import { hazardKeys, useHazardCriticalRisks, useHazardHierarchy, useHazardReports, useHazardReportStats, useHazardResponsibles } from '../hooks/useHazardReports';
 import type { HazardReportFilters } from '../types/hazard.types';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useHazardCatalogSync } from '../hooks/useHazardCatalogSync';
+import { useToast } from '@/hooks/use-toast';
 
 export default function HazardListPage() {
   const navigate = useNavigate();
   const [filters, setFilters] = useState<HazardReportFilters>({});
   const [activeTab, setActiveTab] = useState<'all' | 'open' | 'closed'>('all');
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const { data: hierarchy = [], isLoading: hierarchyLoading } = useHazardHierarchy();
+  const { data: risks = [], isLoading: risksLoading } = useHazardCriticalRisks();
+  const { data: responsibles = [], isLoading: responsiblesLoading } = useHazardResponsibles();
+  const { isSyncing, syncCatalogs } = useHazardCatalogSync();
+  const autoSyncOnceRef = useRef(false);
+
+  useEffect(() => {
+    const doneLoading = !hierarchyLoading && !risksLoading && !responsiblesLoading;
+    const hasCatalogs = hierarchy.length > 0 && risks.length > 0 && responsibles.length > 0;
+    if (!doneLoading || hasCatalogs || isSyncing || autoSyncOnceRef.current) return;
+
+    autoSyncOnceRef.current = true;
+    (async () => {
+      const result = await syncCatalogs(true);
+      await queryClient.invalidateQueries({ queryKey: hazardKeys.catalogs() });
+      if (!result.success) {
+        toast({
+          title: 'No se pudieron sincronizar catálogos',
+          description: result.errors?.[0] || 'Revisa que el Sheet esté publicado como CSV',
+          variant: 'destructive',
+        });
+      }
+    })();
+  }, [
+    hierarchy.length,
+    risks.length,
+    responsibles.length,
+    hierarchyLoading,
+    risksLoading,
+    responsiblesLoading,
+    isSyncing,
+    syncCatalogs,
+    queryClient,
+    toast,
+  ]);
 
   // Aplicar filtro de estado según tab activo
   const effectiveFilters: HazardReportFilters = {
@@ -42,10 +83,35 @@ export default function HazardListPage() {
         title="Reporte de Peligros"
         description="Gestión de reportes de peligro y condiciones inseguras"
         action={
-          <Button onClick={() => navigate('/admin/pls/hazard-report/new')}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nuevo Reporte
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isSyncing}
+              onClick={async () => {
+                const result = await syncCatalogs(true);
+                await queryClient.invalidateQueries({ queryKey: hazardKeys.catalogs() });
+                if (!result.success) {
+                  toast({
+                    title: 'Error al sincronizar catálogos',
+                    description: result.errors?.[0] || 'No se pudo sincronizar',
+                    variant: 'destructive',
+                  });
+                  return;
+                }
+                toast({
+                  title: 'Catálogos sincronizados',
+                  description: `Jerarquía: ${result.hierarchyImported} · Riesgos: ${result.risksImported} · Responsables: ${result.responsiblesImported}`,
+                });
+              }}
+            >
+              {isSyncing ? 'Sincronizando…' : 'Sincronizar catálogos'}
+            </Button>
+            <Button onClick={() => navigate('/admin/pls/hazard-report/new')}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nuevo Reporte
+            </Button>
+          </div>
         }
       />
 
