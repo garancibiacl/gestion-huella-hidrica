@@ -123,12 +123,26 @@ export function HazardForm({ onSubmit, isSubmitting }: HazardFormProps) {
       return;
     }
 
-    const payload: CreateHazardReportPayload = {
-      ...values,
+    // Cast explícito porque zod hace campos opcionales, pero el esquema valida
+    const formPayload = {
+      gerencia: values.gerencia,
+      proceso: values.proceso,
+      actividad: values.actividad,
+      tarea: values.tarea,
+      faena: values.faena,
+      centro_trabajo: values.centro_trabajo,
+      critical_risk_id: values.critical_risk_id,
+      description: values.description,
+      root_cause: values.root_cause,
+      deviation_type: values.deviation_type,
+      closing_responsible_id: values.closing_responsible_id,
       due_date: format(values.due_date, 'yyyy-MM-dd'),
+      reporter_name: values.reporter_name,
+      reporter_rut: values.reporter_rut,
       reporter_email: values.reporter_email || undefined,
+      reporter_company: values.reporter_company,
     };
-    onSubmit({ payload, evidences });
+    onSubmit({ payload: formPayload as CreateHazardReportPayload, evidences });
   };
 
   const criticalRiskHint = useMemo(() => {

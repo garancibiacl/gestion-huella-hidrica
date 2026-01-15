@@ -64,9 +64,15 @@ export default function HazardClosePage() {
     if (!id) return;
 
     try {
+      const payload: CloseHazardReportPayload = {
+        verification_responsible_id: values.verification_responsible_id,
+        control_type_id: values.control_type_id,
+        closing_description: values.closing_description,
+      };
+
       await closeMutation.mutateAsync({
         reportId: id,
-        payload: values,
+        payload,
       });
 
       toast({
