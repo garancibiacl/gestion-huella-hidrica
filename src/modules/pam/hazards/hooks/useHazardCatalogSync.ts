@@ -28,7 +28,7 @@ interface UseHazardCatalogSyncOptions {
 
 export function useHazardCatalogSync(options: UseHazardCatalogSyncOptions = {}) {
   const { enabled = true, onSyncStart, onSyncComplete } = options;
-  const { organization } = useOrganization();
+  const { organizationId } = useOrganization();
   
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
@@ -36,7 +36,7 @@ export function useHazardCatalogSync(options: UseHazardCatalogSyncOptions = {}) 
 
   const syncCatalogs = useCallback(
     async (force: boolean = false): Promise<HazardCatalogSyncResult> => {
-      if (!enabled || !organization?.id) {
+      if (!enabled || !organizationId) {
         return {
           success: false,
           hierarchyImported: 0,
@@ -112,7 +112,7 @@ export function useHazardCatalogSync(options: UseHazardCatalogSyncOptions = {}) 
 
         // 3. Importar a Supabase
         const result = await importHazardCatalogs({
-          organizationId: organization.id,
+          organizationId: organizationId,
           hierarchy: hierarchyRows,
           risks: risksRows,
           responsibles: responsiblesRows,
@@ -149,7 +149,7 @@ export function useHazardCatalogSync(options: UseHazardCatalogSyncOptions = {}) 
         setIsSyncing(false);
       }
     },
-    [enabled, organization, onSyncStart, onSyncComplete, syncResult]
+    [enabled, organizationId, onSyncStart, onSyncComplete, syncResult]
   );
 
   return {

@@ -76,7 +76,7 @@ interface HazardFormProps {
 
 export function HazardForm({ onSubmit, isSubmitting }: HazardFormProps) {
   const { user } = useAuth();
-  const { data: profile } = useUserProfile();
+  const { profile } = useUserProfile();
   const { data: criticalRisks = [] } = useHazardCriticalRisks();
   const { data: responsibles = [] } = useHazardResponsibles();
   const [evidenceError, setEvidenceError] = useState<string | null>(null);

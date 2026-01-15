@@ -44,45 +44,45 @@ export const hazardKeys = {
 // =====================================================
 
 export function useHazardHierarchy() {
-  const { organization } = useOrganization();
+  const { organizationId } = useOrganization();
 
   return useQuery({
-    queryKey: hazardKeys.hierarchy(organization?.id || ''),
-    queryFn: () => getHazardHierarchy(organization!.id),
-    enabled: !!organization?.id,
+    queryKey: hazardKeys.hierarchy(organizationId || ''),
+    queryFn: () => getHazardHierarchy(organizationId!),
+    enabled: !!organizationId,
     staleTime: 5 * 60 * 1000, // 5 minutos
   });
 }
 
 export function useHazardCriticalRisks() {
-  const { organization } = useOrganization();
+  const { organizationId } = useOrganization();
 
   return useQuery({
-    queryKey: hazardKeys.risks(organization?.id || ''),
-    queryFn: () => getHazardCriticalRisks(organization!.id),
-    enabled: !!organization?.id,
+    queryKey: hazardKeys.risks(organizationId || ''),
+    queryFn: () => getHazardCriticalRisks(organizationId!),
+    enabled: !!organizationId,
     staleTime: 5 * 60 * 1000,
   });
 }
 
 export function useHazardResponsibles() {
-  const { organization } = useOrganization();
+  const { organizationId } = useOrganization();
 
   return useQuery({
-    queryKey: hazardKeys.responsibles(organization?.id || ''),
-    queryFn: () => getHazardResponsibles(organization!.id),
-    enabled: !!organization?.id,
+    queryKey: hazardKeys.responsibles(organizationId || ''),
+    queryFn: () => getHazardResponsibles(organizationId!),
+    enabled: !!organizationId,
     staleTime: 5 * 60 * 1000,
   });
 }
 
 export function useHazardControlTypes() {
-  const { organization } = useOrganization();
+  const { organizationId } = useOrganization();
 
   return useQuery({
-    queryKey: hazardKeys.controlTypes(organization?.id || ''),
-    queryFn: () => getHazardControlTypes(organization!.id),
-    enabled: !!organization?.id,
+    queryKey: hazardKeys.controlTypes(organizationId || ''),
+    queryFn: () => getHazardControlTypes(organizationId!),
+    enabled: !!organizationId,
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -92,12 +92,12 @@ export function useHazardControlTypes() {
 // =====================================================
 
 export function useHazardReports(filters?: HazardReportFilters) {
-  const { organization } = useOrganization();
+  const { organizationId } = useOrganization();
 
   return useQuery({
-    queryKey: hazardKeys.list(organization?.id || '', filters),
-    queryFn: () => listHazardReports(organization!.id, filters),
-    enabled: !!organization?.id,
+    queryKey: hazardKeys.list(organizationId || '', filters),
+    queryFn: () => listHazardReports(organizationId!, filters),
+    enabled: !!organizationId,
     staleTime: 1 * 60 * 1000, // 1 minuto
   });
 }
@@ -120,12 +120,12 @@ export function useHazardReport(reportId: string | undefined) {
 // =====================================================
 
 export function useHazardReportStats() {
-  const { organization } = useOrganization();
+  const { organizationId } = useOrganization();
 
   return useQuery({
-    queryKey: hazardKeys.stats(organization?.id || ''),
-    queryFn: () => getHazardReportStats(organization!.id),
-    enabled: !!organization?.id,
+    queryKey: hazardKeys.stats(organizationId || ''),
+    queryFn: () => getHazardReportStats(organizationId!),
+    enabled: !!organizationId,
     staleTime: 2 * 60 * 1000, // 2 minutos
   });
 }
@@ -135,16 +135,16 @@ export function useHazardReportStats() {
 // =====================================================
 
 export function useCreateHazardReport() {
-  const { organization } = useOrganization();
+  const { organizationId } = useOrganization();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (payload: CreateHazardReportPayload) =>
-      createHazardReport(organization!.id, payload),
+      createHazardReport(organizationId!, payload),
     onSuccess: () => {
       // Invalidar listas y estadísticas
       queryClient.invalidateQueries({ queryKey: hazardKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: hazardKeys.stats(organization!.id) });
+      queryClient.invalidateQueries({ queryKey: hazardKeys.stats(organizationId!) });
     },
   });
 }
@@ -154,7 +154,7 @@ export function useCreateHazardReport() {
 // =====================================================
 
 export function useCloseHazardReport() {
-  const { organization } = useOrganization();
+  const { organizationId } = useOrganization();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -165,7 +165,7 @@ export function useCloseHazardReport() {
       queryClient.invalidateQueries({ queryKey: hazardKeys.detail(variables.reportId) });
       // Invalidar listas y estadísticas
       queryClient.invalidateQueries({ queryKey: hazardKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: hazardKeys.stats(organization!.id) });
+      queryClient.invalidateQueries({ queryKey: hazardKeys.stats(organizationId!) });
     },
   });
 }
