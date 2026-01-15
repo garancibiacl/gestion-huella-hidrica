@@ -380,11 +380,75 @@ export function AppSidebar({ onClose, isCollapsed = false, onToggleCollapse }: A
         </nav>
       </TooltipProvider>
 
+      {/* Module Switcher - Visible en ambos módulos */}
+      <div className={cn(
+        "border-t border-white/10 mt-auto",
+        isCollapsed ? "px-2 py-3" : "px-3 py-3"
+      )}>
+        <TooltipProvider>
+          <Tooltip delayDuration={150}>
+            <TooltipTrigger asChild>
+              <Link
+                to={isPamModule ? "/hub" : "/pls"}
+                className={cn(
+                  "group flex items-center gap-3 rounded-xl transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
+                  "border border-white/20 hover:border-white/30 hover:bg-white/10",
+                  isCollapsed 
+                    ? "w-12 h-12 justify-center mx-auto" 
+                    : "px-3 py-2.5 w-full"
+                )}
+              >
+                {isPamModule ? (
+                  <>
+                    <Leaf className={cn(
+                      "flex-shrink-0 text-white/90 group-hover:text-white transition-colors",
+                      isCollapsed ? "w-5 h-5" : "w-4 h-4"
+                    )} />
+                    {!isCollapsed && (
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-white/90 group-hover:text-white truncate">
+                          Gestión Ambiental
+                        </p>
+                        <p className="text-[10px] text-white/60 group-hover:text-white/70">
+                          Cambiar módulo
+                        </p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className={cn(
+                      "flex-shrink-0 text-white/90 group-hover:text-white transition-colors",
+                      isCollapsed ? "w-5 h-5" : "w-4 h-4"
+                    )} />
+                    {!isCollapsed && (
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-white/90 group-hover:text-white truncate">
+                          Gestión de Seguridad
+                        </p>
+                        <p className="text-[10px] text-white/60 group-hover:text-white/70">
+                          Cambiar módulo
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="text-xs">
+              <span>
+                {isPamModule ? "Ir a Gestión Ambiental" : "Ir a Gestión de Seguridad (PLS)"}
+              </span>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+
       {/* User section - Solo visible en módulo Ambiental */}
       {!isPamModule && (
         <div
           className={cn(
-            "px-5 py-4 border-t border-white/10 relative mt-auto",
+            "px-5 py-4 border-t border-white/10",
             isCollapsed && "flex justify-center"
           )}
         >
