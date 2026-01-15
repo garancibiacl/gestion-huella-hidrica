@@ -8,9 +8,8 @@ import { Button } from '@/components/ui/button';
 import { usePageTracking } from '@/hooks/usePageTracking';
 import { FullPageLoader } from '@/components/ui/full-page-loader';
 import { cn } from '@/lib/utils';
-import { PamNotificationBell } from '@/modules/pam/components/notifications/PamNotificationBell';
-import { HazardNotificationBell } from '@/modules/pam/hazards/components/HazardNotificationBell';
 import { PamHeader } from '@/modules/pam/components/layout/PamHeader';
+import { EnvironmentalHeader } from '@/components/layout/EnvironmentalHeader';
 
 export function AppLayout() {
   const { user, loading } = useAuth();
@@ -73,8 +72,7 @@ export function AppLayout() {
 
       {/* Header - Condicional según módulo */}
       {isPamModule ? (
-        /* PLS Header - Visible en móvil y desktop */
-        <PamHeader 
+        <PamHeader
           onMenuClick={() => setSidebarOpen(true)}
           className={cn(
             'fixed top-0 right-0 z-30',
@@ -82,31 +80,20 @@ export function AppLayout() {
           )}
         />
       ) : (
-        /* Header Ambiental - Solo móvil */
-        <header className="fixed top-0 left-0 right-0 h-16 bg-card border-b border-border flex items-center justify-between px-4 lg:hidden z-30">
-          <div className="flex items-center">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSidebarOpen(true)}
-              className="mr-4"
-            >
-              <Menu className="w-5 h-5" />
-            </Button>
-            <span className="font-semibold">Buses JM</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <HazardNotificationBell />
-            <PamNotificationBell />
-          </div>
-        </header>
+        <EnvironmentalHeader
+          onMenuClick={() => setSidebarOpen(true)}
+          className={cn(
+            'fixed top-0 right-0 z-30',
+            sidebarCollapsed ? 'lg:left-16' : 'lg:left-64'
+          )}
+        />
       )}
 
       {/* Main Content */}
       <main
         className={cn(
           'flex-1',
-          isPamModule ? 'pt-14 lg:pt-16' : 'pt-16 lg:pt-0',
+          'pt-14 lg:pt-16',
           sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'
         )}
       >

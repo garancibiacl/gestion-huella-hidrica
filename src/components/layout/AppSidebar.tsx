@@ -1,19 +1,13 @@
 import { Link, useLocation } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import {
   Upload,
   Calendar,
   Leaf,
-  Settings,
-  LogOut,
   Droplets,
   Zap,
   Users,
   BarChart3,
-  HelpCircle,
-  Activity,
   PanelLeft,
   PanelRightOpen,
   Flame,
@@ -25,11 +19,9 @@ import {
   LayoutDashboard,
   Home,
 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { PamNotificationBell } from "@/modules/pam/components/notifications/PamNotificationBell";
 
 interface NavItem {
   icon: typeof Droplets;
@@ -47,7 +39,6 @@ const environmentalNavItems: NavItem[] = [
   { icon: Upload, label: "Importar Datos", path: "/importar" },
   { icon: Calendar, label: "Períodos", path: "/periodos" },
   { icon: Leaf, label: "Medidas Sustentables", path: "/medidas" },
-  { icon: Activity, label: "Capa predictiva", path: "/admin/riesgos" },
   { icon: Users, label: "Usuarios", path: "/admin/usuarios", adminOnly: true },
   { icon: BarChart3, label: "Analytics", path: "/admin/analytics", adminOnly: true },
 ];
@@ -70,146 +61,14 @@ interface AppSidebarProps {
   onToggleCollapse?: () => void;
 }
 
-// Floating user menu rendered in a Portal, clamped within the viewport
-function UserMenuPortal({
-  triggerRef,
-  onRequestClose,
-  children,
-}: {
-  triggerRef: React.RefObject<HTMLElement>;
-  onRequestClose: () => void;
-  children: React.ReactNode;
-}) {
-  const menuRef = useRef<HTMLDivElement | null>(null);
-  const [pos, setPos] = useState<{
-    top: number;
-    left: number;
-    openLeft: boolean;
-  }>({ top: 0, left: 0, openLeft: false });
-
-  useEffect(() => {
-    const compute = () => {
-      const btn = triggerRef.current;
-      const menu = menuRef.current;
-      if (!btn || !menu) return;
-
-      const margin = 12;
-      const btnRect = btn.getBoundingClientRect();
-      const menuRect = menu.getBoundingClientRect();
-
-      // Clamp vertical para que el menú entero sea visible
-      const desiredCenter = btnRect.top + btnRect.height / 2;
-      const halfH = menuRect.height / 2;
-      const minCenter = margin + halfH;
-      const maxCenter = window.innerHeight - margin - halfH;
-      const clampedCenter = Math.max(
-        minCenter,
-        Math.min(desiredCenter, maxCenter)
-      );
-
-      // Fallback horizontal: prefer derecha; si no cabe, abrir a la izquierda
-      const rightLeft = btnRect.right + margin;
-      const rightFits =
-        rightLeft + menuRect.width <= window.innerWidth - margin;
-      const leftLeft = Math.max(margin, btnRect.left - margin - menuRect.width);
-
-      setPos({
-        top: clampedCenter,
-        left: rightFits ? rightLeft : leftLeft,
-        openLeft: !rightFits,
-      });
-    };
-
-    const raf = requestAnimationFrame(compute);
-    const onReflow = () => requestAnimationFrame(compute);
-
-    window.addEventListener("resize", onReflow);
-    window.addEventListener("scroll", onReflow, true);
-
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onRequestClose();
-    const onClick = (e: MouseEvent) => {
-      const target = e.target as Node;
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(target) &&
-        triggerRef.current &&
-        !triggerRef.current.contains(target)
-      ) {
-        onRequestClose();
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    document.addEventListener("mousedown", onClick);
-
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("resize", onReflow);
-      window.removeEventListener("scroll", onReflow, true);
-      document.removeEventListener("keydown", onKey);
-      document.removeEventListener("mousedown", onClick);
-    };
-  }, [triggerRef, onRequestClose]);
-
-  return (
-    <div
-      ref={menuRef}
-      className="fixed z-[60] w-80 rounded-xl bg-white text-[#0A0D12] shadow-lg ring-1 ring-black/5 overflow-y-auto"
-      style={{
-        top: pos.top,
-        left: pos.left,
-        transform: "translateY(-50%)",
-        maxHeight: "min(80vh, 480px)",
-      }}
-    >
-      {/* Caret */}
-      <div
-        className={[
-          "absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rotate-45 ring-1 ring-black/5",
-          pos.openLeft ? "right-[-6px]" : "left-[-6px]",
-        ].join(" ")}
-      />
-      {children}
-    </div>
-  );
-}
-
 export function AppSidebar({ onClose, isCollapsed = false, onToggleCollapse }: AppSidebarProps) {
   const location = useLocation();
-  const { user, signOut } = useAuth();
   const { isAdmin, isPrevencionista, loading } = useRole();
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const userMenuButtonRef = useRef<HTMLButtonElement | null>(null);
 
   // Detectar si estamos en módulo PLS o Ambiental
   const isPamModule = location.pathname.startsWith('/pls') || location.pathname.startsWith('/admin/pls');
   const navItems = isPamModule ? pamNavItems : environmentalNavItems;
 
-  // Derive user display name and initials
-  const rawName =
-    (user?.user_metadata && (user.user_metadata as any).full_name) ||
-    user?.email ||
-    "Usuario";
-
-  const fullName = rawName
-    .split(" ")
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-    .join(" ");
-
-  const initials =
-    fullName
-      .split(" ")
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part.charAt(0).toUpperCase())
-      .join("") || "BJ";
-
-  const roleLabel = isAdmin ? "Admin" : isPrevencionista ? "Prevencionista" : null;
-  const userTooltipLabel = fullName;
-
-  const handleSignOut = async () => {
-    await signOut();
-  };
 
   const filteredNavItems = navItems.filter((item) => {
     // Ítems solo admin
@@ -389,166 +248,39 @@ export function AppSidebar({ onClose, isCollapsed = false, onToggleCollapse }: A
           <Tooltip delayDuration={150}>
             <TooltipTrigger asChild>
               <Link
-                to={isPamModule ? "/hub" : "/pls"}
+                to="/hub"
                 className={cn(
                   "group flex items-center gap-3 rounded-xl transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
                   "border border-white/20 hover:border-white/30 hover:bg-white/10",
-                  isCollapsed 
-                    ? "w-12 h-12 justify-center mx-auto" 
+                  isCollapsed
+                    ? "w-12 h-12 justify-center mx-auto"
                     : "px-3 py-2.5 w-full"
                 )}
               >
-                {isPamModule ? (
-                  <>
-                    <Home className={cn(
-                      "flex-shrink-0 text-white/90 group-hover:text-white transition-colors",
-                      isCollapsed ? "w-5 h-5" : "w-4 h-4"
-                    )} />
-                    {!isCollapsed && (
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-white/90 group-hover:text-white truncate">
-                          Volver al inicio
-                        </p>
-                        <p className="text-[10px] text-white/60 group-hover:text-white/70">
-                          Ver todos los módulos
-                        </p>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <AlertTriangle className={cn(
-                      "flex-shrink-0 text-white/90 group-hover:text-white transition-colors",
-                      isCollapsed ? "w-5 h-5" : "w-4 h-4"
-                    )} />
-                    {!isCollapsed && (
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-white/90 group-hover:text-white truncate">
-                          Ir a Seguridad (PLS)
-                        </p>
-                        <p className="text-[10px] text-white/60 group-hover:text-white/70">
-                          Cambiar de módulo
-                        </p>
-                      </div>
-                    )}
-                  </>
+                <Home className={cn(
+                  "flex-shrink-0 text-white/90 group-hover:text-white transition-colors",
+                  isCollapsed ? "w-5 h-5" : "w-4 h-4"
+                )} />
+                {!isCollapsed && (
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-white/90 group-hover:text-white truncate">
+                      Volver al inicio
+                    </p>
+                    <p className="text-[10px] text-white/60 group-hover:text-white/70">
+                      Ver todos los módulos
+                    </p>
+                  </div>
                 )}
               </Link>
             </TooltipTrigger>
             <TooltipContent side="right" className="text-xs">
-              <span>
-                {isPamModule ? "Volver al inicio y ver todos los módulos" : "Cambiar a módulo de Seguridad (PLS)"}
-              </span>
+              <span>Volver al inicio y ver todos los módulos</span>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
       </div>
 
-      {/* User section - Solo visible en módulo Ambiental */}
-      {!isPamModule && (
-        <div
-          className={cn(
-            "px-5 py-4 border-t border-white/10",
-            isCollapsed && "flex justify-center"
-          )}
-        >
-          <TooltipProvider>
-            <Tooltip delayDuration={150}>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  onClick={() => setUserMenuOpen((v) => !v)}
-                  aria-expanded={userMenuOpen}
-                  className={cn(
-                    "flex items-center text-left rounded-xl hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30 focus:ring-offset-0 transition-all",
-                    isCollapsed
-                      ? "w-12 h-12 justify-center px-0 mx-auto"
-                      : "w-full h-14 gap-3 px-2"
-                  )}
-                  ref={userMenuButtonRef}
-                >
-                <div className={cn(
-                  "rounded-full bg-white flex items-center justify-center text-[#b3382a] font-semibold shadow-sm",
-                  isCollapsed ? "w-10 h-10 text-sm" : "w-9 h-9 text-xs"
-                )}>
-                  {initials}
-                </div>
-                {!isCollapsed && (
-                  <>
-                    <div className="flex-1 min-w-0">
-                      <h2 className="font-semibold text-sm leading-none tracking-tight truncate whitespace-nowrap max-w-[160px]">
-                        {fullName}
-                      </h2>
-                      <p className="text-[11px] leading-none text-white/70 truncate whitespace-nowrap">
-                        {user?.email}
-                      </p>
-                    </div>
-                    <span className="ml-auto text-white/80">›</span>
-                  </>
-                )}
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right" className="text-xs">
-              <span>{userTooltipLabel}</span>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-
-        {userMenuOpen &&
-          createPortal(
-            <UserMenuPortal
-              triggerRef={userMenuButtonRef}
-              onRequestClose={() => setUserMenuOpen(false)}
-            >
-              <div className="px-5 py-5 border-b border-black/5">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-[#b3382a]/10 flex items-center justify-center text-[#b3382a] text-xs font-semibold">
-                    {initials}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate max-w-[160px]">
-                      {fullName}
-                    </p>
-                    <p className="text-[11px] text-[#9AA2AB]">
-                      Cuenta JM{roleLabel ? ` · ${roleLabel}` : ""}
-                    </p>
-                    <p className="text-xs text-[#5B6770] truncate">
-                      {user?.email}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="py-4">
-                <Link
-                  to="/configuracion"
-                  onClick={onClose}
-                  className="flex items-center gap-3 px-5 py-3 text-sm hover:bg-[#f1f3f5]"
-                >
-                  <Settings className="w-4 h-4 text-[#ba4a3f]" />
-                  <span>Configuración de cuenta</span>
-                </Link>
-                <Link
-                  to="/ayuda"
-                  onClick={onClose}
-                  className="flex items-center gap-3 px-5 py-2.5 text-sm hover:bg-[#f1f3f5]"
-                >
-                  <HelpCircle className="w-4 h-4 text-[#ba4a3f]" />
-                  <span>Centro de ayuda</span>
-                </Link>
-              </div>
-              <button
-                type="button"
-                onClick={handleSignOut}
-                className="w-full flex items-center gap-3 text-left text-sm text-[#0A0D12] hover:bg-[#f1f3f5] px-5 py-3 rounded-b-xl border-t border-black/5"
-              >
-                <LogOut className="w-4 h-4 text-[#ba4a3f]" />
-                <span className="text-[#5B6770]">Cerrar sesión</span>
-              </button>
-            </UserMenuPortal>,
-            document.body
-          )}
-        </div>
-      )}
+      {/* User section removed from sidebar (now handled in header) */}
     </div>
   );
 }
