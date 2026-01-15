@@ -251,10 +251,12 @@ export async function importPamWeek(params: {
     console.log("PLS import: Buscando perfiles para emails:", uniqueEmails);
     
     // Obtener TODOS los perfiles de la organización para hacer match case-insensitive
-    const { data: profiles, error: profilesError } = await supabase
-      .from("profiles")
-      .select("user_id, email, full_name")
-      .eq("organization_id", organizationId);
+    const { data: profiles, error: profilesError } = await supabase.rpc(
+      "get_profiles_for_organization",
+      {
+        p_organization_id: organizationId,
+      }
+    );
 
     if (profilesError) throw profilesError;
 

@@ -27,25 +27,26 @@ async function resolveAssigneeByEmail(params: {
   assigneeEmail: string;
 }): Promise<{ assigneeUserId: string; assigneeName: string | null; assigneeEmail: string }> {
   const normalizedEmail = params.assigneeEmail.trim().toLowerCase();
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("user_id, full_name, email")
-    .eq("organization_id", params.organizationId)
-    .ilike("email", normalizedEmail)
-    .maybeSingle();
+  const { data: profiles, error } = await supabase.rpc("get_profiles_for_organization", {
+    p_organization_id: params.organizationId,
+  });
 
   if (error) {
     throw new Error("No se pudo validar el email del responsable.");
   }
 
-  if (!profile || !profile.user_id) {
+  const resolvedProfile = profiles?.find(
+    (profile) => profile.email?.trim().toLowerCase() === normalizedEmail
+  );
+
+  if (!resolvedProfile || !resolvedProfile.user_id) {
     throw new Error("El email no corresponde a un usuario activo de la organización.");
   }
 
   return {
-    assigneeUserId: profile.user_id,
-    assigneeName: profile.full_name ?? null,
-    assigneeEmail: profile.email ?? normalizedEmail,
+    assigneeUserId: resolvedProfile.user_id,
+    assigneeName: resolvedProfile.full_name ?? null,
+    assigneeEmail: resolvedProfile.email ?? normalizedEmail,
   };
 }
 
