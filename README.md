@@ -1,29 +1,49 @@
- # Gestión Huella Hídrica y Energía
+ # Plataforma Hub: Gestión Ambiental y Gestión de Seguridad
 
- Plataforma web para **Prevención de Riesgos** y **sostenibilidad**, enfocada en el monitoreo de consumo, costos y tendencias asociadas a **huella hídrica** y **energía eléctrica** (base para iniciativas de eficiencia y reducción de impacto).
+ Aplicación web **hub** para Prevención de Riesgos y sostenibilidad, diseñada para centralizar la operación HSE. Unifica **Gestión Ambiental** (agua, energía, petróleo) y **Gestión de Seguridad (PLS)** en un solo entorno con módulos estandarizados, KPIs y flujos de sincronización.
 
  ## Resumen ejecutivo
 
- Esta aplicación permite centralizar información operativa desde **Google Sheets** y visualizarla en dashboards separados por módulo (**Agua** y **Energía Eléctrica**). Incluye filtros, KPIs y gráficos para apoyar la toma de decisiones, seguimiento de consumo y control de costos.
+ La plataforma concentra datos operativos desde **Google Sheets** y los organiza en módulos con dashboards, reportes y tableros de seguimiento. El hub permite navegar entre **Gestión Ambiental** y **Gestión de Seguridad**, manteniendo una experiencia consistente, roles claros y métricas comparables por centro, faena y período.
+
+ ## ¿Dónde apunta?
+
+ - **Operación HSE centralizada** para equipos de prevención y gestión.
+ - **Decisiones basadas en datos** con KPIs, tendencias y alertas.
+ - **Estandarización de módulos** para escalar a nuevos centros y organizaciones.
 
  ## Objetivo
 
- - **Prevención de Riesgos:** entregar visibilidad y control sobre consumos y costos que afectan la operación (gestión preventiva, control de desviaciones, seguimiento por centro/faena/medidor).
- - **Sostenibilidad:** aportar métricas y trazabilidad para iniciativas relacionadas a **huella hídrica** y **energía** (insumo para análisis de eficiencia y reducción de impacto).
+ - **Gestión Ambiental:** visibilidad y control de consumos, costos y huella asociada (agua, energía, petróleo), con trazabilidad por centro/faena/medidor.
+ - **Gestión de Seguridad (PLS):** planificación semanal, seguimiento de cumplimiento y reportabilidad de actividades preventivas.
 
- ## Módulos y rutas
+ ## Módulos estandarizados
 
- - **Dashboard Agua**: ` /dashboard/agua `
-   - Consumo por medidor.
-   - Consumo humano (botellas/bidones) con filtros y desglose.
- - **Dashboard Energía Eléctrica**: ` /dashboard/energia `
-   - Consumo por medidor eléctrico.
-   - Filtros por período/centro/medidor.
- - **Sincronización**: botones “Sincronizar” por módulo para traer lo último desde Google Sheets.
+ - **Gestión Ambiental**
+   - **Agua** (`/dashboard/agua`)
+   - **Energía Eléctrica** (`/dashboard/energia`)
+   - **Petróleo** (`/dashboard/petroleo`)
+   - **Períodos** (`/periodos`)
+   - **Medidas Sustentables** (`/medidas`)
+   - **Capa predictiva / riesgos** (`/admin/riesgos`)
+ - **Gestión de Seguridad (PLS)**
+   - **Mis actividades** (`/pls/my-activities`)
+   - **Dashboard PLS** (`/pls/dashboard`)
+   - **Planificación semanal PLS** (`/admin/pls/upload`)
+   - **Reporte de Peligro** (`/admin/pls/hazard-report`)
+   - **Estado de cumplimiento** (`/admin/pls/board`)
+   - **Desempeño del PLS** (`/pls/performance`)
+   - **Reportabilidad** (`/pls/reports`)
+
+ ## Rutas clave del hub
+
+ - **Hub principal**: `/hub`
+ - **Hub alternativo (UX nuevo)**: `/hub_new`
+ - **Autenticación**: `/auth`
 
  ## Funcionalidades principales
 
- ### Agua
+ ### Gestión Ambiental
 
  - KPIs (totales, costo, distribución por formato, litros totales, etc.).
  - Gráficos (Recharts) y tablas/segmentación por centro/período/faena.
@@ -40,6 +60,12 @@
    - Período
    - Centro de trabajo
    - Medidor
+
+ ### Gestión de Seguridad (PLS)
+
+ - Planificación semanal con sincronización desde Google Sheets.
+ - Gestión de tareas: creación, edición, estados y evidencias.
+ - Tablero de cumplimiento y reportabilidad.
 
  ### Sincronización (Google Sheets → Supabase)
 
@@ -74,7 +100,7 @@
 
  ## Arquitectura (alto nivel)
 
- - **Separación por módulos** (Agua / Energía) con rutas dedicadas.
+ - **Separación por módulos** (Ambiental / Seguridad) con rutas dedicadas.
  - **Hooks de dominio** para encapsular lógica:
    - `useWaterSync` (sincronización módulo Agua)
    - `useElectricSync` (sincronización módulo Energía)

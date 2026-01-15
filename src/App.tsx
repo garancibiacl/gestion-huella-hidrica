@@ -24,10 +24,17 @@ import AdminRisk from "./pages/AdminRisk";
 import NotFound from "./pages/NotFound";
 import PamWorkerTasksPage from "./modules/pam/pages/PamWorkerTasksPage";
 import PamAdminWeekUploadPage from "./modules/pam/pages/PamAdminWeekUploadPage";
+import PamHazardReportPage from "./modules/pam/pages/PamHazardReportPage";
 import PamAdminBoardPage from "./modules/pam/pages/PamAdminBoardPage";
 import PamDashboardPage from "./modules/pam/pages/PamDashboardPage";
 import PamPerformancePage from "./modules/pam/pages/PamPerformancePage";
 import PamReportsPage from "./modules/pam/pages/PamReportsPage";
+
+// Hazard Report Module
+import HazardListPage from "./modules/pam/hazards/pages/HazardListPage";
+import HazardCreatePage from "./modules/pam/hazards/pages/HazardCreatePage";
+import HazardDetailPage from "./modules/pam/hazards/pages/HazardDetailPage";
+import HazardClosePage from "./modules/pam/hazards/pages/HazardClosePage";
 
 const queryClient = new QueryClient();
 
@@ -63,6 +70,13 @@ const App = () => (
               <Route path="/pls/performance" element={<PamPerformancePage />} />
               <Route path="/pls/reports" element={<PamReportsPage />} />
               <Route path="/admin/pls/upload" element={<PamAdminWeekUploadPage />} />
+              
+              {/* Hazard Report Module */}
+              <Route path="/admin/pls/hazard-report" element={<HazardListPage />} />
+              <Route path="/admin/pls/hazard-report/new" element={<HazardCreatePage />} />
+              <Route path="/admin/pls/hazard-report/:id" element={<HazardDetailPage />} />
+              <Route path="/admin/pls/hazard-report/:id/close" element={<HazardClosePage />} />
+              
               <Route path="/admin/pls/board" element={<PamAdminBoardPage />} />
               <Route path="/reportes/agua/preview" element={<WaterReportPreview />} />
             </Route>

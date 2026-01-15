@@ -25,7 +25,15 @@ import { createPamNotification } from "../services/notificationApi";
 
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSm6kI2pKhHhLX5kwP2AWWwbc1fYr9h96k9OqumbRqJtcxSKeW7VUbhtDmXQuyksQ/pubhtml';
 
-export default function PamAdminWeekUploadPage() {
+interface PamAdminWeekUploadPageProps {
+  pageTitle?: string;
+  sectionTitle?: string;
+}
+
+export default function PamAdminWeekUploadPage({
+  pageTitle = "Planificación semanal PLS",
+  sectionTitle = "Planificación PLS",
+}: PamAdminWeekUploadPageProps) {
   const { isAdmin, isPrevencionista, loading } = useRole();
   const { toast } = useToast();
   const [syncErrors, setSyncErrors] = useState<string[]>([]);
@@ -429,7 +437,7 @@ export default function PamAdminWeekUploadPage() {
         };
       case "DONE":
         return {
-          label: "Hecha",
+          label: "Completada",
           className: "bg-emerald-50 text-emerald-700 border border-emerald-100",
         };
       case "OVERDUE":
@@ -448,7 +456,7 @@ export default function PamAdminWeekUploadPage() {
   return (
     <div className="p-4 md:p-6 space-y-6">
       <PageHeader
-        title="Planificación semanal PLS"
+        title={pageTitle}
         description="Sincronización automática con Google Sheets"
       />
 
@@ -457,7 +465,7 @@ export default function PamAdminWeekUploadPage() {
         <div className="space-y-4">
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-2">
-              <h3 className="font-semibold">Planificación PLS</h3>
+              <h3 className="font-semibold">{sectionTitle}</h3>
               <p className="text-sm text-muted-foreground">
                 Sincronización automática con Google Sheets
               </p>

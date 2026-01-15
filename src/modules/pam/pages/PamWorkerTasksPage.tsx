@@ -17,7 +17,7 @@ import { PamWeekSelector } from "../components/week/PamWeekSelector";
 const STATUS_LABELS: Record<PamTaskStatus, string> = {
   PENDING: "Pendiente",
   IN_PROGRESS: "En curso",
-  DONE: "Hecha",
+  DONE: "Completada",
   OVERDUE: "Vencida",
 };
 
