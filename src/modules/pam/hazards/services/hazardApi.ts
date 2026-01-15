@@ -59,7 +59,7 @@ export async function getHazardControlTypes(organizationId: string): Promise<Haz
   const { data, error } = await (supabase as any)
     .from('hazard_control_types')
     .select('*')
-    .eq('organization_id', organizationId)
+    .or(`organization_id.is.null,organization_id.eq.${organizationId}`)
     .eq('is_active', true)
     .order('name', { ascending: true });
 
