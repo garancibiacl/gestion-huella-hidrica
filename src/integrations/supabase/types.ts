@@ -1408,6 +1408,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      find_profile_by_email_any_org: {
+        Args: { p_email: string }
+        Returns: {
+          email: string
+          organization_id: string
+          user_id: string
+        }[]
+      }
+      find_profile_by_email_in_org: {
+        Args: { p_email: string; p_organization_id: string }
+        Returns: {
+          email: string
+          full_name: string
+          organization_id: string
+          user_id: string
+        }[]
+      }
       get_analytics_overview: {
         Args: { days?: number }
         Returns: {
