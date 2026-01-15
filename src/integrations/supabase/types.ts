@@ -1457,6 +1457,14 @@ export type Database = {
           visits: number
         }[]
       }
+      get_profiles_for_organization: {
+        Args: { p_organization_id: string }
+        Returns: {
+          email: string
+          full_name: string
+          user_id: string
+        }[]
+      }
       get_top_pages: {
         Args: { days?: number; limit_count?: number }
         Returns: {
