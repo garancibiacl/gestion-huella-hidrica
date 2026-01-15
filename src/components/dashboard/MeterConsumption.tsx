@@ -76,7 +76,7 @@ export default function MeterConsumption() {
       const { data: criteriaData } = await supabase
         .from('measurement_criteria')
         .select('objetivo_mensual, umbral_alerta_pct')
-        .eq('organization_id', organizationId)
+        .eq('user_id', user?.id ?? '')
         .maybeSingle();
 
       if (readingsData) {
