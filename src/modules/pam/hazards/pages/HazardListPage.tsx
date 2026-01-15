@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Calendar, AlertTriangle, User } from 'lucide-react';
+import { Plus, Calendar, AlertTriangle, User, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,10 +10,11 @@ import { HazardStatusBadge } from '../components/HazardStatusBadge';
 import { useQueryClient } from '@tanstack/react-query';
 import { hazardKeys, useHazardCriticalRisks, useHazardHierarchy, useHazardReports, useHazardReportStats, useHazardResponsibles } from '../hooks/useHazardReports';
 import type { HazardReportFilters } from '../types/hazard.types';
-import { format } from 'date-fns';
+import { endOfMonth, format, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useHazardCatalogSync } from '../hooks/useHazardCatalogSync';
 import { useToast } from '@/hooks/use-toast';
+import { exportHazardMonthlyReport } from '@/lib/pdf-export';
 
 export default function HazardListPage() {
   const navigate = useNavigate();
@@ -71,6 +72,13 @@ export default function HazardListPage() {
 
   const { data: reports = [], isLoading } = useHazardReports(effectiveFilters);
   const { data: stats } = useHazardReportStats();
+  const monthStart = startOfMonth(new Date());
+  const monthEnd = endOfMonth(new Date());
+  const monthRangeLabel = `${format(monthStart, 'dd MMM yyyy', { locale: es })} - ${format(monthEnd, 'dd MMM yyyy', { locale: es })}`;
+  const { data: monthlyReports = [], isLoading: isMonthlyLoading } = useHazardReports({
+    date_from: monthStart.toISOString(),
+    date_to: monthEnd.toISOString(),
+  });
 
   const isOverdue = (dueDate: string, status: string) => {
     if (status !== 'OPEN') return false;
@@ -106,6 +114,28 @@ export default function HazardListPage() {
               }}
             >
               {isSyncing ? 'Sincronizando…' : 'Sincronizar catálogos'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isMonthlyLoading}
+              onClick={() => {
+                if (monthlyReports.length === 0) {
+                  toast({
+                    title: 'Sin reportes para el mes',
+                    description: 'No hay reportes de peligro registrados en el período seleccionado.',
+                  });
+                  return;
+                }
+                exportHazardMonthlyReport({
+                  reports: monthlyReports,
+                  organization: 'Buses JM',
+                  dateRange: monthRangeLabel,
+                });
+              }}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Reporte Mensual
             </Button>
             <Button onClick={() => navigate('/admin/pls/hazard-report/new')}>
               <Plus className="mr-2 h-4 w-4" />

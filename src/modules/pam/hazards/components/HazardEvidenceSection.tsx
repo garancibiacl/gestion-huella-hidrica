@@ -30,16 +30,22 @@ interface HazardEvidenceSectionProps {
   reportId: string;
   evidences: HazardReportEvidence[];
   canAddEvidence?: boolean;
+  defaultEvidenceType?: EvidenceType;
+  hideEvidenceTypeSelect?: boolean;
+  acceptFileTypes?: string;
 }
 
 export function HazardEvidenceSection({
   reportId,
   evidences,
   canAddEvidence = true,
+  defaultEvidenceType = 'FINDING',
+  hideEvidenceTypeSelect = false,
+  acceptFileTypes = 'image/*,.pdf,.doc,.docx',
 }: HazardEvidenceSectionProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [evidenceType, setEvidenceType] = useState<EvidenceType>('FINDING');
+  const [evidenceType, setEvidenceType] = useState<EvidenceType>(defaultEvidenceType);
   const [description, setDescription] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -80,6 +86,10 @@ export function HazardEvidenceSection({
       cancelled = true;
     };
   }, [evidences, needsSignedUrls]);
+
+  useEffect(() => {
+    setEvidenceType(defaultEvidenceType);
+  }, [defaultEvidenceType]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -164,20 +174,21 @@ export function HazardEvidenceSection({
               </DialogHeader>
 
               <div className="space-y-4">
-                {/* Tipo de evidencia */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Tipo de Evidencia</label>
-                  <Select value={evidenceType} onValueChange={(v) => setEvidenceType(v as EvidenceType)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="FINDING">Hallazgo</SelectItem>
-                      <SelectItem value="CLOSURE">Cierre</SelectItem>
-                      <SelectItem value="OTHER">Otro</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {!hideEvidenceTypeSelect && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Tipo de Evidencia</label>
+                    <Select value={evidenceType} onValueChange={(v) => setEvidenceType(v as EvidenceType)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="FINDING">Hallazgo</SelectItem>
+                        <SelectItem value="CLOSURE">Cierre</SelectItem>
+                        <SelectItem value="OTHER">Otro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 {/* Archivo */}
                 <div className="space-y-2">
@@ -185,7 +196,7 @@ export function HazardEvidenceSection({
                   <Input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*,.pdf,.doc,.docx"
+                    accept={acceptFileTypes}
                     onChange={handleFileSelect}
                   />
                   {selectedFile && (

@@ -126,11 +126,11 @@ export async function listHazardReports(
   }
 
   if (filters?.date_from) {
-    query = query.gte('due_date', filters.date_from);
+    query = query.gte('created_at', filters.date_from);
   }
 
   if (filters?.date_to) {
-    query = query.lte('due_date', filters.date_to);
+    query = query.lte('created_at', filters.date_to);
   }
 
   if (filters?.search) {

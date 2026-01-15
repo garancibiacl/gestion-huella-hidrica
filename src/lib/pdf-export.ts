@@ -1,6 +1,7 @@
- import jsPDF from 'jspdf';
+import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { calculateImpactFromLiters, calculateImpactFromM3, type ImpactMetrics } from '@/lib/impact';
+import type { HazardReport } from '@/modules/pam/hazards/types/hazard.types';
 
 // Corporate colors
 const PRIMARY_COLOR: [number, number, number] = [179, 56, 42]; // #b3382a
@@ -642,4 +643,109 @@ export function exportCarbonFootprintReport(data: {
     ].filter(Boolean),
     footer: 'Reporte de Huella de Carbono - Sistema de Gestión Ambiental y Prevención de Riesgos',
   });
+}
+
+export function exportHazardMonthlyReport(data: {
+  reports: HazardReport[];
+  organization?: string;
+  dateRange?: string;
+}) {
+  generatePDF({
+    ...buildHazardReportPdfPayload({
+      reports: data.reports,
+      organization: data.organization,
+      dateRange: data.dateRange,
+      title: 'Reporte Mensual – Reporte de Peligros',
+      subtitle: 'Safety Intelligence · Gestión de Seguridad',
+      footer: 'Reporte Mensual de Peligros · Sistema de Gestión de Seguridad',
+    }),
+  });
+}
+
+export function exportHazardWeeklyReport(data: {
+  reports: HazardReport[];
+  organization?: string;
+  dateRange?: string;
+}) {
+  generatePDF({
+    ...buildHazardReportPdfPayload({
+      reports: data.reports,
+      organization: data.organization,
+      dateRange: data.dateRange,
+      title: 'Reporte Semanal – Reporte de Peligros',
+      subtitle: 'Safety Intelligence · Gestión de Seguridad',
+      footer: 'Reporte Semanal de Peligros · Sistema de Gestión de Seguridad',
+    }),
+  });
+}
+
+export function exportHazardAnnualReport(data: {
+  reports: HazardReport[];
+  organization?: string;
+  dateRange?: string;
+}) {
+  generatePDF({
+    ...buildHazardReportPdfPayload({
+      reports: data.reports,
+      organization: data.organization,
+      dateRange: data.dateRange,
+      title: 'Reporte Anual – Reporte de Peligros',
+      subtitle: 'Safety Intelligence · Gestión de Seguridad',
+      footer: 'Reporte Anual de Peligros · Sistema de Gestión de Seguridad',
+    }),
+  });
+}
+
+function buildHazardReportPdfPayload(data: {
+  reports: HazardReport[];
+  organization?: string;
+  dateRange?: string;
+  title: string;
+  subtitle: string;
+  footer: string;
+}) {
+  const total = data.reports.length;
+  const open = data.reports.filter((report) => report.status === 'OPEN').length;
+  const closed = data.reports.filter((report) => report.status === 'CLOSED').length;
+  const overdue = data.reports.filter(
+    (report) => report.status === 'OPEN' && new Date(report.due_date) < new Date()
+  ).length;
+
+  const statusLabel = (status: HazardReport['status']) => {
+    if (status === 'OPEN') return 'Abierto';
+    if (status === 'CLOSED') return 'Cerrado';
+    if (status === 'CANCELLED') return 'Cancelado';
+    return status;
+  };
+
+  return {
+    title: data.title,
+    subtitle: data.subtitle,
+    organization: data.organization,
+    dateRange: data.dateRange,
+    kpis: [
+      { title: 'Total', value: total.toString(), subtitle: 'Reportes del período' },
+      { title: 'Abiertos', value: open.toString(), subtitle: 'Pendientes de cierre' },
+      { title: 'Cerrados', value: closed.toString(), subtitle: 'Resueltos' },
+      { title: 'Vencidos', value: overdue.toString(), subtitle: 'Fuera de plazo' },
+    ],
+    tableData: data.reports.map((report) => ({
+      date: new Date(report.created_at).toLocaleDateString('es-CL'),
+      status: statusLabel(report.status),
+      risk: report.critical_risk_name ?? '—',
+      gerencia: report.gerencia,
+      responsible: report.closing_responsible_name ?? '—',
+      reporter: report.reporter_name,
+    })),
+    tableColumns: [
+      { header: 'Fecha', dataKey: 'date' },
+      { header: 'Estado', dataKey: 'status' },
+      { header: 'Riesgo', dataKey: 'risk' },
+      { header: 'Gerencia', dataKey: 'gerencia' },
+      { header: 'Responsable', dataKey: 'responsible' },
+      { header: 'Reportante', dataKey: 'reporter' },
+    ],
+    alerts: overdue > 0 ? [`Existen ${overdue} reportes vencidos en el período.`] : [],
+    footer: data.footer,
+  };
 }

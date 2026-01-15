@@ -2,8 +2,36 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { FileText, Download, Calendar, TrendingUp, BarChart3, FileSpreadsheet } from "lucide-react";
+import { endOfMonth, endOfWeek, endOfYear, format, startOfMonth, startOfWeek, startOfYear } from "date-fns";
+import { es } from "date-fns/locale";
+import { useHazardReports } from "@/modules/pam/hazards/hooks/useHazardReports";
+import { exportHazardAnnualReport, exportHazardMonthlyReport, exportHazardWeeklyReport } from "@/lib/pdf-export";
+import { useToast } from "@/hooks/use-toast";
 
 export default function PamReportsPage() {
+  const { toast } = useToast();
+  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
+  const monthStart = startOfMonth(new Date());
+  const monthEnd = endOfMonth(new Date());
+  const yearStart = startOfYear(new Date());
+  const yearEnd = endOfYear(new Date());
+  const weekRangeLabel = `${format(weekStart, "dd MMM yyyy", { locale: es })} - ${format(weekEnd, "dd MMM yyyy", { locale: es })}`;
+  const monthRangeLabel = `${format(monthStart, "dd MMM yyyy", { locale: es })} - ${format(monthEnd, "dd MMM yyyy", { locale: es })}`;
+  const yearRangeLabel = `${format(yearStart, "dd MMM yyyy", { locale: es })} - ${format(yearEnd, "dd MMM yyyy", { locale: es })}`;
+  const { data: weeklyReports = [], isLoading: isWeeklyLoading } = useHazardReports({
+    date_from: weekStart.toISOString(),
+    date_to: weekEnd.toISOString(),
+  });
+  const { data: monthlyReports = [], isLoading: isMonthlyLoading } = useHazardReports({
+    date_from: monthStart.toISOString(),
+    date_to: monthEnd.toISOString(),
+  });
+  const { data: annualReports = [], isLoading: isAnnualLoading } = useHazardReports({
+    date_from: yearStart.toISOString(),
+    date_to: yearEnd.toISOString(),
+  });
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader
@@ -23,7 +51,25 @@ export default function PamReportsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" className="w-full" disabled>
+            <Button
+              variant="outline"
+              className="w-full"
+              disabled={isWeeklyLoading}
+              onClick={() => {
+                if (weeklyReports.length === 0) {
+                  toast({
+                    title: "Sin reportes en la semana",
+                    description: "No hay reportes de peligro registrados en el período seleccionado.",
+                  });
+                  return;
+                }
+                exportHazardWeeklyReport({
+                  reports: weeklyReports,
+                  organization: "Buses JM",
+                  dateRange: weekRangeLabel,
+                });
+              }}
+            >
               <Download className="mr-2 h-4 w-4" />
               Generar Reporte
             </Button>
@@ -41,7 +87,25 @@ export default function PamReportsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" className="w-full" disabled>
+            <Button
+              variant="outline"
+              className="w-full"
+              disabled={isMonthlyLoading}
+              onClick={() => {
+                if (monthlyReports.length === 0) {
+                  toast({
+                    title: "Sin reportes para el mes",
+                    description: "No hay reportes de peligro registrados en el período seleccionado.",
+                  });
+                  return;
+                }
+                exportHazardMonthlyReport({
+                  reports: monthlyReports,
+                  organization: "Buses JM",
+                  dateRange: monthRangeLabel,
+                });
+              }}
+            >
               <Download className="mr-2 h-4 w-4" />
               Generar Reporte
             </Button>
@@ -113,7 +177,25 @@ export default function PamReportsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" className="w-full" disabled>
+            <Button
+              variant="outline"
+              className="w-full"
+              disabled={isAnnualLoading}
+              onClick={() => {
+                if (annualReports.length === 0) {
+                  toast({
+                    title: "Sin reportes en el año",
+                    description: "No hay reportes de peligro registrados en el período seleccionado.",
+                  });
+                  return;
+                }
+                exportHazardAnnualReport({
+                  reports: annualReports,
+                  organization: "Buses JM",
+                  dateRange: yearRangeLabel,
+                });
+              }}
+            >
               <Download className="mr-2 h-4 w-4" />
               Generar Reporte
             </Button>

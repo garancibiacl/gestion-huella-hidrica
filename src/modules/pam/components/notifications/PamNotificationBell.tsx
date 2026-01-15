@@ -23,10 +23,9 @@ export function PamNotificationBell() {
 
   const handleNotificationClick = async (notificationId: string, taskId: string | null) => {
     await markAsRead(notificationId);
-    if (taskId) {
-      navigate("/pls");
-      setOpen(false);
-    }
+    const target = taskId ? `/pls/my-activities?task=${taskId}` : "/pls/my-activities";
+    navigate(target);
+    setOpen(false);
   };
 
   const handleMarkAllAsRead = async () => {

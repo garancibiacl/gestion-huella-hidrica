@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/form';
 import { PageHeader } from '@/components/ui/page-header';
 import { HazardStatusBadge } from '../components/HazardStatusBadge';
+import { HazardEvidenceSection } from '../components/HazardEvidenceSection';
 import {
   useHazardReport,
   useHazardResponsibles,
@@ -276,6 +277,16 @@ export default function HazardClosePage() {
                 </FormItem>
               )}
             />
+
+            <div className="pt-2">
+              <HazardEvidenceSection
+                reportId={report.id}
+                evidences={(report.evidences || []).filter((evidence) => evidence.evidence_type === 'CLOSURE')}
+                defaultEvidenceType="CLOSURE"
+                hideEvidenceTypeSelect
+                acceptFileTypes="image/*"
+              />
+            </div>
 
             {/* Botones */}
             <div className="flex justify-end gap-4 pt-4">

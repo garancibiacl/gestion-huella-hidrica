@@ -28,7 +28,7 @@ export function HazardNotificationBell() {
   ) => {
     await markAsRead(notificationId);
     if (reportId) {
-      navigate(`/admin/hazards/${reportId}`);
+      navigate(`/admin/pls/hazard-report/${reportId}`);
     }
     setOpen(false);
   };
