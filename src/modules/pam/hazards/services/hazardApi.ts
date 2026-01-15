@@ -20,7 +20,7 @@ const HAZARD_EVIDENCE_BUCKET = 'hazard-evidence';
 // =====================================================
 
 export async function getHazardHierarchy(organizationId: string): Promise<HazardCatalogHierarchy[]> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('hazard_catalog_hierarchy')
     .select('*')
     .eq('organization_id', organizationId)
@@ -28,11 +28,11 @@ export async function getHazardHierarchy(organizationId: string): Promise<Hazard
     .order('gerencia', { ascending: true });
 
   if (error) throw error;
-  return data || [];
+  return (data || []) as HazardCatalogHierarchy[];
 }
 
 export async function getHazardCriticalRisks(organizationId: string): Promise<HazardCriticalRisk[]> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('hazard_critical_risks')
     .select('*')
     .eq('organization_id', organizationId)
@@ -40,11 +40,11 @@ export async function getHazardCriticalRisks(organizationId: string): Promise<Ha
     .order('name', { ascending: true });
 
   if (error) throw error;
-  return data || [];
+  return (data || []) as HazardCriticalRisk[];
 }
 
 export async function getHazardResponsibles(organizationId: string): Promise<HazardResponsible[]> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('hazard_responsibles')
     .select('*')
     .eq('organization_id', organizationId)
@@ -52,11 +52,11 @@ export async function getHazardResponsibles(organizationId: string): Promise<Haz
     .order('name', { ascending: true });
 
   if (error) throw error;
-  return data || [];
+  return (data || []) as HazardResponsible[];
 }
 
 export async function getHazardControlTypes(organizationId: string): Promise<HazardControlType[]> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('hazard_control_types')
     .select('*')
     .eq('organization_id', organizationId)
@@ -64,7 +64,7 @@ export async function getHazardControlTypes(organizationId: string): Promise<Haz
     .order('name', { ascending: true });
 
   if (error) throw error;
-  return data || [];
+  return (data || []) as HazardControlType[];
 }
 
 // =====================================================
@@ -75,7 +75,7 @@ export async function listHazardReports(
   organizationId: string,
   filters?: HazardReportFilters
 ): Promise<HazardReport[]> {
-  let query = supabase
+  let query = (supabase as any)
     .from('hazard_reports')
     .select('*')
     .eq('organization_id', organizationId);
@@ -112,7 +112,7 @@ export async function listHazardReports(
         .single();
 
       if (profile?.email) {
-        const { data: responsible } = await supabase
+        const { data: responsible } = await (supabase as any)
           .from('hazard_responsibles')
           .select('id')
           .eq('email', profile.email)
@@ -144,12 +144,12 @@ export async function listHazardReports(
   const { data, error } = await query;
 
   if (error) throw error;
-  return data || [];
+  return (data || []) as HazardReport[];
 }
 
 export async function getHazardReport(reportId: string): Promise<HazardReportDetail | null> {
   // 1. Obtener el reporte
-  const { data: report, error: reportError } = await supabase
+  const { data: report, error: reportError } = await (supabase as any)
     .from('hazard_reports')
     .select('*')
     .eq('id', reportId)
@@ -159,7 +159,7 @@ export async function getHazardReport(reportId: string): Promise<HazardReportDet
   if (!report) return null;
 
   // 2. Obtener evidencias
-  const { data: evidences, error: evidencesError } = await supabase
+  const { data: evidences, error: evidencesError } = await (supabase as any)
     .from('hazard_report_evidences')
     .select('*')
     .eq('hazard_report_id', reportId)
@@ -168,7 +168,7 @@ export async function getHazardReport(reportId: string): Promise<HazardReportDet
   if (evidencesError) throw evidencesError;
 
   // 3. Obtener eventos (timeline)
-  const { data: events, error: eventsError } = await supabase
+  const { data: events, error: eventsError } = await (supabase as any)
     .from('hazard_report_events')
     .select('*')
     .eq('hazard_report_id', reportId)
@@ -180,7 +180,7 @@ export async function getHazardReport(reportId: string): Promise<HazardReportDet
   let critical_risk, closing_responsible, verification_responsible, control_type;
 
   if (report.critical_risk_id) {
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from('hazard_critical_risks')
       .select('*')
       .eq('id', report.critical_risk_id)
@@ -189,7 +189,7 @@ export async function getHazardReport(reportId: string): Promise<HazardReportDet
   }
 
   if (report.closing_responsible_id) {
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from('hazard_responsibles')
       .select('*')
       .eq('id', report.closing_responsible_id)
@@ -198,7 +198,7 @@ export async function getHazardReport(reportId: string): Promise<HazardReportDet
   }
 
   if (report.verification_responsible_id) {
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from('hazard_responsibles')
       .select('*')
       .eq('id', report.verification_responsible_id)
@@ -207,7 +207,7 @@ export async function getHazardReport(reportId: string): Promise<HazardReportDet
   }
 
   if (report.control_type_id) {
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from('hazard_control_types')
       .select('*')
       .eq('id', report.control_type_id)
@@ -217,13 +217,13 @@ export async function getHazardReport(reportId: string): Promise<HazardReportDet
 
   return {
     ...report,
-    evidences: evidences || [],
-    events: events || [],
+    evidences: (evidences || []) as HazardReportEvidence[],
+    events: (events || []) as any[],
     critical_risk,
     closing_responsible,
     verification_responsible,
     control_type,
-  };
+  } as HazardReportDetail;
 }
 
 export async function createHazardReport(
@@ -238,7 +238,7 @@ export async function createHazardReport(
   let closing_responsible_name: string | undefined;
 
   if (payload.critical_risk_id) {
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from('hazard_critical_risks')
       .select('name')
       .eq('id', payload.critical_risk_id)
@@ -247,7 +247,7 @@ export async function createHazardReport(
   }
 
   if (payload.closing_responsible_id) {
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from('hazard_responsibles')
       .select('name')
       .eq('id', payload.closing_responsible_id)
@@ -293,14 +293,14 @@ export async function createHazardReport(
     reporter_company: payload.reporter_company || null,
   };
 
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('hazard_reports')
     .insert(record)
     .select()
     .single();
 
   if (error) throw error;
-  return data;
+  return data as HazardReport;
 }
 
 export async function closeHazardReport(
@@ -315,7 +315,7 @@ export async function closeHazardReport(
   let control_type_name: string | undefined;
 
   if (payload.verification_responsible_id) {
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from('hazard_responsibles')
       .select('name')
       .eq('id', payload.verification_responsible_id)
@@ -324,7 +324,7 @@ export async function closeHazardReport(
   }
 
   if (payload.control_type_id) {
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from('hazard_control_types')
       .select('name')
       .eq('id', payload.control_type_id)
@@ -332,7 +332,7 @@ export async function closeHazardReport(
     control_type_name = data?.name;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('hazard_reports')
     .update({
       status: 'CLOSED',
@@ -349,7 +349,7 @@ export async function closeHazardReport(
     .single();
 
   if (error) throw error;
-  return data;
+  return data as HazardReport;
 }
 
 // =====================================================
@@ -368,7 +368,7 @@ export async function addHazardEvidence(params: {
   if (!user) throw new Error('Usuario no autenticado');
 
   // 1. Obtener organization_id del reporte
-  const { data: report } = await supabase
+  const { data: report } = await (supabase as any)
     .from('hazard_reports')
     .select('organization_id')
     .eq('id', reportId)
@@ -387,7 +387,7 @@ export async function addHazardEvidence(params: {
   if (uploadError) throw uploadError;
 
   // 3. Registrar evidencia en DB
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('hazard_report_evidences')
     .insert({
       hazard_report_id: reportId,
@@ -406,7 +406,7 @@ export async function addHazardEvidence(params: {
   if (error) throw error;
 
   // 4. Crear evento
-  await supabase.from('hazard_report_events').insert({
+  await (supabase as any).from('hazard_report_events').insert({
     hazard_report_id: reportId,
     event_type: 'EVIDENCE_ADDED',
     payload: {
@@ -416,7 +416,7 @@ export async function addHazardEvidence(params: {
     created_by: user.id,
   });
 
-  return data;
+  return data as HazardReportEvidence;
 }
 
 // =====================================================
@@ -424,14 +424,14 @@ export async function addHazardEvidence(params: {
 // =====================================================
 
 export async function getHazardReportStats(organizationId: string): Promise<HazardReportStats> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('hazard_reports')
     .select('status, gerencia, critical_risk_name, due_date')
     .eq('organization_id', organizationId);
 
   if (error) throw error;
 
-  const reports = data || [];
+  const reports = (data || []) as any[];
   const now = new Date().toISOString().split('T')[0];
 
   const stats: HazardReportStats = {

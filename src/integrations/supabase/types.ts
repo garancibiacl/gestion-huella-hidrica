@@ -112,6 +112,430 @@ export type Database = {
           },
         ]
       }
+      hazard_catalog_hierarchy: {
+        Row: {
+          actividad: string | null
+          centro_trabajo: string | null
+          created_at: string | null
+          faena: string | null
+          gerencia: string
+          id: string
+          is_active: boolean | null
+          organization_id: string
+          proceso: string | null
+          stable_id: string
+          tarea: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          actividad?: string | null
+          centro_trabajo?: string | null
+          created_at?: string | null
+          faena?: string | null
+          gerencia: string
+          id?: string
+          is_active?: boolean | null
+          organization_id: string
+          proceso?: string | null
+          stable_id: string
+          tarea?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          actividad?: string | null
+          centro_trabajo?: string | null
+          created_at?: string | null
+          faena?: string | null
+          gerencia?: string
+          id?: string
+          is_active?: boolean | null
+          organization_id?: string
+          proceso?: string | null
+          stable_id?: string
+          tarea?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hazard_catalog_hierarchy_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hazard_control_types: {
+        Row: {
+          code: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          organization_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          organization_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hazard_control_types_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hazard_critical_risks: {
+        Row: {
+          code: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          organization_id: string
+          requires_evidence: boolean | null
+          severity: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          organization_id: string
+          requires_evidence?: boolean | null
+          severity?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          organization_id?: string
+          requires_evidence?: boolean | null
+          severity?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hazard_critical_risks_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hazard_report_events: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          created_by_name: string | null
+          event_type: string
+          hazard_report_id: string
+          id: string
+          payload: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          created_by_name?: string | null
+          event_type: string
+          hazard_report_id: string
+          id?: string
+          payload?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          created_by_name?: string | null
+          event_type?: string
+          hazard_report_id?: string
+          id?: string
+          payload?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hazard_report_events_hazard_report_id_fkey"
+            columns: ["hazard_report_id"]
+            isOneToOne: false
+            referencedRelation: "hazard_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hazard_report_evidences: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          evidence_type: string
+          file_name: string
+          file_url: string
+          hazard_report_id: string
+          id: string
+          mime_type: string | null
+          size_bytes: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          evidence_type: string
+          file_name: string
+          file_url: string
+          hazard_report_id: string
+          id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          evidence_type?: string
+          file_name?: string
+          file_url?: string
+          hazard_report_id?: string
+          id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hazard_report_evidences_hazard_report_id_fkey"
+            columns: ["hazard_report_id"]
+            isOneToOne: false
+            referencedRelation: "hazard_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hazard_reports: {
+        Row: {
+          actividad: string | null
+          centro_trabajo: string | null
+          closed_at: string | null
+          closed_by_user_id: string | null
+          closing_description: string | null
+          closing_responsible_id: string | null
+          closing_responsible_name: string | null
+          control_type_id: string | null
+          control_type_name: string | null
+          created_at: string | null
+          critical_risk_id: string | null
+          critical_risk_name: string | null
+          description: string
+          deviation_type: string
+          due_date: string
+          faena: string | null
+          gerencia: string
+          hierarchy_id: string | null
+          id: string
+          organization_id: string
+          proceso: string | null
+          report_type: string
+          reporter_company: string | null
+          reporter_email: string | null
+          reporter_name: string
+          reporter_rut: string | null
+          reporter_user_id: string | null
+          root_cause: string | null
+          status: string
+          tarea: string | null
+          updated_at: string | null
+          verification_responsible_id: string | null
+          verification_responsible_name: string | null
+        }
+        Insert: {
+          actividad?: string | null
+          centro_trabajo?: string | null
+          closed_at?: string | null
+          closed_by_user_id?: string | null
+          closing_description?: string | null
+          closing_responsible_id?: string | null
+          closing_responsible_name?: string | null
+          control_type_id?: string | null
+          control_type_name?: string | null
+          created_at?: string | null
+          critical_risk_id?: string | null
+          critical_risk_name?: string | null
+          description: string
+          deviation_type: string
+          due_date: string
+          faena?: string | null
+          gerencia: string
+          hierarchy_id?: string | null
+          id?: string
+          organization_id: string
+          proceso?: string | null
+          report_type?: string
+          reporter_company?: string | null
+          reporter_email?: string | null
+          reporter_name: string
+          reporter_rut?: string | null
+          reporter_user_id?: string | null
+          root_cause?: string | null
+          status?: string
+          tarea?: string | null
+          updated_at?: string | null
+          verification_responsible_id?: string | null
+          verification_responsible_name?: string | null
+        }
+        Update: {
+          actividad?: string | null
+          centro_trabajo?: string | null
+          closed_at?: string | null
+          closed_by_user_id?: string | null
+          closing_description?: string | null
+          closing_responsible_id?: string | null
+          closing_responsible_name?: string | null
+          control_type_id?: string | null
+          control_type_name?: string | null
+          created_at?: string | null
+          critical_risk_id?: string | null
+          critical_risk_name?: string | null
+          description?: string
+          deviation_type?: string
+          due_date?: string
+          faena?: string | null
+          gerencia?: string
+          hierarchy_id?: string | null
+          id?: string
+          organization_id?: string
+          proceso?: string | null
+          report_type?: string
+          reporter_company?: string | null
+          reporter_email?: string | null
+          reporter_name?: string
+          reporter_rut?: string | null
+          reporter_user_id?: string | null
+          root_cause?: string | null
+          status?: string
+          tarea?: string | null
+          updated_at?: string | null
+          verification_responsible_id?: string | null
+          verification_responsible_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hazard_reports_closing_responsible_id_fkey"
+            columns: ["closing_responsible_id"]
+            isOneToOne: false
+            referencedRelation: "hazard_responsibles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hazard_reports_control_type_id_fkey"
+            columns: ["control_type_id"]
+            isOneToOne: false
+            referencedRelation: "hazard_control_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hazard_reports_critical_risk_id_fkey"
+            columns: ["critical_risk_id"]
+            isOneToOne: false
+            referencedRelation: "hazard_critical_risks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hazard_reports_hierarchy_id_fkey"
+            columns: ["hierarchy_id"]
+            isOneToOne: false
+            referencedRelation: "hazard_catalog_hierarchy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hazard_reports_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hazard_reports_verification_responsible_id_fkey"
+            columns: ["verification_responsible_id"]
+            isOneToOne: false
+            referencedRelation: "hazard_responsibles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hazard_responsibles: {
+        Row: {
+          can_close: boolean | null
+          can_verify: boolean | null
+          company: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          organization_id: string
+          rut: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          can_close?: boolean | null
+          can_verify?: boolean | null
+          company?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          organization_id: string
+          rut?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          can_close?: boolean | null
+          can_verify?: boolean | null
+          company?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          organization_id?: string
+          rut?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hazard_responsibles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       human_water_consumption: {
         Row: {
           cantidad: number
