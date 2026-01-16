@@ -7,6 +7,8 @@ import {
   CheckCircle2,
   Clock,
   LineChart,
+  Trash2,
+  ChevronDown,
 } from "lucide-react";
 import { DashboardHeader } from "@/components/ui/dashboard-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,6 +24,16 @@ import { useWaterMeters } from "@/hooks/useWaterMeters";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
 import { useToast } from "@/hooks/use-toast";
+import { useOrganization } from "@/hooks/useOrganization";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import Swal from "sweetalert2";
 
 export default function WaterDashboard() {
   const [activeTab, setActiveTab] = useState("medidor");
@@ -30,6 +42,7 @@ export default function WaterDashboard() {
   const { user } = useAuth();
   const { isAdmin, isPrevencionista } = useRole();
   const { toast } = useToast();
+  const { organizationId } = useOrganization();
 
   const { refetch: refetchWaterMeter } = useWaterMeters();
 
@@ -75,6 +88,87 @@ export default function WaterDashboard() {
     });
   };
 
+  const handleCleanAndSync = async () => {
+    if (!organizationId) {
+      toast({
+        title: "Error",
+        description: "No se pudo determinar la organización actual",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Confirmar con el usuario
+    const result = await Swal.fire({
+      title: "¿Limpiar datos de medidor?",
+      html: `
+        <p>Esto <strong>eliminará todos</strong> los registros de consumo por medidor de tu organización.</p>
+        <p class="text-sm text-gray-600 mt-2">Los datos se volverán a sincronizar desde Google Sheets.</p>
+      `,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, limpiar y sincronizar",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#6b7280",
+      reverseButtons: true,
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    try {
+      // Paso 1: Limpiar datos existentes
+      toast({
+        title: "Limpiando datos...",
+        description: "Eliminando registros antiguos",
+      });
+
+      const { data: cleanResult, error: cleanError } = await supabase.rpc(
+        "clean_water_meter_readings_for_org",
+        { p_organization_id: organizationId }
+      );
+
+      if (cleanError) {
+        throw new Error(`Error al limpiar datos: ${cleanError.message}`);
+      }
+
+      const deletedCount = cleanResult?.[0]?.deleted_count || 0;
+
+      toast({
+        title: "Datos limpiados",
+        description: `Se eliminaron ${deletedCount} registros`,
+      });
+
+      // Paso 2: Sincronizar desde Google Sheets
+      toast({
+        title: "Sincronizando desde Google Sheets...",
+        description: "Descargando datos actualizados",
+      });
+
+      await syncWaterMeter(true);
+      await refetchWaterMeter();
+      setRefreshKey((prev) => prev + 1);
+
+      // Confirmación final
+      await Swal.fire({
+        title: "¡Sincronización completa!",
+        text: `Se eliminaron ${deletedCount} registros antiguos y se sincronizaron los datos actuales desde Google Sheets.`,
+        icon: "success",
+        confirmButtonText: "Entendido",
+        confirmButtonColor: "#10b981",
+      });
+    } catch (error: any) {
+      console.error("Error al limpiar y sincronizar:", error);
+      toast({
+        title: "Error en la sincronización",
+        description: error.message || "No se pudo completar la operación",
+        variant: "destructive",
+      });
+    }
+  };
+
   const formatLastSync = (timestamp: number) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -105,17 +199,63 @@ export default function WaterDashboard() {
         className="mb-10 flex flex-col items-start justify-between gap-4 rounded-2xl border border-gray-100 bg-white px-6 py-4 shadow-[0_18px_45px_rgba(15,23,42,0.12)] sm:flex-row sm:items-center"
         action={
           canSync ? (
-            <Button
-              onClick={handleSync}
-              disabled={isSyncing}
-              size="sm"
-              className="gap-2 bg-[#C3161D] text-white hover:bg-[#A31217]"
-            >
-              <RefreshCw
-                className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`}
-              />
-              {isSyncing ? "Sincronizando..." : "Sincronizar Agua"}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleSync}
+                disabled={isSyncing}
+                size="sm"
+                className="gap-2 bg-[#C3161D] text-white hover:bg-[#A31217]"
+              >
+                <RefreshCw
+                  className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`}
+                />
+                {isSyncing ? "Sincronizando..." : "Sincronizar"}
+              </Button>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={isSyncing}
+                    className="gap-1 px-2"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem
+                    onClick={handleSync}
+                    disabled={isSyncing}
+                    className="gap-2"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    <div className="flex flex-col">
+                      <span className="font-medium">Sincronizar</span>
+                      <span className="text-xs text-muted-foreground">
+                        Actualizar datos normalmente
+                      </span>
+                    </div>
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuSeparator />
+                  
+                  <DropdownMenuItem
+                    onClick={handleCleanAndSync}
+                    disabled={isSyncing || !organizationId}
+                    className="gap-2 text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <div className="flex flex-col">
+                      <span className="font-medium">Limpiar y resincronizar</span>
+                      <span className="text-xs text-muted-foreground">
+                        Eliminar todo y recargar desde Sheet
+                      </span>
+                    </div>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           ) : null
         }
         statusLabel={
