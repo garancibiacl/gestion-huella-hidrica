@@ -250,6 +250,17 @@ export default function Hub() {
         {/* Footer Info */}
         <div className="mt-16 text-center text-sm text-gray-500 space-y-4">
           <p className="font-medium">PLATAFORMA INTEGRADA JM © 2024</p>
+          <p>
+            Diseñada para anticipar riesgos y acelerar decisiones responsables · Desarrollador{' '}
+            <a
+              href="https://portafolio-gus.netlify.app"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-gray-700 hover:text-gray-900 underline underline-offset-4"
+            >
+              Gustavo Arancibia
+            </a>
+          </p>
           <div className="flex items-center justify-center space-x-8 text-xs">
             <div className="flex items-center space-x-2">
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">

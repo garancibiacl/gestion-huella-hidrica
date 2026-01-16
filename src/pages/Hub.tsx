@@ -347,6 +347,17 @@ export default function Hub() {
         {/* Footer */}
         <div className="mt-16 text-center text-sm text-gray-500 space-y-4">
           <p className="font-medium">PLATAFORMA INTEGRADA JM © 2026</p>
+          <p>
+            Diseñada para anticipar riesgos y acelerar decisiones responsables · Desarrollador{' '}
+            <a
+              href="https://portafolio-gus.netlify.app"
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-gray-700 hover:text-gray-900 underline underline-offset-4"
+            >
+              Gustavo Arancibia
+            </a>
+          </p>
         </div>
       </div>
     </div>

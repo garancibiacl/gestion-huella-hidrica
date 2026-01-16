@@ -158,6 +158,19 @@ export default function AuthPage() {
         "Experiencia consistente y profesional en todo momento",
       ]}
       supportingText="Somos especialistas en faenas mineras. Conectamos colaboradores entre V y II región."
+      footer={
+        <>
+          Diseñada para anticipar riesgos y acelerar decisiones responsables · Desarrollador{' '}
+          <a
+            href="https://portafolio-gus.netlify.app"
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium text-[#374151] hover:text-[#111827] underline underline-offset-4"
+          >
+            Gustavo Arancibia
+          </a>
+        </>
+      }
     >
       <div className="space-y-5">
         <div>
