@@ -12,6 +12,7 @@ import { usePamBoard } from "../hooks/usePamBoard";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useToast } from "@/components/ui/use-toast";
 import { Loader2, RefreshCw, CheckCircle2, AlertTriangle, ExternalLink, PlusCircle, Pencil, Filter, Calendar, Trash2, Edit3 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -680,9 +681,14 @@ export default function PamAdminWeekUploadPage({
         </div>
 
         {isLoadingPreview ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground py-6">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Cargando tareas de la semana...
+          <div className="space-y-3 py-2">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="flex items-center gap-3">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+            ))}
           </div>
         ) : tasks.length === 0 ? (
           <div className="py-8 text-center space-y-2">

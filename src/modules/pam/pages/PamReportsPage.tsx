@@ -7,6 +7,7 @@ import { es } from "date-fns/locale";
 import { useHazardReports } from "@/modules/pam/hazards/hooks/useHazardReports";
 import { exportHazardAnnualReport, exportHazardMonthlyReport, exportHazardWeeklyReport } from "@/lib/pdf-export";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function PamReportsPage() {
   const { toast } = useToast();
@@ -31,15 +32,27 @@ export default function PamReportsPage() {
     date_from: yearStart.toISOString(),
     date_to: yearEnd.toISOString(),
   });
+  const isLoading = isWeeklyLoading || isMonthlyLoading || isAnnualLoading;
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="page-container space-y-6">
       <PageHeader
         title="Reportabilidad / Safety Intelligence"
         description="Generación de reportes y análisis de inteligencia de seguridad"
       />
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {isLoading ? (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <Card key={index} className="p-4">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-3 w-56 mt-2" />
+              <Skeleton className="h-9 w-full mt-6" />
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -201,7 +214,8 @@ export default function PamReportsPage() {
             </Button>
           </CardContent>
         </Card>
-      </div>
+        </div>
+      )}
 
       <Card>
         <CardHeader>

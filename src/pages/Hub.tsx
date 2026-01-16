@@ -3,11 +3,12 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { Loader2, Droplets, Shield, Settings, HelpCircle, LogOut, ChevronDown, BarChart3, Users } from "lucide-react";
+import { Droplets, Shield, Settings, HelpCircle, LogOut, ChevronDown, BarChart3, Users } from "lucide-react";
 import { ModuleCard } from "@/components/hub/ModuleCard";
 import { PamNotificationBell } from "@/modules/pam/components/notifications/PamNotificationBell";
 import { HazardNotificationBell } from "@/modules/pam/hazards/components/HazardNotificationBell";
 import { Button } from "@/components/ui/button";
+import { LoaderHourglass } from "@/components/ui/loader-hourglass";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -134,7 +135,7 @@ export default function Hub() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#F4F5F7]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <LoaderHourglass label="Cargando módulos..." size={40} />
       </div>
     );
   }
@@ -146,7 +147,7 @@ export default function Hub() {
   if (availableModules.length === 1) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#F4F5F7]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <LoaderHourglass label="Cargando módulos..." size={40} />
       </div>
     );
   }

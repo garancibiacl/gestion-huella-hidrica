@@ -9,7 +9,8 @@ import { useRole } from "@/hooks/useRole";
 import { usePamWeekSelector } from "../hooks/usePamWeekSelector";
 import { usePamBoard } from "../hooks/usePamBoard";
 import type { PamTaskStatus } from "../types/pam.types";
-import { Loader2, Users, LayoutGrid, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Users, LayoutGrid, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const STATUS_LABELS: Record<PamTaskStatus, string> = {
   PENDING: "Pendiente",
@@ -55,8 +56,25 @@ export default function PamAdminBoardPage() {
       </div>
 
       {isLoading && (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <Skeleton className="h-9 w-40" />
+            <Skeleton className="h-9 w-36" />
+            <Skeleton className="h-9 w-32" />
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <Card key={index} className="p-4">
+                <Skeleton className="h-4 w-40" />
+                <Skeleton className="h-3 w-32 mt-2" />
+                <div className="grid grid-cols-4 gap-2 mt-4">
+                  {Array.from({ length: 4 }).map((__, chipIndex) => (
+                    <Skeleton key={chipIndex} className="h-10 w-full" />
+                  ))}
+                </div>
+              </Card>
+            ))}
+          </div>
         </div>
       )}
 

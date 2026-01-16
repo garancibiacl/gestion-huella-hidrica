@@ -17,6 +17,7 @@ import {
 } from "recharts";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -28,7 +29,7 @@ type PeriodFilter = "year" | "month" | "last30";
 export default function HazardDashboardPage() {
   const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("year");
   const [gerenciaFilter, setGerenciaFilter] = useState("all");
-  const { data: reports = [], isLoading, error } = useHazardReports();
+  const { data: reports = [], isLoading, isFetching, error } = useHazardReports();
 
   const periodRange = useMemo(() => {
     const now = new Date();
@@ -180,10 +181,22 @@ export default function HazardDashboardPage() {
         </div>
       </Card>
 
-      {isLoading && (
-        <Card className="p-6">
-          <p className="text-sm text-muted-foreground">Cargando reportes...</p>
-        </Card>
+      {(isLoading || isFetching) && (
+        <div className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <Card key={index} className="p-4">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-7 w-12 mt-3" />
+              </Card>
+            ))}
+          </div>
+          <Card className="p-6">
+            <Skeleton className="h-5 w-48" />
+            <Skeleton className="h-4 w-64 mt-2" />
+            <Skeleton className="h-[240px] w-full rounded-xl mt-6" />
+          </Card>
+        </div>
       )}
 
       {!isLoading && error && (

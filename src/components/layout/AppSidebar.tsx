@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -22,6 +23,7 @@ import {
 import { useRole } from "@/hooks/useRole";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { LoaderHourglass } from "@/components/ui/loader-hourglass";
 
 interface NavItem {
   icon: typeof Droplets;
@@ -64,6 +66,7 @@ interface AppSidebarProps {
 
 export function AppSidebar({ onClose, isCollapsed = false, onToggleCollapse }: AppSidebarProps) {
   const location = useLocation();
+  const [isReturningHome, setIsReturningHome] = useState(false);
   const { isAdmin, isPrevencionista, loading } = useRole();
 
   // Detectar si estamos en módulo PLS o Ambiental
@@ -250,6 +253,7 @@ export function AppSidebar({ onClose, isCollapsed = false, onToggleCollapse }: A
             <TooltipTrigger asChild>
               <Link
                 to="/hub"
+                onClick={() => setIsReturningHome(true)}
                 className={cn(
                   "group flex items-center gap-3 rounded-xl transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
                   "border border-white/20 hover:border-white/30 hover:bg-white/10",
@@ -280,6 +284,12 @@ export function AppSidebar({ onClose, isCollapsed = false, onToggleCollapse }: A
           </Tooltip>
         </TooltipProvider>
       </div>
+
+      {isReturningHome && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/70 backdrop-blur-sm">
+          <LoaderHourglass label="Volviendo al inicio..." size={40} />
+        </div>
+      )}
 
       {/* User section removed from sidebar (now handled in header) */}
     </div>

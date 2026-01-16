@@ -7,7 +7,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Loader2, Filter, Calendar } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Filter, Calendar } from "lucide-react";
 import { PamEvidenceUploadDialog } from "../components/worker/PamEvidenceUploadDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getPamTaskById } from "../services/pamApi";
@@ -139,8 +140,22 @@ export default function PamWorkerTasksPage() {
       </Card>
 
       {isLoading && (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <Card key={index} className="p-4">
+              <div className="flex items-center justify-between gap-2">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-56" />
+                  <Skeleton className="h-3 w-40" />
+                </div>
+                <Skeleton className="h-5 w-20 rounded-full" />
+              </div>
+              <div className="flex justify-end gap-2 mt-4">
+                <Skeleton className="h-8 w-28" />
+                <Skeleton className="h-8 w-28" />
+              </div>
+            </Card>
+          ))}
         </div>
       )}
 
