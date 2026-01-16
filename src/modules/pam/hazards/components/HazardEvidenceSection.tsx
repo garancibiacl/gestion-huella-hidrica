@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Upload, FileIcon, ImageIcon, Loader2, X } from 'lucide-react';
+import { Upload, FileIcon, ImageIcon, Loader2, X, ExternalLink, ZoomIn } from 'lucide-react';
 import { useAddHazardEvidence } from '../hooks/useHazardReports';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -264,62 +264,111 @@ export function HazardEvidenceSection({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {evidences.map((evidence) => (
-            <div
-              key={evidence.id}
-              className="border rounded-lg p-4 space-y-2 hover:bg-accent/50 transition-colors"
-            >
-              <div className="flex items-start gap-2">
-                {getEvidenceIcon(evidence.mime_type)}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{evidence.file_name}</p>
+          {evidences.map((evidence) => {
+            const isImage = evidence.mime_type?.startsWith('image/');
+            const signedUrl = signedUrlByEvidenceId[evidence.id];
+
+            return (
+              <div
+                key={evidence.id}
+                className="group relative border rounded-lg overflow-hidden hover:shadow-lg transition-all bg-white"
+              >
+                {/* Vista previa de imagen o ícono de archivo */}
+                {isImage && signedUrl ? (
+                  <a
+                    href={signedUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block relative aspect-video bg-gray-100 overflow-hidden"
+                  >
+                    <img
+                      src={signedUrl}
+                      alt={evidence.file_name}
+                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                      loading="lazy"
+                    />
+                    {/* Overlay al hacer hover */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                        <div className="bg-white rounded-full p-2">
+                          <ZoomIn className="h-5 w-5 text-gray-800" />
+                        </div>
+                        <div className="bg-white rounded-full p-2">
+                          <ExternalLink className="h-4 w-4 text-gray-800" />
+                        </div>
+                      </div>
+                    </div>
+                    {/* Badge de tipo de evidencia */}
+                    <div className="absolute top-2 left-2">
+                      <span className="text-xs bg-black/70 text-white px-2 py-1 rounded-md backdrop-blur-sm">
+                        {evidence.evidence_type === 'FINDING' && 'Hallazgo'}
+                        {evidence.evidence_type === 'CLOSURE' && 'Cierre'}
+                        {evidence.evidence_type === 'OTHER' && 'Otro'}
+                      </span>
+                    </div>
+                  </a>
+                ) : (
+                  <div className="aspect-video bg-gray-50 flex flex-col items-center justify-center p-4 border-b">
+                    {getEvidenceIcon(evidence.mime_type)}
+                    <p className="text-xs text-muted-foreground mt-2 text-center">
+                      {evidence.mime_type?.includes('pdf') && 'Documento PDF'}
+                      {evidence.mime_type?.includes('word') && 'Documento Word'}
+                      {!evidence.mime_type?.includes('pdf') && !evidence.mime_type?.includes('word') && 'Archivo'}
+                    </p>
+                  </div>
+                )}
+
+                {/* Información del archivo */}
+                <div className="p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-medium truncate flex-1" title={evidence.file_name}>
+                      {evidence.file_name}
+                    </p>
+                    {!isImage && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        asChild
+                        className="h-7 px-2 flex-shrink-0"
+                      >
+                        <a
+                          href={signedUrl || '#'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-disabled={!signedUrl}
+                          onClick={(ev) => {
+                            if (!signedUrl) {
+                              ev.preventDefault();
+                              toast({
+                                title: 'Cargando evidencia…',
+                                description: 'Intenta nuevamente en unos segundos.',
+                              });
+                            }
+                          }}
+                        >
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          Abrir
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+
                   <p className="text-xs text-muted-foreground">
                     {formatFileSize(evidence.size_bytes)}
                   </p>
+
+                  {evidence.description && (
+                    <p className="text-xs text-muted-foreground line-clamp-2 pt-1 border-t">
+                      {evidence.description}
+                    </p>
+                  )}
                 </div>
               </div>
-
-              {evidence.description && (
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                  {evidence.description}
-                </p>
-              )}
-
-              <div className="flex items-center justify-between pt-2">
-                <span className="text-xs text-muted-foreground">
-                  {evidence.evidence_type === 'FINDING' && 'Hallazgo'}
-                  {evidence.evidence_type === 'CLOSURE' && 'Cierre'}
-                  {evidence.evidence_type === 'OTHER' && 'Otro'}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  asChild
-                  className="h-8"
-                >
-                  <a
-                    href={signedUrlByEvidenceId[evidence.id] || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-disabled={!signedUrlByEvidenceId[evidence.id]}
-                    onClick={(ev) => {
-                      if (!signedUrlByEvidenceId[evidence.id]) {
-                        ev.preventDefault();
-                        toast({
-                          title: 'Cargando evidencia…',
-                          description: 'Intenta nuevamente en unos segundos.',
-                        });
-                      }
-                    }}
-                  >
-                    Ver
-                  </a>
-                </Button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
+

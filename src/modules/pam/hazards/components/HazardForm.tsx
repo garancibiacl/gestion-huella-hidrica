@@ -84,6 +84,20 @@ export function HazardForm({ onSubmit, isSubmitting }: HazardFormProps) {
   const [findingPhotos, setFindingPhotos] = useState<File[]>([]);
   const [findingFiles, setFindingFiles] = useState<File[]>([]);
 
+  const formatDisplayName = (value: string | undefined | null) => {
+    if (!value) return '';
+    if (value.includes('@')) return '';
+    return value
+      .split(' ')
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  const reporterFullName =
+    formatDisplayName(profile?.full_name) ||
+    formatDisplayName((user?.user_metadata as { full_name?: string } | undefined)?.full_name);
+
   const form = useForm<HazardReportFormValues>({
     resolver: zodResolver(hazardReportSchema),
     defaultValues: {
@@ -99,7 +113,7 @@ export function HazardForm({ onSubmit, isSubmitting }: HazardFormProps) {
       deviation_type: 'CONDICION',
       closing_responsible_id: '',
       // Autocompletar desde perfil
-      reporter_name: profile?.full_name || user?.email || '',
+      reporter_name: reporterFullName,
       reporter_email: profile?.email || user?.email || '',
       reporter_company: profile?.organization_id || '',
     },
