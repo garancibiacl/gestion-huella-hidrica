@@ -61,7 +61,7 @@ const MODULES: Module[] = [
       "Seguimiento, evidencias y reportes",
       "Dashboard ejecutivo y cumplimiento",
     ],
-    path: "/pls/my-activities",
+    path: "/admin/pls/hazard-report",
     roles: ["admin", "prevencionista", "worker"],
     gradient: "bg-gradient-to-br from-red-500 to-orange-600",
     accentColor: "#ae3f34",

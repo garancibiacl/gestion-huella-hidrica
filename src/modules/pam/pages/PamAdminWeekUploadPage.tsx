@@ -385,7 +385,7 @@ export default function PamAdminWeekUploadPage({
 
   if (loading) {
     return (
-      <div className="p-4 md:p-6 flex items-center justify-center text-sm text-muted-foreground">
+      <div className="page-container flex items-center justify-center text-sm text-muted-foreground">
         Cargando permisos...
       </div>
     );
@@ -454,7 +454,7 @@ export default function PamAdminWeekUploadPage({
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="page-container space-y-6">
       <PageHeader
         title={pageTitle}
         description="Sincronización automática con Google Sheets"

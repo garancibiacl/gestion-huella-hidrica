@@ -128,7 +128,7 @@ export default function HazardCreatePage() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="page-container space-y-6">
       <PageHeader
         title="Nuevo Reporte de Peligro"
         description="Complete el formulario para reportar un peligro o condición insegura"

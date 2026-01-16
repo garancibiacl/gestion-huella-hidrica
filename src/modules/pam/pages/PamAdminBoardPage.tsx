@@ -28,7 +28,7 @@ export default function PamAdminBoardPage() {
 
   if (loading) {
     return (
-      <div className="p-4 md:p-6 flex items-center justify-center text-sm text-muted-foreground">
+      <div className="page-container flex items-center justify-center text-sm text-muted-foreground">
         Cargando permisos...
       </div>
     );
@@ -39,7 +39,7 @@ export default function PamAdminBoardPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-4">
+    <div className="page-container space-y-4">
       <PageHeader title="Seguimiento PLS" description={week.label} />
 
       <div className="flex items-center gap-2 flex-wrap">

@@ -55,7 +55,7 @@ export function useHazardCatalogSync(options: UseHazardCatalogSyncOptions = {}) 
           hierarchyImported: 0,
           risksImported: 0,
           responsiblesImported: 0,
-          errors: ['Organización no disponible'],
+          errors: [],
         };
       }
 

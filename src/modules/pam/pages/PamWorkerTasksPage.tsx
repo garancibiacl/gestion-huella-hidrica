@@ -104,7 +104,7 @@ export default function PamWorkerTasksPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-4">
+    <div className="page-container space-y-4">
       <PageHeader
         title="Mis tareas PLS"
         description="Tareas asignadas a ti"

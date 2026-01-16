@@ -33,6 +33,7 @@ import {
 } from '../hooks/useHazardReports';
 import { useToast } from '@/hooks/use-toast';
 import type { CloseHazardReportPayload } from '../types/hazard.types';
+import Swal from 'sweetalert2';
 
 const closeHazardSchema = z.object({
   verification_responsible_id: z.string().min(1, 'Responsable de verificación es requerido'),
@@ -76,12 +77,24 @@ export default function HazardClosePage() {
         payload,
       });
 
-      toast({
+      const result = await Swal.fire({
         title: 'Reporte cerrado',
-        description: 'El reporte se ha cerrado correctamente',
+        text: 'El reporte se ha cerrado correctamente.',
+        icon: 'success',
+        showCancelButton: true,
+        confirmButtonText: 'Ver detalle',
+        cancelButtonText: 'Volver a lista',
+        confirmButtonColor: '#0f766e',
+        cancelButtonColor: '#6b7280',
+        reverseButtons: true,
+        focusCancel: true,
       });
 
-      navigate(`/admin/pls/hazard-report/${id}`);
+      if (result.isConfirmed) {
+        navigate(`/admin/pls/hazard-report/${id}`);
+      } else {
+        navigate('/admin/pls/hazard-report');
+      }
     } catch (error: any) {
       toast({
         title: 'Error al cerrar reporte',
@@ -93,7 +106,7 @@ export default function HazardClosePage() {
 
   if (isLoading) {
     return (
-      <div className="p-4 md:p-6 space-y-6">
+      <div className="page-container space-y-6">
         <PageHeader title="Cargando..." description="Obteniendo detalles del reporte" />
         <div className="text-center py-12">
           <p className="text-muted-foreground">Cargando reporte...</p>
@@ -104,7 +117,7 @@ export default function HazardClosePage() {
 
   if (!report) {
     return (
-      <div className="p-4 md:p-6 space-y-6">
+      <div className="page-container space-y-6">
         <PageHeader title="Reporte no encontrado" description="El reporte solicitado no existe" />
         <Card className="p-12 text-center">
           <h3 className="text-lg font-semibold mb-2">Reporte no encontrado</h3>
@@ -119,7 +132,7 @@ export default function HazardClosePage() {
 
   if (report.status !== 'OPEN') {
     return (
-      <div className="p-4 md:p-6 space-y-6">
+      <div className="page-container space-y-6">
         <PageHeader
           title="Reporte ya cerrado"
           description="Este reporte ya ha sido procesado"
@@ -136,7 +149,7 @@ export default function HazardClosePage() {
   }
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="page-container space-y-6">
       <PageHeader
         title={`Cerrar Reporte #${report.id.slice(0, 8)}`}
         description="Complete la información de cierre del reporte"

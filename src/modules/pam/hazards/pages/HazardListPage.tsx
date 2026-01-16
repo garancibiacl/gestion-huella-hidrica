@@ -16,6 +16,7 @@ import { useHazardCatalogSync } from '../hooks/useHazardCatalogSync';
 import { useToast } from '@/hooks/use-toast';
 import { exportHazardMonthlyReport } from '@/lib/pdf-export';
 import { useOrganization } from '@/hooks/useOrganization';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function HazardListPage() {
   const navigate = useNavigate();
@@ -44,11 +45,7 @@ export default function HazardListPage() {
       const result = await syncCatalogs(true);
       await queryClient.invalidateQueries({ queryKey: hazardKeys.catalogs() });
       if (!result.success) {
-        toast({
-          title: 'No se pudieron sincronizar catálogos',
-          description: result.errors?.[0] || 'Revisa que el Sheet esté publicado como CSV',
-          variant: 'destructive',
-        });
+        return;
       }
     })();
   }, [
@@ -77,8 +74,8 @@ export default function HazardListPage() {
         : filters.status,
   };
 
-  const { data: reports = [], isLoading } = useHazardReports(effectiveFilters);
-  const { data: stats } = useHazardReportStats();
+  const { data: reports = [], isLoading: reportsLoading, isFetching: reportsFetching } = useHazardReports(effectiveFilters);
+  const { data: stats, isLoading: statsLoading, isFetching: statsFetching } = useHazardReportStats();
   const monthStart = startOfMonth(new Date());
   const monthEnd = endOfMonth(new Date());
   const monthRangeLabel = `${format(monthStart, 'dd MMM yyyy', { locale: es })} - ${format(monthEnd, 'dd MMM yyyy', { locale: es })}`;
@@ -93,16 +90,17 @@ export default function HazardListPage() {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="page-container space-y-6">
       <PageHeader
         title="Reporte de Peligros"
         description="Gestión de reportes de peligro y condiciones inseguras"
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <Button
               type="button"
               variant="outline"
               disabled={isSyncing || organizationLoading || !organizationId}
+              className="w-full sm:w-auto"
               onClick={async () => {
                 if (!organizationId) {
                   toast({
@@ -134,6 +132,7 @@ export default function HazardListPage() {
               type="button"
               variant="outline"
               disabled={isMonthlyLoading}
+              className="w-full sm:w-auto"
               onClick={() => {
                 if (monthlyReports.length === 0) {
                   toast({
@@ -152,7 +151,7 @@ export default function HazardListPage() {
               <Download className="mr-2 h-4 w-4" />
               Reporte Mensual
             </Button>
-            <Button onClick={() => navigate('/admin/pls/hazard-report/new')}>
+            <Button className="w-full sm:w-auto" onClick={() => navigate('/admin/pls/hazard-report/new')}>
               <Plus className="mr-2 h-4 w-4" />
               Nuevo Reporte
             </Button>
@@ -161,7 +160,7 @@ export default function HazardListPage() {
       />
 
       {/* Estadísticas resumidas */}
-      {stats && (
+      {stats ? (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="p-4">
             <div className="flex items-center justify-between">
@@ -203,7 +202,21 @@ export default function HazardListPage() {
             </div>
           </Card>
         </div>
-      )}
+      ) : (statsLoading || statsFetching) ? (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Card key={index} className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-7 w-10" />
+                </div>
+                <Skeleton className="h-8 w-8 rounded-full" />
+              </div>
+            </Card>
+          ))}
+        </div>
+      ) : null}
 
       {/* Filtros */}
       <Card className="p-4">
@@ -212,16 +225,38 @@ export default function HazardListPage() {
 
       {/* Tabs y Lista */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-        <TabsList>
-          <TabsTrigger value="all">Todos ({stats?.total || 0})</TabsTrigger>
-          <TabsTrigger value="open">Abiertos ({stats?.open || 0})</TabsTrigger>
-          <TabsTrigger value="closed">Cerrados ({stats?.closed || 0})</TabsTrigger>
+        <TabsList className="flex flex-wrap w-full">
+          <TabsTrigger className="flex-1 min-w-[120px]" value="all">
+            Todos ({stats?.total || 0})
+          </TabsTrigger>
+          <TabsTrigger className="flex-1 min-w-[120px]" value="open">
+            Abiertos ({stats?.open || 0})
+          </TabsTrigger>
+          <TabsTrigger className="flex-1 min-w-[120px]" value="closed">
+            Cerrados ({stats?.closed || 0})
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value={activeTab} className="mt-6">
-          {isLoading ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Cargando reportes...</p>
+          {(organizationLoading || reportsLoading || reportsFetching) ? (
+            <div className="space-y-4">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <Card key={index} className="p-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-5 w-16 rounded-full" />
+                      <Skeleton className="h-5 w-40 rounded-full" />
+                    </div>
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-2/3" />
+                    <div className="flex flex-wrap gap-4">
+                      <Skeleton className="h-3 w-32" />
+                      <Skeleton className="h-3 w-28" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                  </div>
+                </Card>
+              ))}
             </div>
           ) : reports.length === 0 ? (
             <Card className="p-12 text-center">

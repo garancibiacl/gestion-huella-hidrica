@@ -164,7 +164,7 @@ export default function PamDashboardPage() {
   const isGoodCompliance = compliancePercentage >= 80;
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="page-container space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <PageHeader
           title="Dashboard Ejecutivo PLS"

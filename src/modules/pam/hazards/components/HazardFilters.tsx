@@ -45,8 +45,8 @@ export function HazardFilters({ filters, onFiltersChange }: HazardFiltersProps) 
   return (
     <div className="space-y-4">
       {/* Búsqueda */}
-      <form onSubmit={handleSearchSubmit} className="flex gap-2">
-        <div className="relative flex-1">
+      <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1 w-full">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="text"
@@ -56,9 +56,9 @@ export function HazardFilters({ filters, onFiltersChange }: HazardFiltersProps) 
             className="pl-9"
           />
         </div>
-        <Button type="submit">Buscar</Button>
+        <Button type="submit" className="w-full sm:w-auto">Buscar</Button>
         {hasActiveFilters && (
-          <Button type="button" variant="outline" onClick={handleClearFilters}>
+          <Button type="button" variant="outline" onClick={handleClearFilters} className="w-full sm:w-auto">
             <X className="h-4 w-4 mr-2" />
             Limpiar
           </Button>

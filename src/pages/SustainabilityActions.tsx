@@ -53,7 +53,7 @@ export default function SustainabilityActions() {
   const statusConfig = { propuesta: { label: 'Propuesta', icon: FileText, color: 'text-blue-600 bg-blue-100' }, evaluacion: { label: 'En evaluación', icon: Clock, color: 'text-warning bg-warning/10' }, implementada: { label: 'Implementada', icon: CheckCircle2, color: 'text-success bg-success/10' } };
 
   return (
-    <div className="page-container">
+    <div className="page-container space-y-6">
       <PageHeader title="Medidas Sustentables" description="Gestiona iniciativas para reducir el consumo hídrico" action={
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild><Button><Plus className="w-4 h-4 mr-2" />Nueva Medida</Button></DialogTrigger>

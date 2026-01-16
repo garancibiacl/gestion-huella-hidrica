@@ -54,10 +54,10 @@ export default function Periods() {
   const average = readings.length > 0 ? readings.reduce((s, r) => s + r.consumo_m3, 0) / readings.length : 0;
   const filtered = readings.filter(r => formatPeriod(r.period).toLowerCase().includes(search.toLowerCase()));
 
-  if (loading) return <div className="page-container"><PageHeader title="Períodos de Consumo" /><SkeletonTable rows={6} /></div>;
+  if (loading) return <div className="page-container space-y-6"><PageHeader title="Períodos de Consumo" /><SkeletonTable rows={6} /></div>;
 
   return (
-    <div className="page-container">
+    <div className="page-container space-y-6">
       <PageHeader title="Períodos de Consumo" description="Histórico completo de consumo hídrico por período" />
       
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="stat-card mb-6">

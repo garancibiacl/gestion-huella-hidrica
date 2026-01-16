@@ -728,7 +728,7 @@ export default function ImportData() {
   };
 
   return (
-    <div className="page-container">
+    <div className="page-container space-y-6">
       <PageHeader 
         title="Importar Datos" 
         description="Carga archivos CSV o Excel con información de consumo hídrico" 

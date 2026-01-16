@@ -63,4 +63,9 @@ Identifica diferencias de filtros/períodos y sugiere fix con tests.
 Eliminar todos los datos de water_meter_readings de mi organización y forzar una sincronización limpia desde el Sheet..
 
 Los datos de consumo de agua no están sincronizando correctamente. Necesito forzar una sincronización limpia desde Google Sheets.
+
+
+### 8) Evita el “flash” del empty state en [ruta/componente]. 
+Muestra skeleton mientras organizationId o la query estén loading/fetching, 
+y recién después renderiza “No hay datos”.
 ```

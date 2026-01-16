@@ -140,7 +140,7 @@ export default function HazardDashboardPage() {
   }, [filteredReports]);
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="page-container space-y-6">
       <PageHeader
         title="Dashboard de Peligros Operativo"
         description="Indicadores y tendencias de reportes de peligro"

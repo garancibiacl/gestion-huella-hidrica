@@ -18,7 +18,7 @@ export default function HazardDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="p-4 md:p-6 space-y-6">
+      <div className="page-container space-y-6">
         <PageHeader title="Cargando..." description="Obteniendo detalles del reporte" />
         <div className="text-center py-12">
           <p className="text-muted-foreground">Cargando reporte...</p>
@@ -29,7 +29,7 @@ export default function HazardDetailPage() {
 
   if (!report) {
     return (
-      <div className="p-4 md:p-6 space-y-6">
+      <div className="page-container space-y-6">
         <PageHeader title="Reporte no encontrado" description="El reporte solicitado no existe" />
         <Card className="p-12 text-center">
           <AlertTriangle className="mx-auto h-12 w-12 text-muted-foreground opacity-20 mb-4" />
@@ -50,7 +50,7 @@ export default function HazardDetailPage() {
   const canClose = report.status === 'OPEN';
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="page-container space-y-6">
       <PageHeader
         title={`Reporte de Peligro #${report.id.slice(0, 8)}`}
         description={report.gerencia}

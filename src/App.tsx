@@ -66,6 +66,8 @@ const App = () => (
               <Route path="/admin/usuarios" element={<AdminUsers />} />
               <Route path="/admin/analytics" element={<AdminAnalytics />} />
               <Route path="/admin/riesgos" element={<AdminRisk />} />
+              <Route path="/pls" element={<Navigate to="/admin/pls/hazard-report" replace />} />
+              <Route path="/admin/pls" element={<Navigate to="/admin/pls/hazard-report" replace />} />
               <Route path="/pls/my-activities" element={<PamWorkerTasksPage />} />
               <Route path="/pls/dashboard" element={<PamDashboardPage />} />
               <Route path="/pls/performance" element={<PamPerformancePage />} />
