@@ -125,7 +125,8 @@ export default function WaterDashboard() {
         description: "Eliminando registros antiguos",
       });
 
-      const { data: cleanResult, error: cleanError } = await supabase.rpc(
+      // Use type assertion since the function was just created and types haven't regenerated yet
+      const { data: cleanResult, error: cleanError } = await (supabase.rpc as any)(
         "clean_water_meter_readings_for_org",
         { p_organization_id: organizationId }
       );
@@ -134,7 +135,9 @@ export default function WaterDashboard() {
         throw new Error(`Error al limpiar datos: ${cleanError.message}`);
       }
 
-      const deletedCount = cleanResult?.[0]?.deleted_count || 0;
+      const deletedCount = Array.isArray(cleanResult) 
+        ? (cleanResult[0]?.deleted_count || 0) 
+        : 0;
 
       toast({
         title: "Datos limpiados",
