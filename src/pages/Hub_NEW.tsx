@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { Loader2, Droplets, Shield, Bell } from "lucide-react";
+import { Loader2, Droplets, Shield } from "lucide-react";
 import { ModuleCard } from "@/components/hub/ModuleCard";
 import { AdminQuickActions } from "@/components/hub/AdminQuickActions";
+import { PamNotificationBell } from "@/modules/pam/components/notifications/PamNotificationBell";
+import { HazardNotificationBell } from "@/modules/pam/hazards/components/HazardNotificationBell";
 
 interface Module {
   id: string;
@@ -164,13 +166,10 @@ export default function Hub() {
               <span>SISTEMA OPERATIVO</span>
             </div>
 
-            <button
-              type="button"
-              className="relative inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 hover:text-gray-700 hover:border-gray-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ae3f34]/70"
-              aria-label="Notificaciones"
-            >
-              <Bell className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              <HazardNotificationBell />
+              <PamNotificationBell />
+            </div>
 
             <div className="flex items-center gap-3">
               <div className="hidden sm:flex flex-col items-end leading-tight">
