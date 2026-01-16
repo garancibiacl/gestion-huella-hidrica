@@ -1,0 +1,7 @@
+{
+  "importMap": "../import_map.json",
+  "compilerOptions": {
+    "strict": true,
+    "lib": ["deno.ns", "deno.unstable", "dom", "esnext"]
+  }
+}

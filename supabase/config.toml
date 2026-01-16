@@ -21,3 +21,9 @@ verify_jwt = false
 
 [functions.hazard-due-reminders]
 verify_jwt = false
+
+[functions.notification-email-dispatcher]
+verify_jwt = false
+
+[functions.notification-email-dispatcher.cron]
+schedule = "*/3 * * * *"  # Cada 3 minutos
