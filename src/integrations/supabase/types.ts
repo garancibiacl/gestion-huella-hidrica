@@ -1462,6 +1462,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      clean_water_meter_readings_for_org: {
+        Args: { p_organization_id: string }
+        Returns: {
+          deleted_count: number
+        }[]
+      }
       find_profile_by_email_any_org: {
         Args: { p_email: string }
         Returns: {
