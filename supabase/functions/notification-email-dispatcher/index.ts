@@ -1,32 +1,35 @@
 // ============================================================================
 // NOTIFICATION EMAIL DISPATCHER
 // Edge Function para procesar cola de notificaciones y enviar emails con Resend
-// Ejecutado por cron cada 2-5 minutos
+// Ejecutado por cron cada 3 minutos
 // ============================================================================
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
-import { generateSubject, generateEmailHTML } from './email-templates.ts';
 
 const BATCH_SIZE = 50;
 const MAX_ATTEMPTS = 5;
 const RESEND_API_URL = 'https://api.resend.com/emails';
 
 // ============================================================================
-// TIPOS
+// TIPOS - Coinciden con la tabla notification_outbox
 // ============================================================================
 interface OutboxRecord {
   id: string;
-  organization_id: string;
-  user_id: string | null;
-  recipient_email: string | null;
-  source_table: string;
-  source_id: string;
-  entity_type: 'hazard_report' | 'pam_task';
+  entity_type: 'hazard' | 'pam';
   entity_id: string;
+  notification_id: string;
   notification_type: string;
-  payload: any;
+  recipient_email: string;
+  recipient_name: string | null;
+  subject: string;
+  html_body: string;
+  status: string;
   attempts: number;
+  last_error: string | null;
+  message_id: string | null;
+  created_at: string;
+  sent_at: string | null;
 }
 
 interface ProcessResult {
@@ -36,48 +39,14 @@ interface ProcessResult {
   errors: string[];
 }
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 // ============================================================================
 // FUNCIONES AUXILIARES
 // ============================================================================
-
-/**
- * Resuelve el email del destinatario
- */
-async function resolveRecipientEmail(
-  supabaseClient: any,
-  record: OutboxRecord
-): Promise<string | null> {
-  // 1. Si hay user_id, buscar en profiles
-  if (record.user_id) {
-    const { data: profile, error } = await supabaseClient
-      .from('profiles')
-      .select('email')
-      .eq('user_id', record.user_id)
-      .single();
-    
-    if (!error && profile?.email) {
-      return profile.email;
-    }
-  }
-  
-  // 2. Fallback: recipient_email directo del outbox
-  if (record.recipient_email) {
-    return record.recipient_email;
-  }
-  
-  // 3. Último intento: buscar en auth.users (solo service role puede)
-  if (record.user_id) {
-    const { data: authUser, error } = await supabaseClient.auth.admin.getUserById(
-      record.user_id
-    );
-    
-    if (!error && authUser?.user?.email) {
-      return authUser.user.email;
-    }
-  }
-  
-  return null;
-}
 
 /**
  * Envía email usando Resend API
@@ -90,6 +59,8 @@ async function sendEmailWithResend(params: {
   apiKey: string;
 }): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
+    console.log(`Sending email to ${params.to}: ${params.subject}`);
+    
     const response = await fetch(RESEND_API_URL, {
       method: 'POST',
       headers: {
@@ -114,6 +85,7 @@ async function sendEmailWithResend(params: {
       };
     }
     
+    console.log(`Email sent successfully, message_id: ${result.id}`);
     return {
       success: true,
       messageId: result.id,
@@ -125,97 +97,6 @@ async function sendEmailWithResend(params: {
       error: error.message || 'Unknown error',
     };
   }
-}
-
-/**
- * Procesa un registro del outbox
- */
-async function processOutboxRecord(
-  supabaseClient: any,
-  record: OutboxRecord,
-  config: {
-    resendApiKey: string;
-    resendFrom: string;
-    appBaseUrl: string;
-  }
-): Promise<{ success: boolean; error?: string; messageId?: string }> {
-  try {
-    // 1. Resolver destinatario
-    const recipientEmail = await resolveRecipientEmail(supabaseClient, record);
-    
-    if (!recipientEmail) {
-      return {
-        success: false,
-        error: 'No se pudo resolver el email del destinatario',
-      };
-    }
-    
-    // 2. Construir link a la app
-    const appLink = record.entity_type === 'hazard_report'
-      ? `${config.appBaseUrl}/admin/pls/hazard-report/${record.entity_id}`
-      : `${config.appBaseUrl}/pls/my-activities?task=${record.entity_id}`;
-    
-    // 3. Preparar datos para template
-    const emailData = {
-      recipientName: record.payload.assigneeName || record.payload.responsibleName || 'Usuario',
-      notificationType: record.notification_type,
-      entityType: record.entity_type,
-      payload: record.payload,
-      appLink,
-      organizationName: record.payload.organizationName || 'Buses JM',
-      auditId: record.entity_id.substring(0, 8),
-      timestamp: new Date().toLocaleString('es-CL', {
-        dateStyle: 'long',
-        timeStyle: 'short',
-      }),
-    };
-    
-    // 4. Generar subject y HTML
-    const subject = generateSubject(emailData);
-    const html = generateEmailHTML(emailData);
-    
-    // 5. Enviar email con Resend
-    const sendResult = await sendEmailWithResend({
-      to: recipientEmail,
-      subject,
-      html,
-      from: config.resendFrom,
-      apiKey: config.resendApiKey,
-    });
-    
-    if (!sendResult.success) {
-      return {
-        success: false,
-        error: sendResult.error,
-      };
-    }
-    
-    return {
-      success: true,
-      messageId: sendResult.messageId,
-    };
-  } catch (error: any) {
-    console.error('Error processing outbox record:', error);
-    return {
-      success: false,
-      error: error.message || 'Unknown error',
-    };
-  }
-}
-
-/**
- * Marca registro como processing
- */
-async function markAsProcessing(
-  supabaseClient: any,
-  recordId: string
-): Promise<void> {
-  await supabaseClient
-    .from('notification_outbox')
-    .update({
-      status: 'processing',
-    })
-    .eq('id', recordId);
 }
 
 /**
@@ -235,10 +116,14 @@ async function markAsSent(
     updateData.message_id = messageId;
   }
   
-  await supabaseClient
+  const { error } = await supabaseClient
     .from('notification_outbox')
     .update(updateData)
     .eq('id', recordId);
+    
+  if (error) {
+    console.error(`Error marking record ${recordId} as sent:`, error);
+  }
 }
 
 /**
@@ -259,13 +144,19 @@ async function markAsFailedOrRetry(
     last_error: error,
   };
   
-  await supabaseClient
+  const { error: updateError } = await supabaseClient
     .from('notification_outbox')
     .update(updateData)
     .eq('id', recordId);
   
+  if (updateError) {
+    console.error(`Error updating record ${recordId}:`, updateError);
+  }
+  
   if (!shouldRetry) {
     console.error(`Record ${recordId} marked as failed after ${newAttempts} attempts: ${error}`);
+  } else {
+    console.log(`Record ${recordId} will retry (attempt ${newAttempts}/${MAX_ATTEMPTS})`);
   }
 }
 
@@ -273,43 +164,39 @@ async function markAsFailedOrRetry(
 // HANDLER PRINCIPAL
 // ============================================================================
 serve(async (req: Request) => {
-  // Solo permitir POST (llamado por cron) o GET (para health check)
-  if (req.method !== 'POST' && req.method !== 'GET') {
-    return new Response('Method not allowed', { status: 405 });
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
   }
   
   // Health check
   if (req.method === 'GET') {
-    return new Response(JSON.stringify({ status: 'ok' }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ status: 'ok', service: 'notification-email-dispatcher' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
   
   try {
     // 1. Validar secrets
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
-    const resendFrom = Deno.env.get('RESEND_FROM');
-    const appBaseUrl = Deno.env.get('APP_BASE_URL');
+    const resendFrom = Deno.env.get('RESEND_FROM') || 'HSE Site <noreply@busesjm.cl>';
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    if (!resendApiKey || !resendFrom || !appBaseUrl || !supabaseUrl || !supabaseServiceKey) {
-      console.error('Missing required environment variables');
+    if (!resendApiKey) {
+      console.error('RESEND_API_KEY not configured');
       return new Response(
-        JSON.stringify({
-          error: 'Missing configuration',
-          details: {
-            hasResendApiKey: !!resendApiKey,
-            hasResendFrom: !!resendFrom,
-            hasAppBaseUrl: !!appBaseUrl,
-            hasSupabaseUrl: !!supabaseUrl,
-            hasSupabaseServiceKey: !!supabaseServiceKey,
-          },
-        }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        }
+        JSON.stringify({ error: 'RESEND_API_KEY not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Supabase credentials not configured');
+      return new Response(
+        JSON.stringify({ error: 'Supabase credentials not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
@@ -321,22 +208,20 @@ serve(async (req: Request) => {
       },
     });
     
-    // 3. Obtener registros pending con SKIP LOCKED (concurrency-safe)
+    // 3. Obtener registros pending
     const { data: records, error: selectError } = await supabaseClient
       .from('notification_outbox')
       .select('*')
       .eq('status', 'pending')
+      .lt('attempts', MAX_ATTEMPTS)
       .order('created_at', { ascending: true })
       .limit(BATCH_SIZE);
     
     if (selectError) {
       console.error('Error selecting pending records:', selectError);
       return new Response(
-        JSON.stringify({ error: 'Database error', details: selectError }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        }
+        JSON.stringify({ error: 'Database error', details: selectError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
@@ -344,10 +229,7 @@ serve(async (req: Request) => {
       console.log('No pending notifications to process');
       return new Response(
         JSON.stringify({ message: 'No pending notifications', processed: 0 }),
-        {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
@@ -361,57 +243,60 @@ serve(async (req: Request) => {
     
     console.log(`Processing ${records.length} notifications...`);
     
-    for (const record of records) {
-      // Marcar como processing
-      await markAsProcessing(supabaseClient, record.id);
+    for (const record of records as OutboxRecord[]) {
+      // Validar que tenga email
+      if (!record.recipient_email) {
+        await markAsFailedOrRetry(
+          supabaseClient,
+          record.id,
+          record.attempts,
+          'No recipient email'
+        );
+        result.failed++;
+        result.errors.push(`${record.id}: No recipient email`);
+        continue;
+      }
       
-      // Procesar y enviar email
-      const processResult = await processOutboxRecord(supabaseClient, record as OutboxRecord, {
-        resendApiKey,
-        resendFrom,
-        appBaseUrl,
+      // Enviar email (subject y html_body ya vienen del trigger)
+      const sendResult = await sendEmailWithResend({
+        to: record.recipient_email,
+        subject: record.subject,
+        html: record.html_body,
+        from: resendFrom,
+        apiKey: resendApiKey,
       });
       
-      if (processResult.success) {
-        await markAsSent(supabaseClient, record.id, processResult.messageId);
+      if (sendResult.success) {
+        await markAsSent(supabaseClient, record.id, sendResult.messageId);
         result.sent++;
-        console.log(`✓ Email sent for record ${record.id} (${record.entity_type}/${record.notification_type})`);
+        console.log(`✓ Email sent: ${record.id} (${record.entity_type}/${record.notification_type})`);
       } else {
         await markAsFailedOrRetry(
           supabaseClient,
           record.id,
           record.attempts,
-          processResult.error || 'Unknown error'
+          sendResult.error || 'Unknown error'
         );
         result.failed++;
-        result.errors.push(`${record.id}: ${processResult.error}`);
-        console.error(`✗ Failed to send email for record ${record.id}: ${processResult.error}`);
+        result.errors.push(`${record.id}: ${sendResult.error}`);
+        console.error(`✗ Failed: ${record.id} - ${sendResult.error}`);
       }
     }
     
     console.log(`Batch complete: ${result.sent} sent, ${result.failed} failed`);
     
     // 5. Retornar resultado
-    return new Response(JSON.stringify(result), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify(result),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   } catch (error: any) {
     console.error('Unhandled error in dispatcher:', error);
     return new Response(
-      JSON.stringify({
-        error: 'Internal server error',
-        message: error.message,
-      }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }
+      JSON.stringify({ error: 'Internal server error', message: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
 
-// ============================================================================
-// Log de inicio
-// ============================================================================
-console.log('notification-email-dispatcher started');
+console.log('notification-email-dispatcher v2 started');
