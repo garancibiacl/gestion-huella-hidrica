@@ -28,7 +28,9 @@ export default function HazardListPage() {
   const { data: hierarchy = [], isLoading: hierarchyLoading } = useHazardHierarchy();
   const { data: risks = [], isLoading: risksLoading } = useHazardCriticalRisks();
   const { data: responsibles = [], isLoading: responsiblesLoading } = useHazardResponsibles();
-  const { isSyncing, syncCatalogs } = useHazardCatalogSync();
+  const { isSyncing, syncCatalogs } = useHazardCatalogSync({
+    enabled: !organizationLoading && Boolean(organizationId),
+  });
   const autoSyncOnceRef = useRef(false);
 
   useEffect(() => {
@@ -100,7 +102,7 @@ export default function HazardListPage() {
             <Button
               type="button"
               variant="outline"
-              disabled={isSyncing}
+              disabled={isSyncing || organizationLoading || !organizationId}
               onClick={async () => {
                 if (!organizationId) {
                   toast({

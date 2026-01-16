@@ -11,24 +11,38 @@ import { useToast } from '@/hooks/use-toast';
 import type { CreateHazardReportPayload } from '../types/hazard.types';
 import { addHazardEvidence } from '../services/hazardApi';
 import { useHazardCatalogSync } from '../hooks/useHazardCatalogSync';
+import { useOrganization } from '@/hooks/useOrganization';
+import Swal from 'sweetalert2';
 
 export default function HazardCreatePage() {
   const navigate = useNavigate();
   const createMutation = useCreateHazardReport();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { organizationId, loading: organizationLoading } = useOrganization();
 
   const { data: hierarchy = [], isLoading: hierarchyLoading } = useHazardHierarchy();
   const { data: risks = [], isLoading: risksLoading } = useHazardCriticalRisks();
   const { data: responsibles = [], isLoading: responsiblesLoading } = useHazardResponsibles();
 
-  const { isSyncing, syncCatalogs } = useHazardCatalogSync();
+  const { isSyncing, syncCatalogs } = useHazardCatalogSync({
+    enabled: !organizationLoading && Boolean(organizationId),
+  });
   const autoSyncOnceRef = useRef(false);
 
   useEffect(() => {
     const doneLoading = !hierarchyLoading && !risksLoading && !responsiblesLoading;
     const hasCatalogs = hierarchy.length > 0 && risks.length > 0 && responsibles.length > 0;
-    if (!doneLoading || hasCatalogs || isSyncing || autoSyncOnceRef.current) return;
+    if (
+      !doneLoading ||
+      hasCatalogs ||
+      isSyncing ||
+      autoSyncOnceRef.current ||
+      organizationLoading ||
+      !organizationId
+    ) {
+      return;
+    }
 
     autoSyncOnceRef.current = true;
     (async () => {
@@ -57,6 +71,8 @@ export default function HazardCreatePage() {
     risksLoading,
     responsiblesLoading,
     isSyncing,
+    organizationLoading,
+    organizationId,
     syncCatalogs,
     queryClient,
     toast,
@@ -86,7 +102,22 @@ export default function HazardCreatePage() {
         }
       }
 
-      navigate(`/admin/pls/hazard-report/${report.id}`);
+      const result = await Swal.fire({
+        title: 'Reporte creado',
+        text: 'El reporte de peligro se creó correctamente.',
+        icon: 'success',
+        showCancelButton: true,
+        confirmButtonText: 'Ver reporte',
+        cancelButtonText: 'Seguir aquí',
+        confirmButtonColor: '#0f766e',
+        cancelButtonColor: '#6b7280',
+        reverseButtons: true,
+        focusCancel: true,
+      });
+
+      if (result.isConfirmed) {
+        navigate(`/admin/pls/hazard-report/${report.id}`);
+      }
     } catch (error: any) {
       toast({
         title: 'Error al crear reporte',
@@ -106,7 +137,7 @@ export default function HazardCreatePage() {
             <Button
               type="button"
               variant="outline"
-              disabled={isSyncing}
+              disabled={isSyncing || organizationLoading || !organizationId}
               onClick={async () => {
                 const result = await syncCatalogs(true);
                 await queryClient.invalidateQueries({ queryKey: hazardKeys.catalogs() });
