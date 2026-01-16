@@ -149,17 +149,22 @@ export default function HazardClosePage() {
   }
 
   return (
-    <div className="page-container space-y-6">
-      <PageHeader
-        title={`Cerrar Reporte #${report.id.slice(0, 8)}`}
-        description="Complete la información de cierre del reporte"
-        action={
-          <Button variant="outline" onClick={() => navigate(`/admin/pls/hazard-report/${id}`)}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Volver
-          </Button>
-        }
-      />
+    <div className="bg-[#F4F5F7] min-h-screen">
+      <div className="page-container space-y-6">
+        <div className="mb-10 rounded-2xl border border-gray-100 bg-white px-6 py-4 shadow-[0_18px_45px_rgba(15,23_42,0.12)]">
+          <PageHeader
+            title={`Cerrar Reporte #${report.id.slice(0, 8)}`}
+            description="Complete la información de cierre del reporte"
+            action={
+              <div className="flex flex-wrap items-center justify-end gap-2 mt-4 sm:mt-0">
+                <Button variant="outline" size="sm" className="h-9" onClick={() => navigate(`/admin/pls/hazard-report/${id}`)}>
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Volver
+                </Button>
+              </div>
+            }
+          />
+        </div>
 
       {/* Resumen del reporte */}
       <Card className="p-6">
@@ -328,6 +333,7 @@ export default function HazardClosePage() {
           cerrar el reporte. Puede agregar evidencias desde la página de detalle del reporte.
         </p>
       </Card>
+      </div>
     </div>
   );
 }

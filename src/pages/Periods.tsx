@@ -54,10 +54,20 @@ export default function Periods() {
   const average = readings.length > 0 ? readings.reduce((s, r) => s + r.consumo_m3, 0) / readings.length : 0;
   const filtered = readings.filter(r => formatPeriod(r.period).toLowerCase().includes(search.toLowerCase()));
 
-  if (loading) return <div className="page-container space-y-6"><PageHeader title="Períodos de Consumo" /><SkeletonTable rows={6} /></div>;
+  if (loading) {
+    return (
+      <div className="bg-[#F4F5F7]">
+        <div className="page-container space-y-6">
+          <PageHeader title="Períodos de Consumo" />
+          <SkeletonTable rows={6} />
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="page-container space-y-6">
+    <div className="bg-[#F4F5F7]">
+      <div className="page-container space-y-6">
       <PageHeader title="Períodos de Consumo" description="Histórico completo de consumo hídrico por período" />
       
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="stat-card mb-6">
@@ -111,6 +121,7 @@ export default function Periods() {
         <div className="stat-card"><p className="text-sm text-muted-foreground">Promedio Mensual</p><p className="text-xl font-semibold">{Math.round(average).toLocaleString()} m³</p></div>
         <div className="stat-card"><p className="text-sm text-muted-foreground">Mejor Mes</p><p className="text-xl font-semibold">{readings.length > 0 ? formatPeriod(readings.reduce((min, r) => r.consumo_m3 < min.consumo_m3 ? r : min).period) : '-'}</p></div>
         <div className="stat-card"><p className="text-sm text-muted-foreground">Períodos con Alerta</p><p className="text-xl font-semibold">{readings.filter((_, i) => { const v = getVariation(i); return v !== null && v > 15; }).length} de {readings.length}</p></div>
+      </div>
       </div>
     </div>
   );

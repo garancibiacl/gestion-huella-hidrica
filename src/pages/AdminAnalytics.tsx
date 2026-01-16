@@ -30,6 +30,7 @@ import { useRole } from '@/hooks/useRole';
 import { PageHeader } from '@/components/ui/page-header';
 import { LoaderHourglass } from '@/components/ui/loader-hourglass';
 import RiskPanel from '@/components/admin/RiskPanel';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -333,7 +334,12 @@ export default function AdminAnalytics() {
     <div className="page-container">
       <PageHeader 
         title="Analytics" 
-        description="Métricas de uso y rendimiento de la aplicación" 
+        description="Métricas de uso y rendimiento de la aplicación"
+        action={
+          <Button variant="outline" size="sm" onClick={() => navigate('/hub')}>
+            Volver a módulos
+          </Button>
+        }
       />
 
       {/* Period Selector */}

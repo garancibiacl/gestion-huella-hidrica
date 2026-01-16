@@ -141,45 +141,47 @@ export default function HazardDashboardPage() {
   }, [filteredReports]);
 
   return (
-    <div className="page-container space-y-6">
-      <PageHeader
-        title="Dashboard de Peligros Operativo"
-        description="Indicadores y tendencias de reportes de peligro"
-      />
-
-      <Card className="p-4">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">Período (por plazo)</p>
-            <Select value={periodFilter} onValueChange={(value) => setPeriodFilter(value as PeriodFilter)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona un período" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="year">Año actual</SelectItem>
-                <SelectItem value="month">Mes actual</SelectItem>
-                <SelectItem value="last30">Últimos 30 días</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">Gerencia</p>
-            <Select value={gerenciaFilter} onValueChange={setGerenciaFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todas las gerencias" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas las gerencias</SelectItem>
-                {gerenciaOptions.map((gerencia) => (
-                  <SelectItem key={gerencia} value={gerencia}>
-                    {gerencia}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+    <div className="bg-[#F4F5F7]">
+      <div className="page-container space-y-6">
+        <div className="mb-10 rounded-2xl border border-gray-100 bg-white px-6 py-4 shadow-[0_18px_45px_rgba(15,23,42,0.12)]">
+          <PageHeader
+            title="Dashboard de Peligros Operativo"
+            description="Indicadores y tendencias de reportes de peligro"
+            action={
+              <div className="flex flex-col sm:flex-row items-end gap-3 mt-4 sm:mt-0">
+                <div className="space-y-1 w-full sm:w-40">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Período</p>
+                  <Select value={periodFilter} onValueChange={(value) => setPeriodFilter(value as PeriodFilter)}>
+                    <SelectTrigger className="h-9 bg-gray-50 border-gray-200">
+                      <SelectValue placeholder="Período" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="year">Año actual</SelectItem>
+                      <SelectItem value="month">Mes actual</SelectItem>
+                      <SelectItem value="last30">Últimos 30 días</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1 w-full sm:w-56">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Gerencia</p>
+                  <Select value={gerenciaFilter} onValueChange={setGerenciaFilter}>
+                    <SelectTrigger className="h-9 bg-gray-50 border-gray-200">
+                      <SelectValue placeholder="Todas las gerencias" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas las gerencias</SelectItem>
+                      {gerenciaOptions.map((gerencia) => (
+                        <SelectItem key={gerencia} value={gerencia}>
+                          {gerencia}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            }
+          />
         </div>
-      </Card>
 
       {(isLoading || isFetching) && (
         <div className="space-y-4">
@@ -494,6 +496,7 @@ export default function HazardDashboardPage() {
           </div>
         </>
       )}
+      </div>
     </div>
   );
 }

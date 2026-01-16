@@ -69,3 +69,15 @@ Los datos de consumo de agua no están sincronizando correctamente. Necesito for
 Muestra skeleton mientras organizationId o la query estén loading/fetching, 
 y recién después renderiza “No hay datos”.
 ```
+### 9) Integrar Loader de datos
+
+Integra el loader LoaderHourglass (ldrs/react) en [vista/componente].
+Usa: <LoaderHourglass label="Cargando módulos..." size={40} />
+Debe estar centrado con flex, gap-3 y color #ba4a3f.
+
+
+
+### 10) Aplica el estilo de card de título con className al DashboardHeader y envuelve la vista con fondo #F4F5F7.
+Usa: className="mb-10 flex flex-col items-start justify-between gap-4 rounded-2xl border border-gray-100 bg-white px-6 py-4 shadow-[0_18px_45px_rgba(15,23,42,0.12)] sm:flex-row sm:items-center"
+
+

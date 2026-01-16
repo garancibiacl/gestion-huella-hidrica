@@ -90,74 +90,79 @@ export default function HazardListPage() {
   };
 
   return (
-    <div className="page-container space-y-6">
-      <PageHeader
-        title="Reporte de Peligros"
-        description="Gestión de reportes de peligro y condiciones inseguras"
-        action={
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={isSyncing || organizationLoading || !organizationId}
-              className="w-full sm:w-auto"
-              onClick={async () => {
-                if (!organizationId) {
-                  toast({
-                    title: 'Organización no disponible',
-                    description: 'No se pudo determinar la organización actual.',
-                    variant: 'destructive',
-                  });
-                  return;
-                }
-                const result = await syncCatalogs(true);
-                await queryClient.invalidateQueries({ queryKey: hazardKeys.catalogs() });
-                if (!result.success) {
-                  toast({
-                    title: 'Error al sincronizar catálogos',
-                    description: result.errors?.[0] || 'No se pudo sincronizar',
-                    variant: 'destructive',
-                  });
-                  return;
-                }
-                toast({
-                  title: 'Catálogos sincronizados',
-                  description: `Jerarquía: ${result.hierarchyImported} · Riesgos: ${result.risksImported} · Responsables: ${result.responsiblesImported}`,
-                });
-              }}
-            >
-              {isSyncing ? 'Sincronizando…' : 'Sincronizar catálogos'}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={isMonthlyLoading}
-              className="w-full sm:w-auto"
-              onClick={() => {
-                if (monthlyReports.length === 0) {
-                  toast({
-                    title: 'Sin reportes para el mes',
-                    description: 'No hay reportes de peligro registrados en el período seleccionado.',
-                  });
-                  return;
-                }
-                exportHazardMonthlyReport({
-                  reports: monthlyReports,
-                  organization: 'Buses JM',
-                  dateRange: monthRangeLabel,
-                });
-              }}
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Reporte Mensual
-            </Button>
-            <Button className="w-full sm:w-auto" onClick={() => navigate('/admin/pls/hazard-report/new')}>
-              <Plus className="mr-2 h-4 w-4" />
-              Nuevo Reporte
-            </Button>
-          </div>
-        }
-      />
+    <div className="bg-[#F4F5F7]">
+      <div className="page-container space-y-6">
+        <div className="mb-10 rounded-2xl border border-gray-100 bg-white px-6 py-4 shadow-[0_18px_45px_rgba(15,23,42,0.12)]">
+          <PageHeader
+            title="Reporte de Peligros"
+            description="Gestión de reportes de peligro y condiciones inseguras"
+            action={
+              <div className="flex flex-wrap items-center justify-end gap-2 mt-4 sm:mt-0">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isSyncing || organizationLoading || !organizationId}
+                  className="w-full sm:w-auto h-9"
+                  onClick={async () => {
+                    if (!organizationId) {
+                      toast({
+                        title: 'Organización no disponible',
+                        description: 'No se pudo determinar la organización actual.',
+                        variant: 'destructive',
+                      });
+                      return;
+                    }
+                    const result = await syncCatalogs(true);
+                    await queryClient.invalidateQueries({ queryKey: hazardKeys.catalogs() });
+                    if (!result.success) {
+                      toast({
+                        title: 'Error al sincronizar catálogos',
+                        description: result.errors?.[0] || 'No se pudo sincronizar',
+                        variant: 'destructive',
+                      });
+                      return;
+                    }
+                    toast({
+                      title: 'Catálogos sincronizados',
+                      description: `Jerarquía: ${result.hierarchyImported} · Riesgos: ${result.risksImported} · Responsables: ${result.responsiblesImported}`,
+                    });
+                  }}
+                >
+                  {isSyncing ? 'Sincronizando…' : 'Sincronizar catálogos'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isMonthlyLoading}
+                  className="w-full sm:w-auto h-9"
+                  onClick={() => {
+                    if (monthlyReports.length === 0) {
+                      toast({
+                        title: 'Sin reportes para el mes',
+                        description: 'No hay reportes de peligro registrados en el período seleccionado.',
+                      });
+                      return;
+                    }
+                    exportHazardMonthlyReport({
+                      reports: monthlyReports,
+                      organization: 'Buses JM',
+                      dateRange: monthRangeLabel,
+                    });
+                  }}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Reporte Mensual
+                </Button>
+                <Button size="sm" className="w-full sm:w-auto h-9 shadow-sm" onClick={() => navigate('/admin/pls/hazard-report/new')}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Nuevo Reporte
+                </Button>
+              </div>
+            }
+          />
+        </div>
 
       {/* Estadísticas resumidas */}
       {stats ? (
@@ -348,7 +353,8 @@ export default function HazardListPage() {
             </div>
           )}
         </TabsContent>
-      </Tabs>
+        </Tabs>
+      </div>
     </div>
   );
 }

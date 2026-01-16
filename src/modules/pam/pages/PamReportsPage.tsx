@@ -35,11 +35,14 @@ export default function PamReportsPage() {
   const isLoading = isWeeklyLoading || isMonthlyLoading || isAnnualLoading;
 
   return (
-    <div className="page-container space-y-6">
-      <PageHeader
-        title="Reportabilidad / Safety Intelligence"
-        description="Generación de reportes y análisis de inteligencia de seguridad"
-      />
+    <div className="bg-[#F4F5F7]">
+      <div className="page-container space-y-6">
+        <div className="mb-10 flex flex-col items-start justify-between gap-4 rounded-2xl border border-gray-100 bg-white px-6 py-4 shadow-[0_18px_45px_rgba(15,23,42,0.12)] sm:flex-row sm:items-center">
+          <PageHeader
+            title="Reportabilidad / Safety Intelligence"
+            description="Generación de reportes y análisis de inteligencia de seguridad"
+          />
+        </div>
 
       {isLoading ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -235,6 +238,7 @@ export default function PamReportsPage() {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

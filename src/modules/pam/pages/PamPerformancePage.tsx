@@ -4,11 +4,14 @@ import { TrendingUp, Users, Target, Award } from "lucide-react";
 
 export default function PamPerformancePage() {
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <PageHeader
-        title="Desempeño del PLS"
-        description="Análisis de rendimiento y métricas de desempeño del programa de seguridad"
-      />
+    <div className="bg-[#F4F5F7]">
+      <div className="page-container space-y-6">
+        <div className="mb-10 flex flex-col items-start justify-between gap-4 rounded-2xl border border-gray-100 bg-white px-6 py-4 shadow-[0_18px_45px_rgba(15,23,42,0.12)] sm:flex-row sm:items-center">
+          <PageHeader
+            title="Desempeño del PLS"
+            description="Análisis de rendimiento y métricas de desempeño del programa de seguridad"
+          />
+        </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -74,6 +77,7 @@ export default function PamPerformancePage() {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

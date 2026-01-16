@@ -29,8 +29,10 @@ export default function PamAdminBoardPage() {
 
   if (loading) {
     return (
-      <div className="page-container flex items-center justify-center text-sm text-muted-foreground">
-        Cargando permisos...
+      <div className="bg-[#F4F5F7]">
+        <div className="page-container flex items-center justify-center text-sm text-muted-foreground">
+          Cargando permisos...
+        </div>
       </div>
     );
   }
@@ -40,8 +42,11 @@ export default function PamAdminBoardPage() {
   }
 
   return (
-    <div className="page-container space-y-4">
-      <PageHeader title="Seguimiento PLS" description={week.label} />
+    <div className="bg-[#F4F5F7]">
+      <div className="page-container space-y-4">
+        <div className="mb-10 flex flex-col items-start justify-between gap-4 rounded-2xl border border-gray-100 bg-white px-6 py-4 shadow-[0_18px_45px_rgba(15,23,42,0.12)] sm:flex-row sm:items-center">
+          <PageHeader title="Seguimiento PLS" description={week.label} />
+        </div>
 
       <div className="flex items-center gap-2 flex-wrap">
         <Button variant="outline" size="sm" onClick={week.goToPreviousWeek}>
@@ -224,6 +229,7 @@ export default function PamAdminBoardPage() {
           </TabsContent>
         </Tabs>
       )}
+      </div>
     </div>
   );
 }

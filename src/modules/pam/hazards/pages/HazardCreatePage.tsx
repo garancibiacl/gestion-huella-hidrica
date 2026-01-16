@@ -128,46 +128,52 @@ export default function HazardCreatePage() {
   };
 
   return (
-    <div className="page-container space-y-6">
-      <PageHeader
-        title="Nuevo Reporte de Peligro"
-        description="Complete el formulario para reportar un peligro o condición insegura"
-        action={
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={isSyncing || organizationLoading || !organizationId}
-              onClick={async () => {
-                const result = await syncCatalogs(true);
-                await queryClient.invalidateQueries({ queryKey: hazardKeys.catalogs() });
-                if (!result.success) {
-                  toast({
-                    title: 'Error al sincronizar catálogos',
-                    description: result.errors?.[0] || 'No se pudo sincronizar',
-                    variant: 'destructive',
-                  });
-                  return;
-                }
-                toast({
-                  title: 'Catálogos sincronizados',
-                  description: `Jerarquía: ${result.hierarchyImported} · Riesgos: ${result.risksImported} · Responsables: ${result.responsiblesImported}`,
-                });
-              }}
-            >
-              {isSyncing ? 'Sincronizando…' : 'Sincronizar catálogos'}
-            </Button>
-            <Button variant="outline" onClick={() => navigate('/admin/pls/hazard-report')}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Volver
-            </Button>
-          </div>
-        }
-      />
+    <div className="bg-[#F4F5F7] min-h-screen">
+      <div className="page-container space-y-6">
+        <div className="mb-10 rounded-2xl border border-gray-100 bg-white px-6 py-4 shadow-[0_18px_45px_rgba(15,23,42,0.12)]">
+          <PageHeader
+            title="Nuevo Reporte de Peligro"
+            description="Complete el formulario para reportar un peligro o condición insegura"
+            action={
+              <div className="flex flex-wrap items-center justify-end gap-2 mt-4 sm:mt-0">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full sm:w-auto h-9"
+                  disabled={isSyncing || organizationLoading || !organizationId}
+                  onClick={async () => {
+                    const result = await syncCatalogs(true);
+                    await queryClient.invalidateQueries({ queryKey: hazardKeys.catalogs() });
+                    if (!result.success) {
+                      toast({
+                        title: 'Error al sincronizar catálogos',
+                        description: result.errors?.[0] || 'No se pudo sincronizar',
+                        variant: 'destructive',
+                      });
+                      return;
+                    }
+                    toast({
+                      title: 'Catálogos sincronizados',
+                      description: `Jerarquía: ${result.hierarchyImported} · Riesgos: ${result.risksImported} · Responsables: ${result.responsiblesImported}`,
+                    });
+                  }}
+                >
+                  {isSyncing ? 'Sincronizando…' : 'Sincronizar catálogos'}
+                </Button>
+                <Button className="w-full sm:w-auto h-9" variant="outline" size="sm" onClick={() => navigate('/admin/pls/hazard-report')}>
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Volver
+                </Button>
+              </div>
+            }
+          />
+        </div>
 
-      <Card className="p-6">
-        <HazardForm onSubmit={handleSubmit} isSubmitting={createMutation.isPending} />
-      </Card>
+        <Card className="p-6">
+          <HazardForm onSubmit={handleSubmit} isSubmitting={createMutation.isPending} />
+        </Card>
+      </div>
     </div>
   );
 }

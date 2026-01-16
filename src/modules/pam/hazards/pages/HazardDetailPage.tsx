@@ -50,28 +50,31 @@ export default function HazardDetailPage() {
   const canClose = report.status === 'OPEN';
 
   return (
-    <div className="page-container space-y-6">
-      <PageHeader
-        title={`Reporte de Peligro #${report.id.slice(0, 8)}`}
-        description={report.gerencia}
-        action={
-          <div className="flex gap-2">
-            {canClose && (
-              <Button onClick={() => navigate(`/admin/pls/hazard-report/${report.id}/close`)}>
-                <CheckCircle2 className="mr-2 h-4 w-4" />
-                Cerrar Reporte
-              </Button>
-            )}
-            <Button variant="outline" onClick={() => navigate('/admin/pls/hazard-report')}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Volver
-            </Button>
-          </div>
-        }
-      />
+    <div className="bg-[#F4F5F7] min-h-screen">
+      <div className="page-container space-y-6">
+        <div className="mb-10 rounded-2xl border border-gray-100 bg-white px-6 py-4 shadow-[0_18px_45px_rgba(15,23,42,0.12)]">
+          <PageHeader
+            title={`Reporte de Peligro #${report.id.slice(0, 8)}`}
+            description={report.gerencia}
+            action={
+              <div className="flex flex-wrap items-center justify-end gap-2 mt-4 sm:mt-0">
+                {canClose && (
+                  <Button size="sm" className="h-9 shadow-sm" onClick={() => navigate(`/admin/pls/hazard-report/${report.id}/close`)}>
+                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                    Cerrar Reporte
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" className="h-9" onClick={() => navigate('/admin/pls/hazard-report')}>
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Volver
+                </Button>
+              </div>
+            }
+          />
+        </div>
 
-      {/* Encabezado del reporte */}
-      <Card className="p-6">
+        {/* Encabezado del reporte */}
+        <Card className="p-6">
         <div className="flex items-start justify-between gap-4 mb-4">
           <div className="flex items-center gap-2 flex-wrap">
             <HazardStatusBadge status={report.status} />
@@ -238,10 +241,11 @@ export default function HazardDetailPage() {
         </div>
       </Card>
 
-      {/* Timeline */}
-      <Card className="p-6">
-        <HazardTimeline events={report.events || []} />
-      </Card>
+        {/* Timeline */}
+        <Card className="p-6">
+          <HazardTimeline events={report.events || []} />
+        </Card>
+      </div>
     </div>
   );
 }

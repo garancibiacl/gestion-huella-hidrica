@@ -13,6 +13,7 @@ interface DashboardHeaderProps {
   statusLabel?: string;
   statusDetail?: string;
   statusTone?: StatusTone;
+  className?: string;
 }
 
 const statusToneStyles: Record<StatusTone, string> = {
@@ -29,13 +30,17 @@ export function DashboardHeader({
   statusLabel,
   statusDetail,
   statusTone = "muted",
+  className,
 }: DashboardHeaderProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-      className="flex flex-col gap-4 rounded-2xl border border-border bg-card/80 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between"
+      className={cn(
+        "flex flex-col gap-4 rounded-2xl border border-border bg-card/80 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between",
+        className
+      )}
     >
       <div className="space-y-2">
         <div>

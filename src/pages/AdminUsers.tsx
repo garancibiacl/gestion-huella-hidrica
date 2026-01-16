@@ -418,7 +418,12 @@ export default function AdminUsers() {
     <div className="page-container">
       <PageHeader 
         title="Panel de Administración" 
-        description="Gestiona usuarios, roles y permisos del sistema" 
+        description="Gestiona usuarios, roles y permisos del sistema"
+        action={
+          <Button variant="outline" size="sm" onClick={() => navigate('/hub')}>
+            Volver a módulos
+          </Button>
+        }
       />
 
       {/* Stats Cards */}

@@ -105,11 +105,14 @@ export default function PamWorkerTasksPage() {
   };
 
   return (
-    <div className="page-container space-y-4">
-      <PageHeader
-        title="Mis tareas PLS"
-        description="Tareas asignadas a ti"
-      />
+    <div className="bg-[#F4F5F7]">
+      <div className="page-container space-y-4">
+        <div className="mb-10 flex flex-col items-start justify-between gap-4 rounded-2xl border border-gray-100 bg-white px-6 py-4 shadow-[0_18px_45px_rgba(15,23,42,0.12)] sm:flex-row sm:items-center">
+          <PageHeader
+            title="Mis tareas PLS"
+            description="Tareas asignadas a ti"
+          />
+        </div>
 
       <Card className="p-4">
         <div className="flex flex-wrap items-center gap-3 justify-between">
@@ -230,12 +233,13 @@ export default function PamWorkerTasksPage() {
         </div>
       )}
 
-      <PamEvidenceUploadDialog
-        taskId={selectedTaskId}
-        open={evidenceDialogOpen}
-        onOpenChange={setEvidenceDialogOpen}
-        onEvidenceSaved={handleEvidenceSaved}
-      />
+        <PamEvidenceUploadDialog
+          taskId={selectedTaskId}
+          open={evidenceDialogOpen}
+          onOpenChange={setEvidenceDialogOpen}
+          onEvidenceSaved={handleEvidenceSaved}
+        />
+      </div>
     </div>
   );
 }

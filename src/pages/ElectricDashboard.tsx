@@ -74,11 +74,13 @@ export default function ElectricDashboard() {
   const canSync = isAdmin || isPrevencionista;
 
   return (
-    <div className="page-container space-y-6">
-      <DashboardHeader
+    <div className="bg-[#F4F5F7]">
+      <div className="page-container space-y-6">
+        <DashboardHeader
         title="Dashboard Energía Eléctrica"
         description="Monitoreo de consumo eléctrico por medidor"
         narrative="Este mes puedes revisar consumo, costos y emisiones para priorizar acciones de eficiencia."
+        className="mb-10 flex flex-col items-start justify-between gap-4 rounded-2xl border border-gray-100 bg-white px-6 py-4 shadow-[0_18px_45px_rgba(15,23,42,0.12)] sm:flex-row sm:items-center"
         action={
           canSync ? (
             <Button
@@ -103,7 +105,7 @@ export default function ElectricDashboard() {
         }
       />
 
-      <motion.div
+        <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         className="mb-6"
@@ -148,7 +150,8 @@ export default function ElectricDashboard() {
             <ElectricConsumptionHistory key={`history-${refreshKey}`} />
           </TabsContent>
         </Tabs>
-      </motion.div>
+        </motion.div>
+      </div>
     </div>
   );
 }

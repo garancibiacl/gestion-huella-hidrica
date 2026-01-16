@@ -208,7 +208,8 @@ export default function ImportPetroleum() {
   };
 
   return (
-    <div className="page-container space-y-6">
+    <div className="bg-[#F4F5F7]">
+      <div className="page-container space-y-6">
       <PageHeader
         title="Importar datos de Petróleo"
         description="Sube tu archivo de consumo de petróleo para sincronizarlo con el dashboard y la huella de carbono."
@@ -344,6 +345,7 @@ export default function ImportPetroleum() {
             </Table>
           </div>
         </motion.div>
+      </div>
       </div>
     </div>
   );

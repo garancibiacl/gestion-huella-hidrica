@@ -163,26 +163,31 @@ export default function PetroleumDashboard() {
 
   if (loading) {
     return (
-      <div className="page-container flex items-center justify-center py-12">
-        <LoaderHourglass label="Preparando datos de petróleo" />
+      <div className="bg-[#F4F5F7]">
+        <div className="page-container flex items-center justify-center py-12">
+          <LoaderHourglass label="Preparando datos de petróleo" />
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="page-container">
-        <DashboardHeader
-          title="Dashboard Petróleo"
-          description="Monitoreo de consumo de combustibles fósiles y su huella de carbono."
-        />
-        <div className="mt-6">
-          <EmptyState
-            title="No pudimos cargar los datos"
-            description={error}
-            icon={<Factory className="h-10 w-10 text-destructive" />}
-            tone="error"
+      <div className="bg-[#F4F5F7]">
+        <div className="page-container">
+          <DashboardHeader
+            title="Dashboard Petróleo"
+            description="Monitoreo de consumo de combustibles fósiles y su huella de carbono."
+            className="mb-10 flex flex-col items-start justify-between gap-4 rounded-2xl border border-gray-100 bg-white px-6 py-4 shadow-[0_18px_45px_rgba(15,23,42,0.12)] sm:flex-row sm:items-center"
           />
+          <div className="mt-6">
+            <EmptyState
+              title="No pudimos cargar los datos"
+              description={error}
+              icon={<Factory className="h-10 w-10 text-destructive" />}
+              tone="error"
+            />
+          </div>
         </div>
       </div>
     );
@@ -192,11 +197,13 @@ export default function PetroleumDashboard() {
   const totalEmissionsTons = hasData ? filteredMetrics!.totalEmissionsKgCO2e / 1000 : 0;
 
   return (
-    <div className="page-container space-y-6">
-      <DashboardHeader
+    <div className="bg-[#F4F5F7]">
+      <div className="page-container space-y-6">
+        <DashboardHeader
         title="Dashboard Petróleo"
         description="Consumo de combustibles fósiles, costos asociados y huella de carbono."
         narrative="Este mes puedes revisar consumo, costos y huella para orientar planes de eficiencia."
+        className="mb-10 flex flex-col items-start justify-between gap-4 rounded-2xl border border-gray-100 bg-white px-6 py-4 shadow-[0_18px_45px_rgba(15,23,42,0.12)] sm:flex-row sm:items-center"
         action={
           <div className="flex flex-wrap items-center gap-3">
             <Button
@@ -240,7 +247,7 @@ export default function PetroleumDashboard() {
             ? 'Sin sincronizaciones recientes'
             : undefined
         }
-      />
+        />
 
       <Tabs defaultValue="consumo" className="w-full">
         <TabsList className="flex w-full max-w-full gap-2 overflow-x-auto rounded-xl bg-muted/60 p-1">
@@ -804,6 +811,7 @@ export default function PetroleumDashboard() {
           )}
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }

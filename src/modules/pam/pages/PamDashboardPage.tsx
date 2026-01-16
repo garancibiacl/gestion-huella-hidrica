@@ -137,7 +137,8 @@ export default function PamDashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="page-container space-y-6">
+      <div className="bg-[#F4F5F7]">
+        <div className="page-container space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-2">
             <Skeleton className="h-7 w-56" />
@@ -171,24 +172,27 @@ export default function PamDashboardPage() {
             </Card>
           ))}
         </div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-6">
-        <Card className="border-destructive">
-          <CardHeader>
-            <CardTitle className="text-destructive">Error al cargar métricas</CardTitle>
-            <CardDescription>{error}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={refetch} variant="outline">
-              Reintentar
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="bg-[#F4F5F7]">
+        <div className="page-container">
+          <Card className="border-destructive">
+            <CardHeader>
+              <CardTitle className="text-destructive">Error al cargar métricas</CardTitle>
+              <CardDescription>{error}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={refetch} variant="outline">
+                Reintentar
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -197,23 +201,24 @@ export default function PamDashboardPage() {
   const isGoodCompliance = compliancePercentage >= 80;
 
   return (
-    <div className="page-container space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <PageHeader
-          title="Dashboard Ejecutivo PLS"
-          description={`Semana ${week.weekNumber}, ${week.weekYear}`}
-        />
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportExcel}>
-            <FileDown className="w-4 h-4 mr-2" />
-            Excel
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleExportPDF}>
-            <FileDown className="w-4 h-4 mr-2" />
-            PDF
-          </Button>
+    <div className="bg-[#F4F5F7]">
+      <div className="page-container space-y-6">
+        <div className="mb-10 flex flex-col items-start justify-between gap-4 rounded-2xl border border-gray-100 bg-white px-6 py-4 shadow-[0_18px_45px_rgba(15,23,42,0.12)] sm:flex-row sm:items-center">
+          <PageHeader
+            title="Dashboard Ejecutivo PLS"
+            description={`Semana ${week.weekNumber}, ${week.weekYear}`}
+          />
+          <div className="flex flex-wrap items-center justify-end gap-2 w-full sm:w-auto">
+            <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={handleExportExcel}>
+              <FileDown className="w-4 h-4 mr-2" />
+              Excel
+            </Button>
+            <Button variant="outline" size="sm" className="w-full sm:w-auto" onClick={handleExportPDF}>
+              <FileDown className="w-4 h-4 mr-2" />
+              PDF
+            </Button>
+          </div>
         </div>
-      </div>
 
       <div className="flex items-center gap-2">
         <Button variant="outline" size="sm" onClick={week.goToPreviousWeek}>
@@ -414,6 +419,7 @@ export default function PamDashboardPage() {
           </Card>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }

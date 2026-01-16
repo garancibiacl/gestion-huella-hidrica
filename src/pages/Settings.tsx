@@ -138,7 +138,8 @@ export default function Settings() {
   };
 
   return (
-    <div className="page-container">
+    <div className="bg-[#F4F5F7]">
+      <div className="page-container">
       <PageHeader title="Configuración" description="Datos de tu cuenta y parámetros del sistema" />
 
       <div className="space-y-6 max-w-2xl">
@@ -242,6 +243,7 @@ export default function Settings() {
         </motion.div>
 
         <Button onClick={handleSave} disabled={loading} className="w-full sm:w-auto"><Save className="w-4 h-4 mr-2" />{loading ? 'Guardando...' : 'Guardar cambios'}</Button>
+      </div>
       </div>
     </div>
   );

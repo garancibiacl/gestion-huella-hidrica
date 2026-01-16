@@ -96,11 +96,13 @@ export default function WaterDashboard() {
   const canSync = isAdmin || isPrevencionista;
 
   return (
-    <div className="page-container space-y-6">
+    <div className="bg-[#F4F5F7]">
+      <div className="page-container space-y-6">
       <DashboardHeader
         title="Dashboard Agua"
         description="Monitoreo de consumo hídrico por medidor y consumo humano"
         narrative="Este mes estás consolidando consumo, costos y señales de riesgo para tomar decisiones con mayor seguridad."
+        className="mb-10 flex flex-col items-start justify-between gap-4 rounded-2xl border border-gray-100 bg-white px-6 py-4 shadow-[0_18px_45px_rgba(15,23,42,0.12)] sm:flex-row sm:items-center"
         action={
           canSync ? (
             <Button
@@ -129,7 +131,7 @@ export default function WaterDashboard() {
         }
       />
 
-      <motion.div
+        <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         className="mb-6"
@@ -187,7 +189,8 @@ export default function WaterDashboard() {
             <WaterConsumptionHistory />
           </TabsContent>
         </Tabs>
-      </motion.div>
+        </motion.div>
+      </div>
     </div>
   );
 }
