@@ -702,6 +702,95 @@ export type Database = {
           },
         ]
       }
+      notification_email_settings: {
+        Row: {
+          created_at: string
+          hazard_emails_enabled: boolean
+          id: string
+          organization_id: string
+          pam_emails_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          hazard_emails_enabled?: boolean
+          id?: string
+          organization_id: string
+          pam_emails_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          hazard_emails_enabled?: boolean
+          id?: string
+          organization_id?: string
+          pam_emails_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_email_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_outbox: {
+        Row: {
+          attempts: number
+          created_at: string
+          entity_id: string
+          entity_type: string
+          html_body: string
+          id: string
+          last_error: string | null
+          message_id: string | null
+          notification_id: string
+          notification_type: string
+          recipient_email: string
+          recipient_name: string | null
+          sent_at: string | null
+          status: string
+          subject: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          html_body: string
+          id?: string
+          last_error?: string | null
+          message_id?: string | null
+          notification_id: string
+          notification_type: string
+          recipient_email: string
+          recipient_name?: string | null
+          sent_at?: string | null
+          status?: string
+          subject: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          html_body?: string
+          id?: string
+          last_error?: string | null
+          message_id?: string | null
+          notification_id?: string
+          notification_type?: string
+          recipient_email?: string
+          recipient_name?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string
+        }
+        Relationships: []
+      }
       organizations: {
         Row: {
           created_at: string
