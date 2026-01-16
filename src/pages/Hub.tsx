@@ -152,8 +152,18 @@ export default function Hub() {
     );
   }
 
-  const userName = profile?.full_name?.split(' ')[0] || user.email?.split('@')[0] || 'Usuario';
-  const userDisplayName = profile?.full_name || user.email || 'Usuario JM';
+  const formatDisplayName = (value: string) => {
+    if (!value) return 'Usuario';
+    if (value.includes('@')) return value.split('@')[0];
+    return value
+      .split(' ')
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  const userDisplayName = formatDisplayName(profile?.full_name || user.email || 'Usuario JM');
+  const userName = userDisplayName.split(' ')[0] || 'Usuario';
   const userRole = profile?.role || 'worker';
   const isAdmin = userRole === 'admin';
   
