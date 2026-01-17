@@ -356,10 +356,11 @@ serve(async (req: Request) => {
         let html: string;
         
         // Si ya viene html_body pre-renderizado y no es placeholder, usarlo
-        const hasPrerenderedHtml = record.html_body && 
-          record.html_body.length > 100 && 
-          !record.html_body.includes('Prueba de email');
-        
+        const isPlaceholder = !record.html_body || 
+          record.html_body === 'GENERATE' ||
+          record.html_body.length < 100 || 
+          record.html_body.includes('Prueba de email');
+        const hasPrerenderedHtml = !isPlaceholder;
         if (hasPrerenderedHtml && record.subject) {
           // Usar contenido pre-renderizado
           subject = record.subject;
