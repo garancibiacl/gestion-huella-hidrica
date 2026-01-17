@@ -252,8 +252,12 @@ serve(async (req: Request) => {
     
     // 1. Validar secrets
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
+<<<<<<< HEAD
     const resendFrom = Deno.env.get('RESEND_FROM') || 'JM HSE <noreply@busesjm.cl>';
     const appBaseUrl = Deno.env.get('APP_BASE_URL') || 'https://app.busesjm.cl';
+=======
+    const resendFrom = Deno.env.get('RESEND_FROM') || 'HSE Site <onboarding@resend.dev>';
+>>>>>>> a8d1a44a603b805d7c1b44a5eab69b73d2d3dc5a
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
