@@ -47,6 +47,17 @@ interface HazardReportData {
   created_at: string;
 }
 
+interface PamTaskData {
+  id: string;
+  description: string;
+  location: string | null;
+  risk_type: string | null;
+  end_date: string | null;
+  date: string;
+  created_at: string;
+  assignee_name: string | null;
+}
+
 interface ProcessResult {
   processed: number;
   sent: number;
@@ -70,27 +81,21 @@ async function resolveRecipient(
   supabaseClient: any,
   record: OutboxRecord
 ): Promise<{ email: string; name: string }> {
-  // 1. Si ya viene en el registro, usar ese
-  if (record.recipient_email) {
-    // Usar nombre del registro si existe
-    if (record.recipient_name) {
-      return { email: record.recipient_email, name: record.recipient_name };
-    }
-    
-    // Buscar en profiles por email
-    const { data: profile } = await supabaseClient
-      .from('profiles')
-      .select('full_name')
-      .eq('email', record.recipient_email)
-      .single();
-    
-    return {
-      email: record.recipient_email,
-      name: profile?.full_name || 'Usuario',
-    };
+  if (!record.recipient_email) {
+    throw new Error('No se especificó recipient_email');
   }
-  
-  throw new Error('No se especificó recipient_email');
+
+  // Priorizar el nombre real desde profiles si existe
+  const { data: profile } = await supabaseClient
+    .from('profiles')
+    .select('full_name')
+    .eq('email', record.recipient_email)
+    .single();
+
+  return {
+    email: record.recipient_email,
+    name: profile?.full_name || record.recipient_name || 'Usuario',
+  };
 }
 
 /**
@@ -145,6 +150,36 @@ async function fetchHazardReportData(
     closing_responsible_name: data.closing_responsible?.full_name || null,
     created_at: data.created_at,
   } as HazardReportData;
+}
+
+/**
+ * Obtiene datos de pam_tasks para generar email dinámico
+ */
+async function fetchPamTaskData(
+  supabaseClient: any,
+  taskId: string
+): Promise<PamTaskData | null> {
+  const { data, error } = await supabaseClient
+    .from('pam_tasks')
+    .select(`
+      id,
+      description,
+      location,
+      risk_type,
+      end_date,
+      date,
+      created_at,
+      assignee_name
+    `)
+    .eq('id', taskId)
+    .single();
+
+  if (error || !data) {
+    console.error(`Error fetching pam_task ${taskId}:`, error);
+    return null;
+  }
+
+  return data as PamTaskData;
 }
 
 /**
@@ -328,6 +363,10 @@ serve(async (req: Request) => {
         persistSession: false,
       },
     });
+
+    const templateMode = (Deno.env.get('EMAIL_TEMPLATE_MODE') || 'v3').toLowerCase();
+    const forceTemplateV3 = templateMode !== 'legacy';
+    console.log(`🧩 Email template mode: ${templateMode}`);
     
     // 3. Obtener registros pending (con FOR UPDATE SKIP LOCKED para concurrencia)
     const { data: records, error: selectError } = await supabaseClient
@@ -375,63 +414,87 @@ serve(async (req: Request) => {
         // 4.3 Determinar subject y HTML
         let subject: string;
         let html: string;
-        
-        // Si ya viene html_body pre-renderizado y no es placeholder, usarlo
-        const isPlaceholder = !record.html_body || 
+
+        // Forzar plantilla v3 salvo que se solicite explícitamente modo legacy
+        const isPlaceholder = !record.html_body ||
           record.html_body === 'GENERATE' ||
-          record.html_body.length < 100 || 
+          record.html_body.length < 100 ||
           record.html_body.includes('Prueba de email');
-        const hasPrerenderedHtml = !isPlaceholder;
-        if (hasPrerenderedHtml && record.subject) {
-          // Usar contenido pre-renderizado
-          subject = record.subject;
+        const hasPrerenderedHtml = !isPlaceholder && !!record.subject;
+        const canUseLegacyHtml = !forceTemplateV3 && hasPrerenderedHtml;
+
+        if (canUseLegacyHtml) {
+          subject = record.subject!;
           html = record.html_body!;
-          console.log(`📄 Using pre-rendered HTML for ${record.id}`);
+          console.log(`📄 Using legacy HTML for ${record.id}`);
         } else {
-          // Generar dinámicamente con las plantillas nuevas
-          console.log(`🎨 Generating dynamic HTML for ${record.id}`);
-          
-          // Fetch hazard report data
-          const reportData = await fetchHazardReportData(supabaseClient, record.entity_id);
-          
-          if (!reportData) {
-            throw new Error(`No se pudo obtener datos del reporte ${record.entity_id}`);
+          console.log(`🎨 Generating v3 HTML for ${record.id}`);
+
+          if (record.entity_type === 'hazard_report') {
+            const reportData = await fetchHazardReportData(supabaseClient, record.entity_id);
+
+            if (!reportData) {
+              throw new Error(`No se pudo obtener datos del reporte ${record.entity_id}`);
+            }
+
+            const payload: import('./email-templates.ts').EmailNotificationPayload = {
+              type: record.notification_type,
+              title: record.notification_type.includes('assigned')
+                ? 'Nuevo Reporte de Peligro Asignado'
+                : record.notification_type.includes('due')
+                  ? 'Reporte Próximo a Vencer'
+                  : record.notification_type.includes('overdue')
+                    ? 'Reporte VENCIDO'
+                    : record.notification_type.includes('closed')
+                      ? 'Reporte Cerrado - Requiere Verificación'
+                      : 'Notificación de Reporte',
+              message: reportData.description,
+              reportId: reportData.id,
+              description: reportData.description,
+              dueDate: reportData.due_date,
+              riskLabel: reportData.critical_risk_name || undefined,
+              faena: reportData.faena || undefined,
+              hierarchySummary: [
+                reportData.gerencia,
+                reportData.proceso,
+                reportData.actividad
+              ].filter(Boolean).join(' / ') || undefined,
+              createdAt: reportData.created_at,
+              verificationResponsibleName: reportData.verification_responsible_name || undefined,
+            };
+
+            subject = generateEmailSubject(record.notification_type, payload);
+            html = generateEmailHtml(record.notification_type, payload, recipient.name, ctaUrl);
+          } else if (record.entity_type === 'pam_task') {
+            const taskData = await fetchPamTaskData(supabaseClient, record.entity_id);
+
+            if (!taskData) {
+              throw new Error(`No se pudo obtener datos de la tarea ${record.entity_id}`);
+            }
+
+            const payload: import('./email-templates.ts').EmailNotificationPayload = {
+              type: record.notification_type,
+              title: record.notification_type.includes('assigned')
+                ? 'Nueva Tarea Asignada'
+                : record.notification_type.includes('due')
+                  ? 'Tarea Próxima a Vencer'
+                  : record.notification_type.includes('overdue')
+                    ? 'Tarea VENCIDA'
+                    : 'Notificación de Tarea',
+              message: taskData.description,
+              taskId: taskData.id,
+              description: taskData.description,
+              dueDate: taskData.end_date || taskData.date,
+              location: taskData.location || undefined,
+              riskType: taskData.risk_type || undefined,
+              createdAt: taskData.created_at,
+            };
+
+            subject = generateEmailSubject(record.notification_type, payload);
+            html = generateEmailHtml(record.notification_type, payload, recipient.name, ctaUrl);
+          } else {
+            throw new Error(`Tipo de entidad no soportado: ${record.entity_type}`);
           }
-          
-          // Construir payload para las plantillas
-          const payload: import('./email-templates.ts').EmailNotificationPayload = {
-            type: record.notification_type,
-            title: record.notification_type.includes('assigned') 
-              ? 'Nuevo Reporte de Peligro Asignado'
-              : record.notification_type.includes('due') 
-                ? 'Reporte Próximo a Vencer'
-                : record.notification_type.includes('overdue')
-                  ? 'Reporte VENCIDO'
-                  : record.notification_type.includes('closed')
-                    ? 'Reporte Cerrado - Requiere Verificación'
-                    : 'Notificación de Reporte',
-            message: reportData.description,
-            reportId: reportData.id,
-            description: reportData.description,
-            dueDate: reportData.due_date,
-            riskLabel: reportData.critical_risk_name || undefined,
-            faena: reportData.faena || undefined,
-            hierarchySummary: [
-              reportData.gerencia,
-              reportData.proceso,
-              reportData.actividad
-            ].filter(Boolean).join(' / ') || undefined,
-            createdAt: reportData.created_at,
-            verificationResponsibleName: reportData.verification_responsible_name || undefined,
-          };
-          
-          subject = generateEmailSubject(record.notification_type, payload);
-          html = generateEmailHtml(
-            record.notification_type,
-            payload,
-            recipient.name,
-            ctaUrl
-          );
         }
         
         // 4.4 Enviar email
