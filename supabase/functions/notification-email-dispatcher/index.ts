@@ -13,24 +13,37 @@ const MAX_ATTEMPTS = 5;
 const RESEND_API_URL = 'https://api.resend.com/emails';
 
 // ============================================================================
-// TIPOS - Coinciden con la tabla notification_outbox
+// TIPOS - Coinciden con la tabla notification_outbox REAL
 // ============================================================================
 interface OutboxRecord {
   id: string;
-  organization_id: string;
-  user_id: string | null;
-  recipient_email: string | null;
-  source_table: string;
-  source_id: string;
   entity_type: string;
   entity_id: string;
+  notification_id: string;
   notification_type: string;
-  channel: string;
+  recipient_email: string | null;
+  recipient_name: string | null;
+  subject: string | null;
+  html_body: string | null;
   status: string;
   attempts: number;
   last_error: string | null;
+  message_id: string | null;
+  created_at: string;
   sent_at: string | null;
-  payload: Record<string, any>;
+}
+
+interface HazardReportData {
+  id: string;
+  description: string;
+  faena: string | null;
+  gerencia: string;
+  proceso: string | null;
+  actividad: string | null;
+  due_date: string;
+  critical_risk_name: string | null;
+  verification_responsible_name: string | null;
+  closing_responsible_name: string | null;
   created_at: string;
 }
 
@@ -59,10 +72,9 @@ async function resolveRecipient(
 ): Promise<{ email: string; name: string }> {
   // 1. Si ya viene en el registro, usar ese
   if (record.recipient_email) {
-    // Buscar nombre en profiles si no viene en payload
-    const recipientName = record.payload?.recipientName;
-    if (recipientName) {
-      return { email: record.recipient_email, name: recipientName };
+    // Usar nombre del registro si existe
+    if (record.recipient_name) {
+      return { email: record.recipient_email, name: record.recipient_name };
     }
     
     // Buscar en profiles por email
@@ -78,25 +90,40 @@ async function resolveRecipient(
     };
   }
   
-  // 2. Si no viene email pero sí user_id, buscar en profiles
-  if (record.user_id) {
-    const { data: profile, error } = await supabaseClient
-      .from('profiles')
-      .select('email, full_name')
-      .eq('user_id', record.user_id)
-      .single();
-    
-    if (error || !profile?.email) {
-      throw new Error('No se pudo resolver el email del destinatario');
-    }
-    
-    return {
-      email: profile.email,
-      name: profile.full_name || 'Usuario',
-    };
+  throw new Error('No se especificó recipient_email');
+}
+
+/**
+ * Obtiene datos del hazard_report para generar email dinámico
+ */
+async function fetchHazardReportData(
+  supabaseClient: any,
+  reportId: string
+): Promise<HazardReportData | null> {
+  const { data, error } = await supabaseClient
+    .from('hazard_reports')
+    .select(`
+      id,
+      description,
+      faena,
+      gerencia,
+      proceso,
+      actividad,
+      due_date,
+      critical_risk_name,
+      verification_responsible_name,
+      closing_responsible_name,
+      created_at
+    `)
+    .eq('id', reportId)
+    .single();
+  
+  if (error || !data) {
+    console.error(`Error fetching hazard_report ${reportId}:`, error);
+    return null;
   }
   
-  throw new Error('No se especificó recipient_email ni user_id');
+  return data as HazardReportData;
 }
 
 /**
@@ -324,16 +351,62 @@ serve(async (req: Request) => {
         // 4.2 Generar CTA URL
         const ctaUrl = generateCtaUrl(record, appBaseUrl);
         
-        // 4.3 Generar subject y HTML usando las plantillas
-        // Cast payload to expected type (validated at runtime by the templates)
-        const payload = record.payload as import('./email-templates.ts').EmailNotificationPayload;
-        const subject = generateEmailSubject(record.notification_type, payload);
-        const html = generateEmailHtml(
-          record.notification_type,
-          payload,
-          recipient.name,
-          ctaUrl
-        );
+        // 4.3 Determinar subject y HTML
+        let subject: string;
+        let html: string;
+        
+        // Si ya viene html_body pre-renderizado y no es placeholder, usarlo
+        const hasPrerenderedHtml = record.html_body && 
+          record.html_body.length > 100 && 
+          !record.html_body.includes('Prueba de email');
+        
+        if (hasPrerenderedHtml && record.subject) {
+          // Usar contenido pre-renderizado
+          subject = record.subject;
+          html = record.html_body!;
+          console.log(`📄 Using pre-rendered HTML for ${record.id}`);
+        } else {
+          // Generar dinámicamente con las plantillas nuevas
+          console.log(`🎨 Generating dynamic HTML for ${record.id}`);
+          
+          // Fetch hazard report data
+          const reportData = await fetchHazardReportData(supabaseClient, record.entity_id);
+          
+          if (!reportData) {
+            throw new Error(`No se pudo obtener datos del reporte ${record.entity_id}`);
+          }
+          
+          // Construir payload para las plantillas
+          const payload: import('./email-templates.ts').EmailNotificationPayload = {
+            type: record.notification_type,
+            title: record.notification_type.includes('assigned') 
+              ? 'Nuevo Reporte de Peligro Asignado'
+              : record.notification_type.includes('due') 
+                ? 'Reporte Próximo a Vencer'
+                : 'Notificación de Reporte',
+            message: reportData.description,
+            reportId: reportData.id,
+            description: reportData.description,
+            dueDate: reportData.due_date,
+            riskLabel: reportData.critical_risk_name || undefined,
+            faena: reportData.faena || undefined,
+            hierarchySummary: [
+              reportData.gerencia,
+              reportData.proceso,
+              reportData.actividad
+            ].filter(Boolean).join(' > ') || undefined,
+            createdAt: reportData.created_at,
+            verificationResponsibleName: reportData.verification_responsible_name || undefined,
+          };
+          
+          subject = generateEmailSubject(record.notification_type, payload);
+          html = generateEmailHtml(
+            record.notification_type,
+            payload,
+            recipient.name,
+            ctaUrl
+          );
+        }
         
         // 4.4 Enviar email
         const sendResult = await sendEmailWithResend({
