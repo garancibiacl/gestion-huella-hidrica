@@ -325,10 +325,12 @@ serve(async (req: Request) => {
         const ctaUrl = generateCtaUrl(record, appBaseUrl);
         
         // 4.3 Generar subject y HTML usando las plantillas
-        const subject = generateEmailSubject(record.notification_type, record.payload);
+        // Cast payload to expected type (validated at runtime by the templates)
+        const payload = record.payload as import('./email-templates.ts').EmailNotificationPayload;
+        const subject = generateEmailSubject(record.notification_type, payload);
         const html = generateEmailHtml(
           record.notification_type,
-          record.payload,
+          payload,
           recipient.name,
           ctaUrl
         );
