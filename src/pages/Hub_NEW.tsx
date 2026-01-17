@@ -105,9 +105,19 @@ export default function Hub() {
     );
   }
 
-  const userName = profile?.full_name?.split(' ')[0] || user.email?.split('@')[0] || 'Usuario';
+  const formatDisplayName = (value: string | undefined | null) => {
+    if (!value) return 'Usuario';
+    const source = value.includes('@') ? value.split('@')[0] : value;
+    return source
+      .split(' ')
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  const userDisplayName = formatDisplayName(profile?.full_name || user.email || 'Usuario JM');
+  const userName = userDisplayName.split(' ')[0] || 'Usuario';
   const userRole = profile?.role || 'worker';
-  const userDisplayName = profile?.full_name || user.email || 'Usuario JM';
   const userInitials = userDisplayName
     .split(' ')
     .filter(Boolean)

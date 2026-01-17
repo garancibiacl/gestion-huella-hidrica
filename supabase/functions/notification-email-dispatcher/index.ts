@@ -106,14 +106,22 @@ async function fetchHazardReportData(
       id,
       description,
       faena,
-      gerencia,
-      proceso,
-      actividad,
       due_date,
-      critical_risk_name,
-      verification_responsible_name,
-      closing_responsible_name,
-      created_at
+      created_at,
+      hazard_catalog_hierarchy:hierarchy_id (
+        gerencia,
+        proceso,
+        actividad
+      ),
+      hazard_critical_risks:critical_risk_id (
+        name
+      ),
+      closing_responsible:closing_responsible_id (
+        full_name
+      ),
+      verification_responsible:verification_responsible_id (
+        full_name
+      )
     `)
     .eq('id', reportId)
     .single();
@@ -123,7 +131,20 @@ async function fetchHazardReportData(
     return null;
   }
   
-  return data as HazardReportData;
+  // Mapear a la estructura esperada
+  return {
+    id: data.id,
+    description: data.description,
+    faena: data.faena,
+    gerencia: data.hazard_catalog_hierarchy?.gerencia || '',
+    proceso: data.hazard_catalog_hierarchy?.proceso || null,
+    actividad: data.hazard_catalog_hierarchy?.actividad || null,
+    due_date: data.due_date,
+    critical_risk_name: data.hazard_critical_risks?.name || null,
+    verification_responsible_name: data.verification_responsible?.full_name || null,
+    closing_responsible_name: data.closing_responsible?.full_name || null,
+    created_at: data.created_at,
+  } as HazardReportData;
 }
 
 /**
@@ -384,7 +405,11 @@ serve(async (req: Request) => {
               ? 'Nuevo Reporte de Peligro Asignado'
               : record.notification_type.includes('due') 
                 ? 'Reporte Próximo a Vencer'
-                : 'Notificación de Reporte',
+                : record.notification_type.includes('overdue')
+                  ? 'Reporte VENCIDO'
+                  : record.notification_type.includes('closed')
+                    ? 'Reporte Cerrado - Requiere Verificación'
+                    : 'Notificación de Reporte',
             message: reportData.description,
             reportId: reportData.id,
             description: reportData.description,
@@ -395,7 +420,7 @@ serve(async (req: Request) => {
               reportData.gerencia,
               reportData.proceso,
               reportData.actividad
-            ].filter(Boolean).join(' > ') || undefined,
+            ].filter(Boolean).join(' / ') || undefined,
             createdAt: reportData.created_at,
             verificationResponsibleName: reportData.verification_responsible_name || undefined,
           };

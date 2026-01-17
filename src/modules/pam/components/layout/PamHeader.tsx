@@ -29,12 +29,19 @@ export function PamHeader({ onMenuClick, className }: PamHeaderProps) {
   const { isAdmin, isPrevencionista } = useRole();
 
   // Derivar nombre y iniciales del usuario
-  const rawName = (user?.user_metadata && (user.user_metadata as any).full_name) || user?.email || 'Usuario';
-  const fullName = rawName
-    .split(' ')
-    .filter(Boolean)
-    .map((part: string) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-    .join(' ');
+  const formatDisplayName = (value: string | undefined | null) => {
+    if (!value) return 'Usuario';
+    const source = value.includes('@') ? value.split('@')[0] : value;
+    return source
+      .split(' ')
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  const fullName = formatDisplayName(
+    (user?.user_metadata as { full_name?: string } | undefined)?.full_name || user?.email
+  );
   
   const initials = fullName
     .split(' ')
