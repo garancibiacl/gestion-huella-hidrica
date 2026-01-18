@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -9,6 +9,7 @@ import { PamNotificationBell } from "@/modules/pam/components/notifications/PamN
 import { HazardNotificationBell } from "@/modules/pam/hazards/components/HazardNotificationBell";
 import { Button } from "@/components/ui/button";
 import { LoaderHourglass } from "@/components/ui/loader-hourglass";
+import Swal from "sweetalert2";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -112,6 +113,7 @@ export default function Hub() {
   const { user, loading: authLoading, signOut } = useAuth();
   const { organizationId, loading: orgLoading } = useOrganization();
   const { profile, loading: profileLoading } = useUserProfile();
+  const welcomeShownRef = useRef(false);
 
   const loading = authLoading || orgLoading || profileLoading;
 
@@ -131,6 +133,30 @@ export default function Hub() {
       navigate(availableModules[0].path, { replace: true });
     }
   }, [loading, availableModules, navigate]);
+
+  useEffect(() => {
+    if (loading || !user || welcomeShownRef.current) return;
+    const suppressed = localStorage.getItem("hub_welcome_suppressed") === "true";
+    if (suppressed) return;
+    welcomeShownRef.current = true;
+
+    Swal.fire({
+      title: `Bienvenido, ${userDisplayName}`,
+      text: "Gestiona Seguridad (PLS) y Ambiental en un solo lugar.",
+      icon: "info",
+      confirmButtonText: "Ir al Hub",
+      confirmButtonColor: "#b3382a",
+      focusConfirm: true,
+      allowOutsideClick: false,
+      allowEscapeKey: true,
+      input: "checkbox",
+      inputPlaceholder: "No mostrar de nuevo",
+    }).then((result) => {
+      if (result.value) {
+        localStorage.setItem("hub_welcome_suppressed", "true");
+      }
+    });
+  }, [loading, user]);
 
   if (loading) {
     return (
